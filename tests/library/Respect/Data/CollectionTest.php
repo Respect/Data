@@ -144,12 +144,12 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
     {
         $persisted = new \stdClass();
         $result = 'result stub';
+        $collection = new Collection('name_whatever');
         $mapperMock = $this->getMockForAbstractClass('Respect\Data\AbstractMapper');
         $mapperMock->expects($this->once())
                    ->method('persist')
-                   ->with($persisted, 'name_whatever')
+                   ->with($persisted, $collection)
                    ->will($this->returnValue($result));
-        $collection = new Collection('name_whatever');
         $collection->setMapper($mapperMock);
         $collection->persist($persisted);
     }
@@ -158,12 +158,12 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
     {
         $removed = new \stdClass();
         $result = 'result stub';
+        $collection = new Collection('name_whatever');
         $mapperMock = $this->getMockForAbstractClass('Respect\Data\AbstractMapper');
         $mapperMock->expects($this->once())
                    ->method('remove')
-                   ->with($removed, 'name_whatever')
+                   ->with($removed, $collection)
                    ->will($this->returnValue($result));
-        $collection = new Collection('name_whatever');
         $collection->setMapper($mapperMock);
         $collection->remove($removed);
     }

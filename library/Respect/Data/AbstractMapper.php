@@ -8,13 +8,13 @@ abstract class AbstractMapper
 
     protected $collections = array();
 
-    abstract public function persist($object, $oncollection);
+    abstract public function persist($object, Collection $onCollection);
 
-    abstract public function remove($object, $fromCollection);
+    abstract public function remove($object, Collection $fromCollection);
 
-    abstract public function fetch($fromCollection, $withExtra=null);
+    abstract public function fetch(Collection $fromCollection, $withExtra=null);
 
-    abstract public function fetchAll($fromCollection, $withExtra=null);
+    abstract public function fetchAll(Collection $fromCollection, $withExtra=null);
 
     public function __get($name)
     {

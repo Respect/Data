@@ -67,7 +67,7 @@ class Collection implements ArrayAccess
         foreach($this->children as $child)
             $child->persist($object->{"{$child->getName()}_id"});
         
-        return $this->mapper->persist($object, $this->name);
+        return $this->mapper->persist($object, $this);
     }
     
     public function remove($object)
@@ -75,7 +75,7 @@ class Collection implements ArrayAccess
         if (!$this->mapper)
             throw new \RuntimeException;
 
-        return $this->mapper->remove($object, $this->name);
+        return $this->mapper->remove($object, $this);
     }
 
     public function fetch($extra=null)
