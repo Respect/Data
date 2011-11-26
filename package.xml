@@ -10,11 +10,11 @@
     <email>alexandre@gaigalas.net</email>
     <active>yes</active>
   </lead>
-  <date>1970-01-01</date>
-  <time>00:00:01</time>
+  <date>2011-11-26</date>
+  <time>16:44:56</time>
   <version>
-    <release>0.1.0</release>
-    <api>0.1.0</api>
+    <release>0.1.1</release>
+    <api>0.1.1</api>
   </version>
   <stability>
     <release>alpha</release>
@@ -24,6 +24,9 @@
   <notes>-</notes>
   <contents>
     <dir name="library/Respect/Data" baseinstalldir="Respect/Data">
+      <file role="php" baseinstalldir="Respect/Data" install-as="/CollectionIterator.php" name="library/Respect/Data/CollectionIterator.php"/>
+      <file role="php" baseinstalldir="Respect/Data" install-as="/AbstractMapper.php" name="library/Respect/Data/AbstractMapper.php"/>
+      <file role="php" baseinstalldir="Respect/Data" install-as="/Collection.php" name="library/Respect/Data/Collection.php"/>
     </dir>
   </contents>
   <dependencies>
@@ -42,6 +45,17 @@
       <version>
         <release>0.1.0</release>
         <api>0.1.0</api>
+      </version>
+      <stability>
+        <release>alpha</release>
+        <api>alpha</api>
+      </stability>
+      <license uri="http://www.opensource.org/licenses/bsd-license.php">BSD Style</license>
+    </release>
+    <release>
+      <version>
+        <release>0.1.1</release>
+        <api>0.1.1</api>
       </version>
       <stability>
         <release>alpha</release>
