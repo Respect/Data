@@ -8,16 +8,16 @@ use RecursiveIteratorIterator;
 class CollectionIterator extends RecursiveArrayIterator
 {
 
-    protected $nameCount = array();
+    protected $namesCounts = array();
 
     public static function recursive($target)
     {
         return new RecursiveIteratorIterator(new static($target), 1);
     }
 
-    public function __construct($target, &$nameCount=array())
+    public function __construct($target=array(), &$namesCounts=array())
     {
-        $this->nameCount = &$nameCount;
+        $this->namesCounts = &$namesCounts;
         parent::__construct(is_array($target) ? $target : array($target));
     }
 
@@ -25,17 +25,16 @@ class CollectionIterator extends RecursiveArrayIterator
     {
         $name = $this->current()->getName();
 
-        if (isset($this->nameCount[$name]))
-            return $name . ++$this->nameCount[$name];
+        if (isset($this->namesCounts[$name]))
+            return $name . ++$this->namesCounts[$name];
 
-        $this->nameCount[$name] = 1;
+        $this->namesCounts[$name] = 1;
         return $name;
     }
 
     public function hasChildren()
     {
-        $c = $this->current();
-        return (boolean) $c->hasChildren() || $c->hasNext();
+        return $this->current()->hasMore();
     }
 
     public function getChildren()
@@ -49,7 +48,7 @@ class CollectionIterator extends RecursiveArrayIterator
         if ($c->hasNext())
             $pool[] = $c->getNext();
 
-        return new static($pool, $this->nameCount);
+        return new static($pool, $this->namesCounts);
     }
 
 }

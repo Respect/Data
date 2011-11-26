@@ -3,27 +3,35 @@
 namespace Respect\Data;
 
 
-class AbstractMapper
+abstract class AbstractMapper
 {
 
-    protected $collections;
+    protected $collections = array();
+
+    abstract public function persist($object, $oncollection);
+
+    abstract public function remove($object, $fromCollection);
+
+    abstract public function fetch($fromCollection, $withExtra=null);
+
+    abstract public function fetchAll($fromCollection, $withExtra=null);
 
     public function __get($name)
     {
         if (isset($this->collections[$name]))
             return $this->collections[$name];
-                
+
         $this->collections[$name] = new Collection($name);
         $this->collections[$name]->setMapper($this);
 
         return $this->collections[$name];
     }
-    
-    public function __set($name, $collection) 
+
+    public function __set($alias, $collection)
     {
-        return $this->registerCollection($name, $collection);
+        return $this->registerCollection($alias, $collection);
     }
-    
+
     public function __call($name, $children)
     {
         $collection = Collection::__callstatic($name, $children);
@@ -31,9 +39,9 @@ class AbstractMapper
         return $collection;
     }
 
-    public function registerCollection($name, Collection $collection)
+    public function registerCollection($alias, Collection $collection)
     {
-        $this->collections[$name] = $collection;
+        $this->collections[$alias] = $collection;
     }
 
 }

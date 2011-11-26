@@ -144,11 +144,11 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
     {
         $persisted = new \stdClass();
         $result = 'result stub';
-        $mapperMock = $this->getMock('Respect\Data\AbstractMapper', array('persist'));
+        $mapperMock = $this->getMockForAbstractClass('Respect\Data\AbstractMapper');
         $mapperMock->expects($this->once())
-               ->method('persist')
-               ->with($persisted, 'name_whatever')
-               ->will($this->returnValue($result));
+                   ->method('persist')
+                   ->with($persisted, 'name_whatever')
+                   ->will($this->returnValue($result));
         $collection = new Collection('name_whatever');
         $collection->setMapper($mapperMock);
         $collection->persist($persisted);
@@ -158,11 +158,11 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
     {
         $removed = new \stdClass();
         $result = 'result stub';
-        $mapperMock = $this->getMock('Respect\Data\AbstractMapper', array('remove'));
+        $mapperMock = $this->getMockForAbstractClass('Respect\Data\AbstractMapper');
         $mapperMock->expects($this->once())
-               ->method('remove')
-               ->with($removed, 'name_whatever')
-               ->will($this->returnValue($result));
+                   ->method('remove')
+                   ->with($removed, 'name_whatever')
+                   ->will($this->returnValue($result));
         $collection = new Collection('name_whatever');
         $collection->setMapper($mapperMock);
         $collection->remove($removed);
@@ -172,11 +172,11 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
     {
         $result = 'result stub';
         $collection = new Collection('name_whatever');
-        $mapperMock = $this->getMock('Respect\Data\AbstractMapper', array('fetch'));
+        $mapperMock = $this->getMockForAbstractClass('Respect\Data\AbstractMapper');
         $mapperMock->expects($this->once())
-               ->method('fetch')
-               ->with($collection)
-               ->will($this->returnValue($result));
+                   ->method('fetch')
+                   ->with($collection)
+                   ->will($this->returnValue($result));
         $collection->setMapper($mapperMock);
         $collection->fetch();
     }
@@ -186,11 +186,11 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
         $result = 'result stub';
         $extra = 'extra stub';
         $collection = new Collection('name_whatever');
-        $mapperMock = $this->getMock('Respect\Data\AbstractMapper', array('fetch'));
+        $mapperMock = $this->getMockForAbstractClass('Respect\Data\AbstractMapper');
         $mapperMock->expects($this->once())
-               ->method('fetch', $extra)
-               ->with($collection)
-               ->will($this->returnValue($result));
+                   ->method('fetch', $extra)
+                   ->with($collection)
+                   ->will($this->returnValue($result));
         $collection->setMapper($mapperMock);
         $collection->fetch($extra);
     }
@@ -198,11 +198,11 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
     {
         $result = 'result stub';
         $collection = new Collection('name_whatever');
-        $mapperMock = $this->getMock('Respect\Data\AbstractMapper', array('fetchAll'));
+        $mapperMock = $this->getMockForAbstractClass('Respect\Data\AbstractMapper');
         $mapperMock->expects($this->once())
-               ->method('fetchAll')
-               ->with($collection)
-               ->will($this->returnValue($result));
+                   ->method('fetchAll')
+                   ->with($collection)
+                   ->will($this->returnValue($result));
         $collection->setMapper($mapperMock);
         $collection->fetchAll();
     }
@@ -212,11 +212,11 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
         $result = 'result stub';
         $extra = 'extra stub';
         $collection = new Collection('name_whatever');
-        $mapperMock = $this->getMock('Respect\Data\AbstractMapper', array('fetchAll'));
+        $mapperMock = $this->getMockForAbstractClass('Respect\Data\AbstractMapper');
         $mapperMock->expects($this->once())
-               ->method('fetchAll', $extra)
-               ->with($collection)
-               ->will($this->returnValue($result));
+                   ->method('fetchAll', $extra)
+                   ->with($collection)
+                   ->will($this->returnValue($result));
         $collection->setMapper($mapperMock);
         $collection->fetchAll($extra);
     }
