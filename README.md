@@ -6,6 +6,11 @@ even mix out MySQL and MongoDB databases in a single model.
 
 **This project is a work in progress**
 
+Installation
+------------
+
+Please use PEAR. More instructions on the [Respect PEAR channel](http://respect.li/pear)
+
 Collections
 -----------
 
