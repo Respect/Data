@@ -106,7 +106,8 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
     {
         $coll = new Collection('foo_collection');
         $coll->addChild(new Collection('bar_child'));
-        $child = reset($coll->getChildren());
+        $child = $coll->getChildren();
+        $child = reset($child);
         $this->assertEquals(false, $child->isRequired());
         $this->assertEquals($coll->getName(), $child->getParentName());
     }
