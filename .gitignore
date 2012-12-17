@@ -21,3 +21,4 @@ pirum
 *.deb
 *.rpm
 *.tgz
+.foundation

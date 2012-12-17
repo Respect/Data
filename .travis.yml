@@ -1,7 +1,12 @@
-language: php
-script: make test
+language:
+  php
+
+before_script:
+  "make foundation"
+
+script:
+  "make test"
 
 php:
   - 5.3
   - 5.4
-
