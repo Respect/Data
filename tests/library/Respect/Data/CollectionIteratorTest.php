@@ -2,6 +2,8 @@
 
 namespace Respect\Data;
 
+use Respect\Data\Collections\Collection;
+
 class CollectionIteratorTest extends \PHPUnit_Framework_TestCase
 {
     function test_static_builder_should_create_recursive_iterator()
