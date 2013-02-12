@@ -16,20 +16,21 @@ class Collection implements ArrayAccess
     protected $next;
     protected $last;
     protected $children = array();
-
-    public static function __callStatic($name, $children)
+    
+    public static function using($condition)
     {
-        $collection = new static($name);
-
-        foreach ($children as $child)
-            if ($child instanceof Collection)
-                $collection->addChild($child);
-            else
-                $collection->setCondition($child);
+        $collection = new self;
+        $collection->setCondition($condition);
         return $collection;
     }
 
-    public function __construct($name, $condition = array())
+    public static function __callStatic($name, $children)
+    {
+        $collection = new self();
+        return $collection->__call($name, $children);
+    }
+
+    public function __construct($name=null, $condition = array())
     {
         $this->name = $name;
         $this->condition = $condition;
@@ -38,12 +39,23 @@ class Collection implements ArrayAccess
 
     public function __get($name)
     {
-        return $this->stack(new static($name));
+        return $this->stack(new self($name));
     }
 
     public function __call($name, $children)
     {
-        $collection = static::__callStatic($name, $children);
+        if (!isset($this->name)) {
+            $this->name = $name;
+            foreach ($children as $child) {
+                if ($child instanceof Collection)
+                    $this->addChild($child);
+                else
+                    $this->setCondition($child);
+            }
+            return $this;
+        }
+        
+        $collection = self::__callStatic($name, $children);
 
         return $this->stack($collection);
     }

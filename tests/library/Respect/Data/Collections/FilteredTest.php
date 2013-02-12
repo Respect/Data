@@ -8,8 +8,9 @@ class FilteredTest extends \PHPUnit_Framework_TestCase
     {
         $children_1 = Filtered::by('bar')->bar();
         $children_2 = Filtered::by('bat')->baz()->bat();
-        $coll = Collection::foo($children_1, $children_2);
+        $coll = Collection::foo($children_1, $children_2)->bar();
         $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll);
+        $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll->getNext());
         $this->assertInstanceOf('Respect\Data\Collections\Filtered', $children_1);
         $this->assertInstanceOf('Respect\Data\Collections\Filtered', $children_2);
         $this->assertTrue($coll->hasChildren());

@@ -3,19 +3,19 @@
 namespace Respect\Data\Collections;
 
 class Filtered extends Collection
-{
-    private $filters = array();
-    
-    public static function by($filter=null, $otherFilter=null, $etc=null)
+{   
+    protected $filters = array();
+   
+    public static function by()
     {
-        $instance = new static();
-        $instance->setFilters(func_get_args());
-        return $instance;
+        $collection = new static;
+        $collection->setFilters(func_get_args());
+        return $collection;
     }
-    
-    public function __construct($filter=null, $otherFilter=null, $etc=null)
+
+    public function setFilters(array $filters)
     {
-        $this->filters = func_get_args();
+        return $this->filters = $filters;
     }
     
     public function getFilters()
@@ -23,14 +23,4 @@ class Filtered extends Collection
         return $this->filters;
     }
     
-    public function setFilters(array $filters = array()) 
-    {
-        $this->filters = $filters;
-    }
-    
-    protected function stack(Collection $collection)
-    {
-        $this->last = $collection;
-        return $this;
-    }
 }
