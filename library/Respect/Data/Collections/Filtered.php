@@ -3,30 +3,18 @@
 namespace Respect\Data\Collections;
 
 class Filtered extends Collection
-{   
-    protected $filters = array();
-    
+{
     public static function __callStatic($name, $children)
     {
         $collection = new self();
+        $collection->extra('filters', array());
         return $collection->__call($name, $children);
     }
     
-    public static function by()
+    public static function by($name)
     {
-        $collection = new static;
-        $collection->setFilters(func_get_args());
+        $collection = new Collection;
+        $collection->extra('filters', func_get_args());
         return $collection;
-    }
-
-    public function setFilters(array $filters)
-    {
-        return $this->filters = $filters;
-    }
-    
-    public function getFilters()
-    {
-        return $this->filters;
-    }
-    
+    }   
 }

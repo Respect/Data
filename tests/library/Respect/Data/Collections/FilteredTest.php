@@ -11,12 +11,12 @@ class FilteredTest extends \PHPUnit_Framework_TestCase
         $coll = Collection::foo($children_1, $children_2)->bar();
         $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll);
         $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll->getNext());
-        $this->assertInstanceOf('Respect\Data\Collections\Filtered', $children_1);
-        $this->assertInstanceOf('Respect\Data\Collections\Filtered', $children_2);
+        $this->assertInstanceOf('Respect\Data\Collections\Collection', $children_1);
+        $this->assertInstanceOf('Respect\Data\Collections\Collection', $children_2);
         $this->assertTrue($coll->hasChildren());
         $this->assertEquals(2, count($coll->getChildren()));
-        $this->assertEquals(array('bar'), $children_1->getFilters());
-        $this->assertEquals(array('bat'), $children_2->getFilters());
+        $this->assertEquals(array('bar'), $children_1->getExtra('filters'));
+        $this->assertEquals(array('bat'), $children_2->getExtra('filters'));
     }
    
 }

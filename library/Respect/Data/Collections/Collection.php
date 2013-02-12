@@ -16,8 +16,25 @@ class Collection implements ArrayAccess
     protected $next;
     protected $last;
     protected $children = array();
+    protected $extras = array();
     
+    public function extra($name, array $specs)
+    {
+        $this->extras[$name] = $specs;
+    }
     
+    public function getExtra($name)
+    {
+        if ($this->have($name)) {
+            return $this->extras[$name];
+        }
+    }
+    
+    public function have($name)
+    {
+        return isset($this->extras[$name]);
+    }
+ 
     public static function using($condition)
     {
         $collection = new self;
