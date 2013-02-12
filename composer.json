@@ -1,24 +1,36 @@
 {
-    "name": "Respect/Data",
-    "version": "0.1.7",
+    "name": "Respect\/Data",
+    "description": "Persistence simplified",
+    "version": "0.1.6",
     "type": "library",
-    "description": "Persistence simplified.",
-    "keywords": ["respect", "database", "persistence"],
-    "homepage": "https://github.com/Respect/Data",
-    "license": "BSD-3-Clause",
-    "autoload": {
-        "psr-0": {
-            "Respect\\Data": "library/"
-        }
-    },
-    "authors" : [
+    "time": "2013-02-12 17:25:35",
+    "homepage": "",
+    "license": "BSD Style",
+    "authors": [
         {
-            "name": "Alexandre Gomes Gaigalas",
-            "email": "alexandre@gaigalas.net"
+            "name": "Rogerio Prado de Jesus",
+            "email": "rogeriopradoj@gmail.com"
+        },
+        {
+            "name": "Nick Lombard",
+            "email": "github@jigsoft.co.za"
+        },
+        {
+            "name": "Henrique Moody",
+            "email": "henriquemoody@gmail.com"
         },
         {
             "name": "Augusto Pascutti",
             "email": "augusto@phpsp.org.br"
+        },
+        {
+            "name": "Alexandre",
+            "email": "alexandre@gaigalas.net"
         }
-    ]
+    ],
+    "autoload": {
+        "psr-0": {
+            "Respect\\Data": "library\/"
+        }
+    }
 }

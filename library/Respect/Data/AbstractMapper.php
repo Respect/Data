@@ -42,6 +42,7 @@ abstract class AbstractMapper
 
     public function registerCollection($alias, Collection $collection)
     {
+        $collection->setMapper($this);
         $this->collections[$alias] = $collection;
     }
 

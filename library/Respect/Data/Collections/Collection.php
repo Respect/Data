@@ -207,7 +207,7 @@ class Collection implements ArrayAccess
         $this->required = $required;
     }
 
-    protected function stack(Collection $collection)
+    public function stack(Collection $collection)
     {
         $this->last->setNext($collection);
         $this->last = $collection;

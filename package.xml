@@ -1,17 +1,41 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<package xmlns="http://pear.php.net/dtd/package-2.0" xmlns:tasks="http://pear.php.net/dtd/tasks-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" packagerversion="1.9.4" version="2.0" xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0     http://pear.php.net/dtd/tasks-1.0.xsd     http://pear.php.net/dtd/package-2.0     http://pear.php.net/dtd/package-2.0.xsd">
+<?xml version="1.0"?>
+<package xmlns="http://pear.php.net/dtd/package-2.0" xmlns:tasks="http://pear.php.net/dtd/tasks-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" packagerversion="1.4.10" version="2.0" xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0               http://pear.php.net/dtd/tasks-1.0.xsd               http://pear.php.net/dtd/package-2.0               http://pear.php.net/dtd/package-2.0.xsd">
   <name>Data</name>
   <channel>respect.li/pear</channel>
   <summary>Persistence simplified</summary>
   <description>Persistence simplified</description>
   <lead>
-    <name>Alexandre Gaigalas</name>
-    <user>alganet</user>
+    <name>Rogerio Prado de Jesus</name>
+    <user/>
+    <email>rogeriopradoj@gmail.com</email>
+    <active>yes</active>
+  </lead>
+  <lead>
+    <name>Nick Lombard</name>
+    <user/>
+    <email>github@jigsoft.co.za</email>
+    <active>yes</active>
+  </lead>
+  <lead>
+    <name>Henrique Moody</name>
+    <user/>
+    <email>henriquemoody@gmail.com</email>
+    <active>yes</active>
+  </lead>
+  <lead>
+    <name>Augusto Pascutti</name>
+    <user/>
+    <email>augusto@phpsp.org.br</email>
+    <active>yes</active>
+  </lead>
+  <lead>
+    <name>Alexandre</name>
+    <user/>
     <email>alexandre@gaigalas.net</email>
     <active>yes</active>
   </lead>
-  <date>2011-12-23</date>
-  <time>19:48:15</time>
+  <date>2013-02-12</date>
+  <time>17:25:35</time>
   <version>
     <release>0.1.6</release>
     <api>0.1.6</api>
@@ -20,13 +44,45 @@
     <release>alpha</release>
     <api>alpha</api>
   </stability>
-  <license uri="http://www.opensource.org/licenses/bsd-license.php">BSD Style</license>
+  <license>BSD Style</license>
   <notes>-</notes>
   <contents>
-    <dir name="library/Respect/Data" baseinstalldir="Respect/Data">
-      <file role="php" baseinstalldir="Respect/Data" name="library/Respect/Data/AbstractMapper.php"/>
-      <file role="php" baseinstalldir="Respect/Data" name="library/Respect/Data/Collection.php"/>
-      <file role="php" baseinstalldir="Respect/Data" name="library/Respect/Data/CollectionIterator.php"/>
+    <dir name="/">
+      <file name="tests/phpunit.xml" role="test" md5sum="03642477f5a201be9c3161eb64dde993"/>
+      <file name="tests/bootstrap.php" role="test" md5sum="ffb90e53f1cbb127fa5b2c70f5e42ae2"/>
+      <file name="tests/reports/coverage/RGraph.common.tooltips.js" role="test" md5sum="8799096b8fb0fe6ec57c742599133033"/>
+      <file name="tests/reports/coverage/CollectionIterator.php.html" role="test" md5sum="fb5cc1e915e97b5520ed937524f5c1cd"/>
+      <file name="tests/reports/coverage/scarlet_red.png" role="test" md5sum="e7e94dd89a3b37b6d8bae1cfc1c00be5"/>
+      <file name="tests/reports/coverage/glass.png" role="test" md5sum="d0bcded9081d6a0efda48c495867da73"/>
+      <file name="tests/reports/coverage/index.dashboard.html" role="test" md5sum="ffe2199b8bbe89afab124c46a4f3fc6e"/>
+      <file name="tests/reports/coverage/RGraph.bar.js" role="test" md5sum="04b016bffec84f84504febcbcdb6325e"/>
+      <file name="tests/reports/coverage/index.html" role="test" md5sum="b722e064418fb9181942422c77bbd6a5"/>
+      <file name="tests/reports/coverage/close12_1.gif" role="test" md5sum="770d9c592b4300457ae025448c4c6816"/>
+      <file name="tests/reports/coverage/container.css" role="test" md5sum="495d2ec9631eb89063bdd9d70bd731dc"/>
+      <file name="tests/reports/coverage/directory.png" role="test" md5sum="0c2ea106ded3a3b443ad39e3eddcd7a6"/>
+      <file name="tests/reports/coverage/chameleon.png" role="test" md5sum="24abc354105ffce45a55cf5a0949527b"/>
+      <file name="tests/reports/coverage/highcharts.js" role="test" md5sum="08cdf43b4ba8ce789f86a30a09071ca8"/>
+      <file name="tests/reports/coverage/style.css" role="test" md5sum="6720298ca22a5214a2e9f8fdb279fbd3"/>
+      <file name="tests/reports/coverage/butter.png" role="test" md5sum="521e849d37d1f1e3b769ccc7138c69c1"/>
+      <file name="tests/reports/coverage/file.png" role="test" md5sum="6983bd4ac09f5135eb128cbdf0ceadfe"/>
+      <file name="tests/reports/coverage/RGraph.common.core.js" role="test" md5sum="7faf61dd758ec519388ca70e3159587e"/>
+      <file name="tests/reports/coverage/excanvas.compressed.js" role="test" md5sum="7306e67e87b1de0be3f126d3fe77e905"/>
+      <file name="tests/reports/coverage/RGraph.scatter.js" role="test" md5sum="b0382e9598572eac713d7699f3f82d92"/>
+      <file name="tests/reports/coverage/snow.png" role="test" md5sum="3d0fcd32ed86be159672d1fe52f8d3cc"/>
+      <file name="tests/reports/coverage/Collection.php.html" role="test" md5sum="545d02801ccc7c6a127a86494f854770"/>
+      <file name="tests/reports/coverage/jquery.min.js" role="test" md5sum="0efa3b9aa0f509043308e7c6e23538f8"/>
+      <file name="tests/reports/coverage/yahoo-dom-event.js" role="test" md5sum="366eac96e298168d2c923fcb556fa259"/>
+      <file name="tests/reports/coverage/AbstractMapper.php.html" role="test" md5sum="996e027abef4873a9ada68094ef48cc3"/>
+      <file name="tests/reports/coverage/container-min.js" role="test" md5sum="5511b676a4961a0dfb52e1f64ce65a7a"/>
+      <file name="tests/library/Respect/Data/AbstractMapperTest.php" role="test" md5sum="27ac05f5114871fa0712916aae1f0146"/>
+      <file name="tests/library/Respect/Data/CollectionIteratorTest.php" role="test" md5sum="2bdeac0aa2bdfb7fe555847289bbda5b"/>
+      <file name="tests/library/Respect/Data/Collections/CollectionTest.php" role="test" md5sum="d89a37a88f056a95a3e3ffa6b91306b1"/>
+      <file name="tests/library/Respect/Data/Collections/FilteredTest.php" role="test" md5sum="ffb2fd5379e7451fba3fda553f05d827"/>
+      <file name="library/Respect/Data/CollectionIterator.php" role="php" md5sum="efa3833abafaa55987b99660d946b2c6"/>
+      <file name="library/Respect/Data/AbstractMapper.php" role="php" md5sum="307160f9de51c588d4a86877c469e542"/>
+      <file name="library/Respect/Data/Collections/Filtered.php" role="php" md5sum="5d2b64d594b7841351ff7cf029000e5b"/>
+      <file name="library/Respect/Data/Collections/Collection.php" role="php" md5sum="01b5810dfd6e0dae753c95b8698a10a9"/>
+      <file name="bin/pear-package.php" role="script" md5sum="42c713fcd7a6c60493e1735d52c43046"/>
     </dir>
   </contents>
   <dependencies>
@@ -35,87 +91,47 @@
         <min>5.3</min>
       </php>
       <pearinstaller>
-        <min>1.4.0</min>
+        <min>1.4.1</min>
       </pearinstaller>
     </required>
   </dependencies>
   <phprelease>
     <filelist>
-      <install as="/AbstractMapper.php" name="library/Respect/Data/AbstractMapper.php"/>
-      <install as="/Collection.php" name="library/Respect/Data/Collection.php"/>
-      <install as="/CollectionIterator.php" name="library/Respect/Data/CollectionIterator.php"/>
+      <install name="tests/phpunit.xml" as="phpunit.xml"/>
+      <install name="tests/bootstrap.php" as="bootstrap.php"/>
+      <install name="tests/reports/coverage/RGraph.common.tooltips.js" as="reports/coverage/RGraph.common.tooltips.js"/>
+      <install name="tests/reports/coverage/CollectionIterator.php.html" as="reports/coverage/CollectionIterator.php.html"/>
+      <install name="tests/reports/coverage/scarlet_red.png" as="reports/coverage/scarlet_red.png"/>
+      <install name="tests/reports/coverage/glass.png" as="reports/coverage/glass.png"/>
+      <install name="tests/reports/coverage/index.dashboard.html" as="reports/coverage/index.dashboard.html"/>
+      <install name="tests/reports/coverage/RGraph.bar.js" as="reports/coverage/RGraph.bar.js"/>
+      <install name="tests/reports/coverage/index.html" as="reports/coverage/index.html"/>
+      <install name="tests/reports/coverage/close12_1.gif" as="reports/coverage/close12_1.gif"/>
+      <install name="tests/reports/coverage/container.css" as="reports/coverage/container.css"/>
+      <install name="tests/reports/coverage/directory.png" as="reports/coverage/directory.png"/>
+      <install name="tests/reports/coverage/chameleon.png" as="reports/coverage/chameleon.png"/>
+      <install name="tests/reports/coverage/highcharts.js" as="reports/coverage/highcharts.js"/>
+      <install name="tests/reports/coverage/style.css" as="reports/coverage/style.css"/>
+      <install name="tests/reports/coverage/butter.png" as="reports/coverage/butter.png"/>
+      <install name="tests/reports/coverage/file.png" as="reports/coverage/file.png"/>
+      <install name="tests/reports/coverage/RGraph.common.core.js" as="reports/coverage/RGraph.common.core.js"/>
+      <install name="tests/reports/coverage/excanvas.compressed.js" as="reports/coverage/excanvas.compressed.js"/>
+      <install name="tests/reports/coverage/RGraph.scatter.js" as="reports/coverage/RGraph.scatter.js"/>
+      <install name="tests/reports/coverage/snow.png" as="reports/coverage/snow.png"/>
+      <install name="tests/reports/coverage/Collection.php.html" as="reports/coverage/Collection.php.html"/>
+      <install name="tests/reports/coverage/jquery.min.js" as="reports/coverage/jquery.min.js"/>
+      <install name="tests/reports/coverage/yahoo-dom-event.js" as="reports/coverage/yahoo-dom-event.js"/>
+      <install name="tests/reports/coverage/AbstractMapper.php.html" as="reports/coverage/AbstractMapper.php.html"/>
+      <install name="tests/reports/coverage/container-min.js" as="reports/coverage/container-min.js"/>
+      <install name="tests/library/Respect/Data/AbstractMapperTest.php" as="library/Respect/Data/AbstractMapperTest.php"/>
+      <install name="tests/library/Respect/Data/CollectionIteratorTest.php" as="library/Respect/Data/CollectionIteratorTest.php"/>
+      <install name="tests/library/Respect/Data/Collections/CollectionTest.php" as="library/Respect/Data/Collections/CollectionTest.php"/>
+      <install name="tests/library/Respect/Data/Collections/FilteredTest.php" as="library/Respect/Data/Collections/FilteredTest.php"/>
+      <install name="library/Respect/Data/CollectionIterator.php" as="Respect/Data/CollectionIterator.php"/>
+      <install name="library/Respect/Data/AbstractMapper.php" as="Respect/Data/AbstractMapper.php"/>
+      <install name="library/Respect/Data/Collections/Filtered.php" as="Respect/Data/Collections/Filtered.php"/>
+      <install name="library/Respect/Data/Collections/Collection.php" as="Respect/Data/Collections/Collection.php"/>
+      <install name="bin/pear-package.php" as="pear-package.php"/>
     </filelist>
   </phprelease>
-  <changelog>
-    <release>
-      <version>
-        <release>0.1.0</release>
-        <api>0.1.0</api>
-      </version>
-      <stability>
-        <release>alpha</release>
-        <api>alpha</api>
-      </stability>
-      <license uri="http://www.opensource.org/licenses/bsd-license.php">BSD Style</license>
-      <date>2009-09-09</date>
-      <time>09:09:09</time>
-      <notes>This release date and time might be innacurate.</notes>
-    </release>
-    <release>
-      <version>
-        <release>0.1.1</release>
-        <api>0.1.1</api>
-      </version>
-      <stability>
-        <release>alpha</release>
-        <api>alpha</api>
-      </stability>
-      <license uri="http://www.opensource.org/licenses/bsd-license.php">BSD Style</license>
-      <date>2009-09-09</date>
-      <time>09:09:09</time>
-      <notes>This release date and time might be innacurate.</notes>
-    </release>
-    <release>
-      <version>
-        <release>0.1.2</release>
-        <api>0.1.2</api>
-      </version>
-      <stability>
-        <release>alpha</release>
-        <api>alpha</api>
-      </stability>
-      <license uri="http://www.opensource.org/licenses/bsd-license.php">BSD Style</license>
-      <date>2009-09-09</date>
-      <time>09:09:09</time>
-      <notes>This release date and time might be innacurate.</notes>
-    </release>
-    <release>
-      <version>
-        <release>0.1.3</release>
-        <api>0.1.3</api>
-      </version>
-      <stability>
-        <release>alpha</release>
-        <api>alpha</api>
-      </stability>
-      <license uri="http://www.opensource.org/licenses/bsd-license.php">BSD Style</license>
-      <date>2009-09-09</date>
-      <time>09:09:09</time>
-      <notes>This release date and time might be innacurate.</notes>
-    </release>
-    <release>
-      <version>
-        <release>0.1.4</release>
-        <api>0.1.4</api>
-      </version>
-      <stability>
-        <release>alpha</release>
-        <api>alpha</api>
-      </stability>
-      <license uri="http://www.opensource.org/licenses/bsd-license.php">BSD Style</license>
-      <date>2011-12-23</date>
-      <time>19:48:15</time>
-      <notes>-</notes>
-    </release>
-  </changelog>
 </package>
