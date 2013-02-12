@@ -19,7 +19,7 @@ class AbstractMapperTest extends \PHPUnit_Framework_TestCase
         $coll = Collection::foo();
         $this->mapper->registerCollection('my_alias', $coll);
         $this->assertAttributeContains($coll, 'collections', $this->mapper);
-        $this->assertSame($coll, $this->mapper->my_alias);
+        $this->assertEquals($coll, $this->mapper->my_alias);
     }
 
     function test_magic_setter_should_add_collection_to_pool()
@@ -27,7 +27,7 @@ class AbstractMapperTest extends \PHPUnit_Framework_TestCase
         $coll = Collection::foo();
         $this->mapper->my_alias = $coll;
         $this->assertAttributeContains($coll, 'collections', $this->mapper);
-        $this->assertSame($coll, $this->mapper->my_alias);
+        $this->assertEquals($coll, $this->mapper->my_alias);
     }
 
     function test_magic_call_should_bypass_to_collection()

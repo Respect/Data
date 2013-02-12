@@ -22,10 +22,15 @@ abstract class AbstractMapper
         if (isset($this->collections[$name]))
             return $this->collections[$name];
 
-        $this->collections[$name] = new Collection($name);
-        $this->collections[$name]->setMapper($this);
+        $coll = new Collection($name);
+        $coll->setMapper($this);
 
-        return $this->collections[$name];
+        return $coll;
+    }
+    
+    public function __isset($alias)
+    {
+        return isset($this->collections[$alias]);
     }
 
     public function __set($alias, $collection)

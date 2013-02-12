@@ -5,7 +5,7 @@ namespace Respect\Data\Collections;
 class Filtered extends Collection
 {   
     protected $filters = array();
-   
+    
     public static function __callStatic($name, $children)
     {
         $collection = new self();
@@ -16,7 +16,7 @@ class Filtered extends Collection
     {
         $collection = new static;
         $collection->setFilters(func_get_args());
-        return $this;
+        return $collection;
     }
 
     public function setFilters(array $filters)

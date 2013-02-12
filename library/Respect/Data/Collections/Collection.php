@@ -17,6 +17,7 @@ class Collection implements ArrayAccess
     protected $last;
     protected $children = array();
     
+    
     public static function using($condition)
     {
         $collection = new self;
@@ -39,6 +40,9 @@ class Collection implements ArrayAccess
 
     public function __get($name)
     {
+        if (isset($this->mapper) && isset($this->mapper->$name)) {
+            return $this->stack(clone $this->mapper->$name);
+        }
         return $this->stack(new self($name));
     }
 
