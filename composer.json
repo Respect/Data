@@ -1,9 +1,9 @@
 {
     "name": "Respect\/Data",
     "description": "Persistence simplified",
-    "version": "0.1.6",
+    "version": "0.2.0",
     "type": "library",
-    "time": "2013-02-12 20:48:02",
+    "time": "2013-02-12 20:53:46",
     "homepage": "",
     "license": "BSD Style",
     "authors": [
