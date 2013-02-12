@@ -2,6 +2,8 @@
 
 namespace Respect\Data;
 
+use Respect\Data\Collections\Collection;
+
 class AbstractMapperTest extends \PHPUnit_Framework_TestCase
 {
     protected $mapper;

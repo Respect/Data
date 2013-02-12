@@ -2,6 +2,7 @@
 
 namespace Respect\Data;
 
+use Respect\Data\Collections\Collection;
 
 abstract class AbstractMapper
 {

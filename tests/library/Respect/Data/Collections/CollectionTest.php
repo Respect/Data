@@ -1,13 +1,13 @@
 <?php
 
-namespace Respect\Data;
+namespace Respect\Data\Collections;
 
 class CollectionTest extends \PHPUnit_Framework_TestCase
 {
     function test_collection_can_be_created_statically_with_just_a_name()
     {
         $coll = Collection::fooBarName();
-        $this->assertInstanceOf('Respect\Data\Collection', $coll);
+        $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll);
     }
 
     function test_collection_can_be_created_statically_with_children()
@@ -15,7 +15,7 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
         $children_1 = Collection::bar();
         $children_2 = Collection::baz();
         $coll = Collection::foo($children_1, $children_2);
-        $this->assertInstanceOf('Respect\Data\Collection', $coll);
+        $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll);
         $this->assertTrue($coll->hasChildren());
         $this->assertEquals(2, count($coll->getChildren()));
     }
@@ -23,14 +23,14 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
     function test_collection_can_be_created_statically_with_condition()
     {
         $coll = Collection::fooBar(42);
-        $this->assertInstanceOf('Respect\Data\Collection', $coll);
+        $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll);
         $this->assertAttributeEquals(42, 'condition', $coll);
     }
 
     function test_multiple_conditions_on_static_creation_leaves_the_last()
     {
         $coll = Collection::fooBar(42, 'Other dominant condition!!!');
-        $this->assertInstanceOf('Respect\Data\Collection', $coll);
+        $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll);
         $this->assertEquals(
             'Other dominant condition!!!', $coll->getCondition()
         );

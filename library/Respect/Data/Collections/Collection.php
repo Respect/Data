@@ -1,7 +1,8 @@
 <?php
 
-namespace Respect\Data;
+namespace Respect\Data\Collections;
 
+use Respect\Data\AbstractMapper;
 use ArrayAccess;
 
 class Collection implements ArrayAccess
