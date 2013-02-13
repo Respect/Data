@@ -11,10 +11,11 @@ class Mixed extends Collection
         return $collection->__call($name, $children);
     }
     
-    public static function with()
+    public static function with($mixins)
     {
         $collection = new Collection;
-        $collection->extra('mixins', func_get_args());
+        $collection->extra('mixins', $mixins);
         return $collection;
     }
+    
 }

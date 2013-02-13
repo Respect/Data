@@ -21,6 +21,7 @@ class Collection implements ArrayAccess
     public function extra($name, $specs)
     {
         $this->extras[$name] = $specs;
+        return $this;
     }
     
     public function getExtra($name)
@@ -92,6 +93,9 @@ class Collection implements ArrayAccess
     
     public function persist($object)
     {
+        if ($this->have('filters'))
+            return $this->mapper->persist($object, $this->next);
+        
         if (!$this->mapper)
             throw new \RuntimeException;
         
