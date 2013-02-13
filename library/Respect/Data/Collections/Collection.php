@@ -93,24 +93,9 @@ class Collection implements ArrayAccess
     
     public function persist($object)
     {
-        if ($this->have('filters')) {
-            $this->next->setMapper($this->mapper);
-            $this->next->persist($object);
-            return;
-        }
-        
-        if (!$this->mapper) {
+        if (!$this->mapper)
             throw new \RuntimeException;
-        }
-        
-        if ($this->next) {
-            $this->next->setMapper($this->mapper);
-            $this->next->persist($object->{"{$this->next->getName()}_id"});
-        }
-        
-        foreach($this->children as $child)
-            $child->persist($object->{"{$child->getName()}_id"});
-        
+
         return $this->mapper->persist($object, $this);
     }
     
