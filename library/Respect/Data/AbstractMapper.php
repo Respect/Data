@@ -7,6 +7,7 @@ use SplObjectStorage;
 
 abstract class AbstractMapper
 {
+    protected $style;
     protected $new;
     protected $tracked;
     protected $changed;
@@ -20,6 +21,20 @@ abstract class AbstractMapper
         $this->tracked->addAll($hydrated);
         $hydrated->rewind();
         return $hydrated->current();
+    }
+    
+    public function getStyle()
+    {
+        if (null === $this->style) {
+            $this->setStyle(new Styles\Standard());
+        }
+        return $this->style;
+    }
+
+    public function setStyle(Styles\Stylable $style)
+    {
+        $this->style = $style;
+        return $this;
     }
 
     public function __construct()
