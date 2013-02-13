@@ -146,7 +146,7 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
         $persisted = new \stdClass();
         $result = 'result stub';
         $collection = new Collection('name_whatever');
-        $mapperMock = $this->getMockForAbstractClass('Respect\Data\AbstractMapper');
+        $mapperMock = $this->getMock('Respect\Data\AbstractMapper', array('persist', 'createStatement', 'flush'));
         $mapperMock->expects($this->once())
                    ->method('persist')
                    ->with($persisted, $collection)
@@ -160,7 +160,7 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
         $removed = new \stdClass();
         $result = 'result stub';
         $collection = new Collection('name_whatever');
-        $mapperMock = $this->getMockForAbstractClass('Respect\Data\AbstractMapper');
+        $mapperMock = $this->getMock('Respect\Data\AbstractMapper', array('remove', 'createStatement', 'flush'));
         $mapperMock->expects($this->once())
                    ->method('remove')
                    ->with($removed, $collection)
@@ -173,7 +173,7 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
     {
         $result = 'result stub';
         $collection = new Collection('name_whatever');
-        $mapperMock = $this->getMockForAbstractClass('Respect\Data\AbstractMapper');
+        $mapperMock = $this->getMock('Respect\Data\AbstractMapper', array('fetch', 'createStatement', 'flush'));
         $mapperMock->expects($this->once())
                    ->method('fetch')
                    ->with($collection)
@@ -187,7 +187,7 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
         $result = 'result stub';
         $extra = 'extra stub';
         $collection = new Collection('name_whatever');
-        $mapperMock = $this->getMockForAbstractClass('Respect\Data\AbstractMapper');
+        $mapperMock = $this->getMock('Respect\Data\AbstractMapper', array('fetch', 'createStatement', 'flush'));
         $mapperMock->expects($this->once())
                    ->method('fetch', $extra)
                    ->with($collection)
@@ -199,7 +199,7 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
     {
         $result = 'result stub';
         $collection = new Collection('name_whatever');
-        $mapperMock = $this->getMockForAbstractClass('Respect\Data\AbstractMapper');
+        $mapperMock = $this->getMock('Respect\Data\AbstractMapper', array('fetchAll', 'createStatement', 'flush'));
         $mapperMock->expects($this->once())
                    ->method('fetchAll')
                    ->with($collection)
@@ -213,7 +213,7 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
         $result = 'result stub';
         $extra = 'extra stub';
         $collection = new Collection('name_whatever');
-        $mapperMock = $this->getMockForAbstractClass('Respect\Data\AbstractMapper');
+        $mapperMock = $this->getMock('Respect\Data\AbstractMapper', array('fetchAll', 'createStatement', 'flush'));
         $mapperMock->expects($this->once())
                    ->method('fetchAll', $extra)
                    ->with($collection)
