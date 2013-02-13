@@ -18,7 +18,7 @@ class Collection implements ArrayAccess
     protected $children = array();
     protected $extras = array();
     
-    public function extra($name, array $specs)
+    public function extra($name, $specs)
     {
         $this->extras[$name] = $specs;
     }

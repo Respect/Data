@@ -35,7 +35,7 @@
     <active>yes</active>
   </lead>
   <date>2013-02-12</date>
-  <time>20:53:46</time>
+  <time>22:23:58</time>
   <version>
     <release>0.2.0</release>
     <api>0.2.0</api>
@@ -77,11 +77,15 @@
       <file name="tests/library/Respect/Data/AbstractMapperTest.php" role="test" md5sum="f98ab77d72b33955eebd384183147ab1"/>
       <file name="tests/library/Respect/Data/CollectionIteratorTest.php" role="test" md5sum="5549406fd2f328d97217bf5ec467cd2a"/>
       <file name="tests/library/Respect/Data/Collections/CollectionTest.php" role="test" md5sum="d89a37a88f056a95a3e3ffa6b91306b1"/>
+      <file name="tests/library/Respect/Data/Collections/MixedTest.php" role="test" md5sum="505aca927fa0aa298c160df15638f4ac"/>
       <file name="tests/library/Respect/Data/Collections/FilteredTest.php" role="test" md5sum="5508e9a477859383bc6ace9a68122d9e"/>
+      <file name="tests/library/Respect/Data/Collections/TypedTest.php" role="test" md5sum="edd34698fd531f961426990bbffde914"/>
       <file name="library/Respect/Data/CollectionIterator.php" role="php" md5sum="efa3833abafaa55987b99660d946b2c6"/>
       <file name="library/Respect/Data/AbstractMapper.php" role="php" md5sum="5864a69430def66c8d0fd689ce8636cf"/>
+      <file name="library/Respect/Data/Collections/Typed.php" role="php" md5sum="6ae51b5462b44dcb661c27371d4c3d82"/>
+      <file name="library/Respect/Data/Collections/Mixed.php" role="php" md5sum="36d79fb3603fc8525ce166fd837be887"/>
       <file name="library/Respect/Data/Collections/Filtered.php" role="php" md5sum="d171593fed0ec49f934e959ea0f26f5d"/>
-      <file name="library/Respect/Data/Collections/Collection.php" role="php" md5sum="085601a31fb9d546fa5c8a55e7a7e200"/>
+      <file name="library/Respect/Data/Collections/Collection.php" role="php" md5sum="577e6840731151ecde8feda0af7d06eb"/>
       <file name="bin/pear-package.php" role="script" md5sum="42c713fcd7a6c60493e1735d52c43046"/>
     </dir>
   </contents>
@@ -126,9 +130,13 @@
       <install name="tests/library/Respect/Data/AbstractMapperTest.php" as="library/Respect/Data/AbstractMapperTest.php"/>
       <install name="tests/library/Respect/Data/CollectionIteratorTest.php" as="library/Respect/Data/CollectionIteratorTest.php"/>
       <install name="tests/library/Respect/Data/Collections/CollectionTest.php" as="library/Respect/Data/Collections/CollectionTest.php"/>
+      <install name="tests/library/Respect/Data/Collections/MixedTest.php" as="library/Respect/Data/Collections/MixedTest.php"/>
       <install name="tests/library/Respect/Data/Collections/FilteredTest.php" as="library/Respect/Data/Collections/FilteredTest.php"/>
+      <install name="tests/library/Respect/Data/Collections/TypedTest.php" as="library/Respect/Data/Collections/TypedTest.php"/>
       <install name="library/Respect/Data/CollectionIterator.php" as="Respect/Data/CollectionIterator.php"/>
       <install name="library/Respect/Data/AbstractMapper.php" as="Respect/Data/AbstractMapper.php"/>
+      <install name="library/Respect/Data/Collections/Typed.php" as="Respect/Data/Collections/Typed.php"/>
+      <install name="library/Respect/Data/Collections/Mixed.php" as="Respect/Data/Collections/Mixed.php"/>
       <install name="library/Respect/Data/Collections/Filtered.php" as="Respect/Data/Collections/Filtered.php"/>
       <install name="library/Respect/Data/Collections/Collection.php" as="Respect/Data/Collections/Collection.php"/>
       <install name="bin/pear-package.php" as="pear-package.php"/>
