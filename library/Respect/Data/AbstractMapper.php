@@ -54,9 +54,8 @@ abstract class AbstractMapper
         $this->new = new SplObjectStorage;
     }
     
-    public function markTracked($entity, $name)
+    public function markTracked($entity, Collection $collection)
     {
-        $collection = $this->__get($name);
         $this->tracked[$entity] = $collection;
         return true;
     }
@@ -90,7 +89,7 @@ abstract class AbstractMapper
             return true;
 
         $this->new[$object] = true;
-        $this->markTracked($object, $onCollection->getName());
+        $this->markTracked($object, $onCollection);
         return true;
     }
     
@@ -102,7 +101,7 @@ abstract class AbstractMapper
         if ($this->isTracked($object))
             return true;
 
-        $this->markTracked($object, $fromCollection->getName());
+        $this->markTracked($object, $fromCollection);
         return true;
     }
     
