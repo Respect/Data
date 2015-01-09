@@ -1,6 +1,8 @@
 # Respect\Data
-
-[![Build Status](https://secure.travis-ci.org/Respect/Data.png)](http://travis-ci.org/Respect/Data) [![Latest Stable Version](https://poser.pugx.org/respect/data/v/stable.png)](https://packagist.org/packages/respect/data) [![Total Downloads](https://poser.pugx.org/respect/data/downloads.png)](https://packagist.org/packages/respect/data) [![Latest Unstable Version](https://poser.pugx.org/respect/data/v/unstable.png)](https://packagist.org/packages/respect/data) [![License](https://poser.pugx.org/respect/data/license.png)](https://packagist.org/packages/respect/data)
+[![Build Status](https://img.shields.io/travis/Respect/Data.svg?style=flat-square)](http://travis-ci.org/Respect/Data)
+[![Latest Version](https://img.shields.io/packagist/v/respect/data.svg?style=flat-square)](https://packagist.org/packages/respect/data)
+[![Total Downloads](https://img.shields.io/packagist/dt/respect/data.svg?style=flat-square)](https://packagist.org/packages/respect/data)
+[![License](https://img.shields.io/packagist/l/respect/data.svg?style=flat-square)](https://packagist.org/packages/respect/data)
 
 Respect\Data allows you to use multiple, cooperative database mapping with a single solid API. You can
 even mix out MySQL and MongoDB databases in a single model.
