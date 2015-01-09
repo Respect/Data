@@ -6,24 +6,12 @@
     "license": "BSD Style",
     "authors": [
         {
-            "name": "Rogerio Prado de Jesus",
-            "email": "rogeriopradoj@gmail.com"
-        },
-        {
-            "name": "Nick Lombard",
-            "email": "github@jigsoft.co.za"
-        },
-        {
-            "name": "Henrique Moody",
-            "email": "henriquemoody@gmail.com"
-        },
-        {
-            "name": "Augusto Pascutti",
-            "email": "augusto@phpsp.org.br"
-        },
-        {
             "name": "Alexandre",
             "email": "alexandre@gaigalas.net"
+        },
+        {
+            "name": "Respect/Data Contributors",
+            "homepage": "https://github.com/Respect/Data/graphs/contributors"
         }
     ],
     "require": {
@@ -33,8 +21,8 @@
         "phpunit/phpunit": "~4.4.0"
     },
     "autoload": {
-        "psr-0": {
-            "Respect\\Data": "library\/"
+        "psr-4": {
+            "Respect\\": "library/Respect"
         }
     },
     "extra": {
