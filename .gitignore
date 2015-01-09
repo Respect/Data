@@ -1,7 +1,4 @@
-.buildpath
-.project
-.settings/
-nbproject
+composer.lock
 tests/reports
 pirum
 *.7z
@@ -22,3 +19,4 @@ pirum
 *.rpm
 *.tgz
 .foundation
+/vendor/
