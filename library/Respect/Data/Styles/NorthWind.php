@@ -4,7 +4,6 @@ namespace Respect\Data\Styles;
 
 class NorthWind extends Standard
 {
-
     public function realName($name)
     {
         return $name;
@@ -18,17 +17,18 @@ class NorthWind extends Standard
     public function composed($left, $right)
     {
         $left = $this->pluralToSingular($left);
+
         return "{$left}{$right}";
     }
 
     public function identifier($name)
     {
-        return $this->pluralToSingular($name) . 'ID';
+        return $this->pluralToSingular($name).'ID';
     }
 
     public function remoteIdentifier($name)
     {
-        return $this->pluralToSingular($name) . 'ID';
+        return $this->pluralToSingular($name).'ID';
     }
 
     public function isRemoteIdentifier($name)
@@ -42,6 +42,4 @@ class NorthWind extends Standard
             return $this->singularToPlural(substr($name, 0, -2));
         }
     }
-
 }
-

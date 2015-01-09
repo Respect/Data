@@ -7,7 +7,6 @@ use ArrayAccess;
 
 class Collection implements ArrayAccess
 {
-
     protected $required = true;
     protected $mapper;
     protected $name;
@@ -17,39 +16,42 @@ class Collection implements ArrayAccess
     protected $last;
     protected $children = array();
     protected $extras = array();
-    
+
     public function extra($name, $specs)
     {
         $this->extras[$name] = $specs;
+
         return $this;
     }
-    
+
     public function getExtra($name)
     {
         if ($this->have($name)) {
             return $this->extras[$name];
         }
     }
-    
+
     public function have($name)
     {
         return isset($this->extras[$name]);
     }
- 
+
     public static function using($condition)
     {
-        $collection = new self;
+        $collection = new self();
         $collection->setCondition($condition);
+
         return $collection;
     }
 
     public static function __callStatic($name, $children)
     {
         $collection = new self();
+
         return $collection->__call($name, $children);
     }
 
-    public function __construct($name=null, $condition = array())
+    public function __construct($name = null, $condition = array())
     {
         $this->name = $name;
         $this->condition = $condition;
@@ -61,6 +63,7 @@ class Collection implements ArrayAccess
         if (isset($this->mapper) && isset($this->mapper->$name)) {
             return $this->stack(clone $this->mapper->$name);
         }
+
         return $this->stack(new self($name));
     }
 
@@ -69,14 +72,16 @@ class Collection implements ArrayAccess
         if (!isset($this->name)) {
             $this->name = $name;
             foreach ($children as $child) {
-                if ($child instanceof Collection)
+                if ($child instanceof Collection) {
                     $this->addChild($child);
-                else
+                } else {
                     $this->setCondition($child);
+                }
             }
+
             return $this;
         }
-        
+
         $collection = self::__callStatic($name, $children);
 
         return $this->stack($collection);
@@ -90,36 +95,40 @@ class Collection implements ArrayAccess
         $clone->setParent($this);
         $this->children[] = $clone;
     }
-    
+
     public function persist($object)
     {
-        if (!$this->mapper)
-            throw new \RuntimeException;
+        if (!$this->mapper) {
+            throw new \RuntimeException();
+        }
 
         return $this->mapper->persist($object, $this);
     }
-    
+
     public function remove($object)
     {
-        if (!$this->mapper)
-            throw new \RuntimeException;
+        if (!$this->mapper) {
+            throw new \RuntimeException();
+        }
 
         return $this->mapper->remove($object, $this);
     }
 
-    public function fetch($extra=null)
+    public function fetch($extra = null)
     {
-        if (!$this->mapper)
-            throw new \RuntimeException;
+        if (!$this->mapper) {
+            throw new \RuntimeException();
+        }
 
         return $this->mapper->fetch($this, $extra);
     }
 
-    public function fetchAll($extra=null)
+    public function fetchAll($extra = null)
     {
-        if (!$this->mapper)
-            throw new \RuntimeException;
-        
+        if (!$this->mapper) {
+            throw new \RuntimeException();
+        }
+
         return $this->mapper->fetchAll($this, $extra);
     }
 
@@ -175,23 +184,24 @@ class Collection implements ArrayAccess
 
     public function offsetExists($offset)
     {
-        return null;
+        return;
     }
 
     public function offsetGet($condition)
     {
         $this->last->condition = $condition;
+
         return $this;
     }
 
     public function offsetSet($offset, $value)
     {
-        return null;
+        return;
     }
 
     public function offsetUnset($offset)
     {
-        return null;
+        return;
     }
 
     public function setCondition($condition)
@@ -199,10 +209,11 @@ class Collection implements ArrayAccess
         $this->condition = $condition;
     }
 
-    public function setMapper(AbstractMapper $mapper=null)
+    public function setMapper(AbstractMapper $mapper = null)
     {
-        foreach ($this->children as $child)
+        foreach ($this->children as $child) {
             $child->setMapper($mapper);
+        }
         $this->mapper = $mapper;
     }
 
@@ -227,7 +238,7 @@ class Collection implements ArrayAccess
     {
         $this->last->setNext($collection);
         $this->last = $collection;
+
         return $this;
     }
-
 }

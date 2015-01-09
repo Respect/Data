@@ -7,7 +7,6 @@ use RecursiveIteratorIterator;
 
 class CollectionIterator extends RecursiveArrayIterator
 {
-
     protected $namesCounts = array();
 
     public static function recursive($target)
@@ -15,7 +14,7 @@ class CollectionIterator extends RecursiveArrayIterator
         return new RecursiveIteratorIterator(new static($target), 1);
     }
 
-    public function __construct($target=array(), &$namesCounts=array())
+    public function __construct($target = array(), &$namesCounts = array())
     {
         $this->namesCounts = &$namesCounts;
         parent::__construct(is_array($target) ? $target : array($target));
@@ -25,10 +24,12 @@ class CollectionIterator extends RecursiveArrayIterator
     {
         $name = $this->current()->getName();
 
-        if (isset($this->namesCounts[$name]))
-            return $name . ++$this->namesCounts[$name];
+        if (isset($this->namesCounts[$name])) {
+            return $name.++$this->namesCounts[$name];
+        }
 
         $this->namesCounts[$name] = 1;
+
         return $name;
     }
 
@@ -42,14 +43,14 @@ class CollectionIterator extends RecursiveArrayIterator
         $c = $this->current();
         $pool = array();
 
-        if ($c->hasChildren())
+        if ($c->hasChildren()) {
             $pool = $c->getChildren();
+        }
 
-        if ($c->hasNext())
+        if ($c->hasNext()) {
             $pool[] = $c->getNext();
+        }
 
         return new static($pool, $this->namesCounts);
     }
-
 }
-

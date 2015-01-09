@@ -4,24 +4,21 @@ namespace Respect\Data\Styles;
 
 interface Stylable
 {
+    public function styledName($entityName);
 
-    function styledName($entityName);
+    public function realName($styledName);
 
-    function realName($styledName);
+    public function styledProperty($name);
 
-    function styledProperty($name);
+    public function realProperty($name);
 
-    function realProperty($name);
+    public function identifier($name);
 
-    function identifier($name);
+    public function remoteIdentifier($name);
 
-    function remoteIdentifier($name);
+    public function remoteFromIdentifier($name);
 
-    function remoteFromIdentifier($name);
-    
-    function isRemoteIdentifier($name);
+    public function isRemoteIdentifier($name);
 
-    function composed($left, $right);
-
+    public function composed($left, $right);
 }
-

@@ -17,7 +17,7 @@ class Plural extends Standard
 {
     public function remoteIdentifier($name)
     {
-        return $this->pluralToSingular($name) . '_id';
+        return $this->pluralToSingular($name).'_id';
     }
 
     public function remoteFromIdentifier($name)
@@ -31,6 +31,7 @@ class Plural extends Standard
     {
         $name    = strtolower($this->camelCaseToSeparator($name, '_'));
         $pieces  = array_map(array($this, 'singularToPlural'), explode('_', $name));
+
         return implode('_', $pieces);
     }
 
@@ -38,6 +39,7 @@ class Plural extends Standard
     {
         $pieces  = array_map(array($this, 'pluralToSingular'), explode('_', $name));
         $name    = $this->separatorToCamelCase(implode('_', $pieces), '_');
+
         return ucfirst($name);
     }
 

@@ -8,14 +8,15 @@ class Mixed extends Collection
     {
         $collection = new self();
         $collection->extra('mixins', array());
+
         return $collection->__call($name, $children);
     }
-    
+
     public static function with($mixins)
     {
-        $collection = new Collection;
+        $collection = new Collection();
         $collection->extra('mixins', $mixins);
+
         return $collection;
     }
-    
 }

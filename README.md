@@ -18,6 +18,8 @@ You can install it using [Composer](http://getcomposer.org).
 composer require respect/data
 ```
 
+PSR-0 and PSR-2 compatible.
+
 ## Collections
 
 The main component for Respect\Data are Collections. They define how data is grouped in your application.

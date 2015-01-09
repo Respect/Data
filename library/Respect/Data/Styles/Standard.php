@@ -4,7 +4,6 @@ namespace Respect\Data\Styles;
 
 class Standard extends AbstractStyle
 {
-
     public function styledProperty($name)
     {
         return $name;
@@ -13,6 +12,7 @@ class Standard extends AbstractStyle
     public function realName($name)
     {
         $name = $this->camelCaseToSeparator($name, '_');
+
         return strtolower($name);
     }
 
@@ -24,6 +24,7 @@ class Standard extends AbstractStyle
     public function styledName($name)
     {
         $name = $this->separatorToCamelCase($name, '_');
+
         return ucfirst($name);
     }
 
@@ -31,10 +32,10 @@ class Standard extends AbstractStyle
     {
         return 'id';
     }
-    
+
     public function remoteIdentifier($name)
     {
-        return $name . '_id';
+        return $name.'_id';
     }
 
     public function composed($left, $right)
@@ -53,5 +54,4 @@ class Standard extends AbstractStyle
             return substr($name, 0, -3);
         }
     }
-
 }
