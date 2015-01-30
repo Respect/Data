@@ -11,7 +11,7 @@ even mix out MySQL and MongoDB databases in a single model.
 
 ## Installation
 
-The package is available on [Packagist](https://packagist.org/packages/arara/process).
+The package is available on [Packagist](https://packagist.org/packages/respect/data).
 You can install it using [Composer](http://getcomposer.org).
 
 ```bash
