@@ -42,6 +42,11 @@ class EventedMapper
         return $this->eventManager->on($event, $callback);
     }
 
+    public function removeEvent($eventName)
+    {
+        return $this->eventManager->removeEvent($eventName);
+    }
+
     public function flush()
     {
         $trackedQueue = $this->getTrackedQueue();
