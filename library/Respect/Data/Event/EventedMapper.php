@@ -48,8 +48,10 @@ class EventedMapper
         $trackedEntities = $this->getTrackedEntities();
 
         $this->processFlushQueue($trackedQueue, $trackedEntities, 'pre');
-        $this->mapper->flush();
+        $flushResult = $this->mapper->flush();
         $this->processFlushQueue($trackedQueue, $trackedEntities, 'post');
+
+        return $flushResult;
     }
 
     protected function processFlushQueue($queue, $trackedEntities, $eventSuffix)
