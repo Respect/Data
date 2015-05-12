@@ -45,7 +45,5 @@ class EventedMapper
     {}
 
     public function notifyPostFlush()
-    {
-        die('hey');
-    }
+    {}
 }
