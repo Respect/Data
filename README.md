@@ -1,5 +1,4 @@
 # Respect\Data
-[![Build Status](https://img.shields.io/travis/Respect/Data.svg?style=flat-square)](http://travis-ci.org/Respect/Data)
 [![Latest Version](https://img.shields.io/packagist/v/respect/data.svg?style=flat-square)](https://packagist.org/packages/respect/data)
 [![Total Downloads](https://img.shields.io/packagist/dt/respect/data.svg?style=flat-square)](https://packagist.org/packages/respect/data)
 [![License](https://img.shields.io/packagist/l/respect/data.svg?style=flat-square)](https://packagist.org/packages/respect/data)

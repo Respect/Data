@@ -20,7 +20,7 @@ class CollectionIterator extends RecursiveArrayIterator
         parent::__construct(is_array($target) ? $target : array($target));
     }
 
-    public function key()
+    public function key(): string|int|null
     {
         $name = $this->current()->getName();
 
@@ -33,12 +33,12 @@ class CollectionIterator extends RecursiveArrayIterator
         return $name;
     }
 
-    public function hasChildren()
+    public function hasChildren(): bool
     {
         return $this->current()->hasMore();
     }
 
-    public function getChildren()
+    public function getChildren(): ?RecursiveArrayIterator
     {
         $c = $this->current();
         $pool = array();

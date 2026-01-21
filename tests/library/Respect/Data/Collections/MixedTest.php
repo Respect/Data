@@ -2,12 +2,12 @@
 
 namespace Respect\Data\Collections;
 
-class MixedTest extends \PHPUnit_Framework_TestCase
+class MixedTest extends \PHPUnit\Framework\TestCase
 {
     function test_collection_can_be_created_statically_with_children()
     {
-        $children_1 = Mixed::with(array('foo' => array('bar')))->bar();
-        $children_2 = Mixed::with(array('bat' => array('bar')))->baz()->bat();
+        $children_1 = Mix::with(array('foo' => array('bar')))->bar();
+        $children_2 = Mix::with(array('bat' => array('bar')))->baz()->bat();
         $coll = Collection::foo($children_1, $children_2)->bar();
         $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll);
         $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll->getNext());

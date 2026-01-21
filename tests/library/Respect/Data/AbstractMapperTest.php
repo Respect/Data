@@ -4,11 +4,11 @@ namespace Respect\Data;
 
 use Respect\Data\Collections\Collection;
 
-class AbstractMapperTest extends \PHPUnit_Framework_TestCase
+class AbstractMapperTest extends \PHPUnit\Framework\TestCase
 {
     protected $mapper;
 
-    function setUp()
+    protected function setUp(): void
     {
         parent::setUp();
         $this->mapper = $this->getMockForAbstractClass('Respect\Data\AbstractMapper');
@@ -18,7 +18,11 @@ class AbstractMapperTest extends \PHPUnit_Framework_TestCase
     {
         $coll = Collection::foo();
         $this->mapper->registerCollection('my_alias', $coll);
-        $this->assertAttributeContains($coll, 'collections', $this->mapper);
+
+        $ref = new \ReflectionObject($this->mapper);
+        $prop = $ref->getProperty('collections');
+        $this->assertContains($coll, $prop->getValue($this->mapper));
+
         $this->assertEquals($coll, $this->mapper->my_alias);
     }
 
@@ -26,7 +30,11 @@ class AbstractMapperTest extends \PHPUnit_Framework_TestCase
     {
         $coll = Collection::foo();
         $this->mapper->my_alias = $coll;
-        $this->assertAttributeContains($coll, 'collections', $this->mapper);
+
+        $ref = new \ReflectionObject($this->mapper);
+        $prop = $ref->getProperty('collections');
+        $this->assertContains($coll, $prop->getValue($this->mapper));
+
         $this->assertEquals($coll, $this->mapper->my_alias);
     }
 

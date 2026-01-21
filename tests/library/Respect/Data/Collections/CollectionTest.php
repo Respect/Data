@@ -2,7 +2,7 @@
 
 namespace Respect\Data\Collections;
 
-class CollectionTest extends \PHPUnit_Framework_TestCase
+class CollectionTest extends \PHPUnit\Framework\TestCase
 {
     function test_collection_can_be_created_statically_with_just_a_name()
     {
@@ -24,7 +24,7 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
     {
         $coll = Collection::fooBar(42);
         $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll);
-        $this->assertAttributeEquals(42, 'condition', $coll);
+        $this->assertEquals(42, $coll->getCondition());
     }
 
     function test_multiple_conditions_on_static_creation_leaves_the_last()
@@ -39,10 +39,9 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
     function test_object_constructor_should_set_object_attributes()
     {
         $coll = new Collection('some_irrelevant_name');
-        $this->assertAttributeSame(
-            $coll, 'last', $coll,
-            'Constructing it manually should set last item as self'
-        );
+        $ref = new \ReflectionObject($coll);
+        $prop = $ref->getProperty('last');
+        $this->assertSame($coll, $prop->getValue($coll), 'Constructing it manually should set last item as self');
         $this->assertEquals(
             array(), $coll->getCondition(),
             'Default condition should be an empty array'
@@ -146,11 +145,11 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
         $persisted = new \stdClass();
         $result = 'result stub';
         $collection = new Collection('name_whatever');
-        $mapperMock = $this->getMock('Respect\Data\AbstractMapper', array('persist', 'createStatement', 'flush'));
+        $mapperMock = $this->createMock('Respect\\Data\\AbstractMapper');
         $mapperMock->expects($this->once())
                    ->method('persist')
                    ->with($persisted, $collection)
-                   ->will($this->returnValue($result));
+                   ->willReturn($result);
         $collection->setMapper($mapperMock);
         $collection->persist($persisted);
     }
@@ -160,11 +159,11 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
         $removed = new \stdClass();
         $result = 'result stub';
         $collection = new Collection('name_whatever');
-        $mapperMock = $this->getMock('Respect\Data\AbstractMapper', array('remove', 'createStatement', 'flush'));
+        $mapperMock = $this->createMock('Respect\\Data\\AbstractMapper');
         $mapperMock->expects($this->once())
                    ->method('remove')
                    ->with($removed, $collection)
-                   ->will($this->returnValue($result));
+                   ->willReturn($result);
         $collection->setMapper($mapperMock);
         $collection->remove($removed);
     }
@@ -173,11 +172,11 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
     {
         $result = 'result stub';
         $collection = new Collection('name_whatever');
-        $mapperMock = $this->getMock('Respect\Data\AbstractMapper', array('fetch', 'createStatement', 'flush'));
+        $mapperMock = $this->createMock('Respect\\Data\\AbstractMapper');
         $mapperMock->expects($this->once())
                    ->method('fetch')
                    ->with($collection)
-                   ->will($this->returnValue($result));
+                   ->willReturn($result);
         $collection->setMapper($mapperMock);
         $collection->fetch();
     }
@@ -187,11 +186,11 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
         $result = 'result stub';
         $extra = 'extra stub';
         $collection = new Collection('name_whatever');
-        $mapperMock = $this->getMock('Respect\Data\AbstractMapper', array('fetch', 'createStatement', 'flush'));
+        $mapperMock = $this->createMock('Respect\\Data\\AbstractMapper');
         $mapperMock->expects($this->once())
-                   ->method('fetch', $extra)
-                   ->with($collection)
-                   ->will($this->returnValue($result));
+                   ->method('fetch')
+                   ->with($collection, $extra)
+                   ->willReturn($result);
         $collection->setMapper($mapperMock);
         $collection->fetch($extra);
     }
@@ -199,11 +198,11 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
     {
         $result = 'result stub';
         $collection = new Collection('name_whatever');
-        $mapperMock = $this->getMock('Respect\Data\AbstractMapper', array('fetchAll', 'createStatement', 'flush'));
+        $mapperMock = $this->createMock('Respect\\Data\\AbstractMapper');
         $mapperMock->expects($this->once())
                    ->method('fetchAll')
                    ->with($collection)
-                   ->will($this->returnValue($result));
+                   ->willReturn($result);
         $collection->setMapper($mapperMock);
         $collection->fetchAll();
     }
@@ -213,11 +212,11 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
         $result = 'result stub';
         $extra = 'extra stub';
         $collection = new Collection('name_whatever');
-        $mapperMock = $this->getMock('Respect\Data\AbstractMapper', array('fetchAll', 'createStatement', 'flush'));
+        $mapperMock = $this->createMock('Respect\\Data\\AbstractMapper');
         $mapperMock->expects($this->once())
-                   ->method('fetchAll', $extra)
-                   ->with($collection)
-                   ->will($this->returnValue($result));
+                   ->method('fetchAll')
+                   ->with($collection, $extra)
+                   ->willReturn($result);
         $collection->setMapper($mapperMock);
         $collection->fetchAll($extra);
     }
@@ -232,25 +231,25 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
 
     function test_persist_on_collection_should_exception_if_mapper_dont_exist()
     {
-        $this->setExpectedException('RuntimeException');
+        $this->expectException(\RuntimeException::class);
         Collection::foo()->persist(new \stdClass);
     }
 
     function test_remove_on_collection_should_exception_if_mapper_dont_exist()
     {
-        $this->setExpectedException('RuntimeException');
+        $this->expectException(\RuntimeException::class);
         Collection::foo()->remove(new \stdClass);
     }
 
     function test_fetch_on_collection_should_exception_if_mapper_dont_exist()
     {
-        $this->setExpectedException('RuntimeException');
+        $this->expectException(\RuntimeException::class);
         Collection::foo()->fetch();
     }
 
     function test_fetchAll_on_collection_should_exception_if_mapper_dont_exist()
     {
-        $this->setExpectedException('RuntimeException');
+        $this->expectException(\RuntimeException::class);
         Collection::foo()->fetchAll();
     }
 
