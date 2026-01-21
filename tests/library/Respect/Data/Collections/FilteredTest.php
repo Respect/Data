@@ -2,7 +2,7 @@
 
 namespace Respect\Data\Collections;
 
-class FilteredTest extends \PHPUnit_Framework_TestCase
+class FilteredTest extends \PHPUnit\Framework\TestCase
 {
     function test_collection_can_be_created_statically_with_children()
     {

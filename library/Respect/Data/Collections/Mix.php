@@ -2,7 +2,7 @@
 
 namespace Respect\Data\Collections;
 
-class Mixed extends Collection
+class Mix extends Collection
 {
     public static function __callStatic($name, $children)
     {

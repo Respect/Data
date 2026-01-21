@@ -182,26 +182,26 @@ class Collection implements ArrayAccess
         return $this->required;
     }
 
-    public function offsetExists($offset)
+    public function offsetExists(mixed $offset): bool
     {
-        return;
+        return false;
     }
 
-    public function offsetGet($condition)
+    public function offsetGet(mixed $condition): mixed
     {
         $this->last->condition = $condition;
 
         return $this;
     }
 
-    public function offsetSet($offset, $value)
+    public function offsetSet(mixed $offset, mixed $value): void
     {
-        return;
+        // no-op
     }
 
-    public function offsetUnset($offset)
+    public function offsetUnset(mixed $offset): void
     {
-        return;
+        // no-op
     }
 
     public function setCondition($condition)
@@ -209,7 +209,7 @@ class Collection implements ArrayAccess
         $this->condition = $condition;
     }
 
-    public function setMapper(AbstractMapper $mapper = null)
+    public function setMapper(?AbstractMapper $mapper = null): void
     {
         foreach ($this->children as $child) {
             $child->setMapper($mapper);
