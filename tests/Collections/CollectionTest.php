@@ -4,15 +4,23 @@ declare(strict_types=1);
 
 namespace Respect\Data\Collections;
 
-class CollectionTest extends \PHPUnit\Framework\TestCase
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
+use Respect\Data\AbstractMapper;
+
+#[CoversClass(Collection::class)]
+class CollectionTest extends TestCase
 {
-    function test_collection_can_be_created_statically_with_just_a_name()
+    #[Test]
+    public function collection_can_be_created_statically_with_just_a_name(): void
     {
         $coll = Collection::fooBarName();
         $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll);
     }
 
-    function test_collection_can_be_created_statically_with_children()
+    #[Test]
+    public function collection_can_be_created_statically_with_children(): void
     {
         $children_1 = Collection::bar();
         $children_2 = Collection::baz();
@@ -22,14 +30,16 @@ class CollectionTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(2, count($coll->getChildren()));
     }
 
-    function test_collection_can_be_created_statically_with_condition()
+    #[Test]
+    public function collection_can_be_created_statically_with_condition(): void
     {
         $coll = Collection::fooBar(42);
         $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll);
         $this->assertEquals(42, $coll->getCondition());
     }
 
-    function test_multiple_conditions_on_static_creation_leaves_the_last()
+    #[Test]
+    public function multiple_conditions_on_static_creation_leaves_the_last(): void
     {
         $coll = Collection::fooBar(42, 'Other dominant condition!!!');
         $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll);
@@ -38,7 +48,8 @@ class CollectionTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    function test_object_constructor_should_set_object_attributes()
+    #[Test]
+    public function object_constructor_should_set_object_attributes(): void
     {
         $coll = new Collection('some_irrelevant_name');
         $ref = new \ReflectionObject($coll);
@@ -51,13 +62,15 @@ class CollectionTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals('some_irrelevant_name', $coll->getName());
     }
 
-    function test_object_constructor_with_condition_should_set_it()
+    #[Test]
+    public function object_constructor_with_condition_should_set_it(): void
     {
         $coll = new Collection('some_irrelevant_name', 123);
         $this->assertEquals(123, $coll->getCondition());
     }
 
-    function test_dynamic_getter_should_stack_collection()
+    #[Test]
+    public function dynamic_getter_should_stack_collection(): void
     {
         $coll = new Collection('hi');
         $coll->some_test;
@@ -67,7 +80,8 @@ class CollectionTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    function test_dynamic_getter_should_chain_collection()
+    #[Test]
+    public function dynamic_getter_should_chain_collection(): void
     {
         $coll = new Collection('hi');
         $coll->some_test;
@@ -82,7 +96,8 @@ class CollectionTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    function test_setting_condition_via_dynamic_offset_should_use_last_node()
+    #[Test]
+    public function setting_condition_via_dynamic_offset_should_use_last_node(): void
     {
         $foo = Collection::foo()->bar->baz[42];
         $bar = $foo->getNext();
@@ -92,7 +107,8 @@ class CollectionTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(42, $baz->getCondition());
     }
 
-    function test_dynamic_method_call_should_accept_children()
+    #[Test]
+    public function dynamic_method_call_should_accept_children(): void
     {
         $coll = new Collection('some_name');
         $coll->foo_bar(
@@ -103,7 +119,8 @@ class CollectionTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(3, count($coll->getNext()->getChildren()));
     }
 
-    function test_addChild_should_set_children_object_properties()
+    #[Test]
+    public function addChild_should_set_children_object_properties(): void
     {
         $coll = new Collection('foo_collection');
         $coll->addChild(new Collection('bar_child'));
@@ -113,19 +130,22 @@ class CollectionTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($coll->getName(), $child->getParentName());
     }
 
-    function test_children_should_make_hasMore_true()
+    #[Test]
+    public function children_should_make_hasMore_true(): void
     {
         $coll = Collection::foo(Collection::this_is_a_children());
         $this->assertTrue($coll->hasMore());
     }
 
-    function test_chaining_should_make_hasMore_true()
+    #[Test]
+    public function chaining_should_make_hasMore_true(): void
     {
         $coll = Collection::foo()->barChain;
         $this->assertTrue($coll->hasMore());
     }
 
-    function test_array_offsetSet_should_NOT_do_anything()
+    #[Test]
+    public function array_offsetSet_should_NOT_do_anything(): void
     {
         $touched = Collection::foo()->bar;
         $touched['magic'] = 'FOOOO';
@@ -133,7 +153,8 @@ class CollectionTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($untouched, $touched);
     }
 
-    function test_array_offsetUnset_should_NOT_do_anything()
+    #[Test]
+    public function array_offsetUnset_should_NOT_do_anything(): void
     {
         $touched = Collection::foo()->bar;
         unset($touched['magic']);
@@ -142,11 +163,12 @@ class CollectionTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($untouched, $touched);
     }
 
-    function test_persist_should_persist_on_attached_mapper()
+    #[Test]
+    public function persist_should_persist_on_attached_mapper(): void
     {
         $persisted = new \stdClass();
         $collection = new Collection('name_whatever');
-        $mapperMock = $this->createMock('Respect\\Data\\AbstractMapper');
+        $mapperMock = $this->createMock(AbstractMapper::class);
         $mapperMock->expects($this->once())
                    ->method('persist')
                    ->with($persisted, $collection)
@@ -155,11 +177,12 @@ class CollectionTest extends \PHPUnit\Framework\TestCase
         $collection->persist($persisted);
     }
 
-    function test_remove_should_persist_on_attached_mapper()
+    #[Test]
+    public function remove_should_persist_on_attached_mapper(): void
     {
         $removed = new \stdClass();
         $collection = new Collection('name_whatever');
-        $mapperMock = $this->createMock('Respect\\Data\\AbstractMapper');
+        $mapperMock = $this->createMock(AbstractMapper::class);
         $mapperMock->expects($this->once())
                    ->method('remove')
                    ->with($removed, $collection)
@@ -168,11 +191,12 @@ class CollectionTest extends \PHPUnit\Framework\TestCase
         $collection->remove($removed);
     }
 
-    function test_fetch_should_persist_on_attached_mapper()
+    #[Test]
+    public function fetch_should_persist_on_attached_mapper(): void
     {
         $result = 'result stub';
         $collection = new Collection('name_whatever');
-        $mapperMock = $this->createMock('Respect\\Data\\AbstractMapper');
+        $mapperMock = $this->createMock(AbstractMapper::class);
         $mapperMock->expects($this->once())
                    ->method('fetch')
                    ->with($collection)
@@ -181,12 +205,13 @@ class CollectionTest extends \PHPUnit\Framework\TestCase
         $collection->fetch();
     }
 
-    function test_fetch_should_persist_on_attached_mapper_with_extra_param()
+    #[Test]
+    public function fetch_should_persist_on_attached_mapper_with_extra_param(): void
     {
         $result = 'result stub';
         $extra = 'extra stub';
         $collection = new Collection('name_whatever');
-        $mapperMock = $this->createMock('Respect\\Data\\AbstractMapper');
+        $mapperMock = $this->createMock(AbstractMapper::class);
         $mapperMock->expects($this->once())
                    ->method('fetch')
                    ->with($collection, $extra)
@@ -194,10 +219,12 @@ class CollectionTest extends \PHPUnit\Framework\TestCase
         $collection->setMapper($mapperMock);
         $collection->fetch($extra);
     }
-    function test_fetchAll_should_persist_on_attached_mapper()
+
+    #[Test]
+    public function fetchAll_should_persist_on_attached_mapper(): void
     {
         $collection = new Collection('name_whatever');
-        $mapperMock = $this->createMock('Respect\\Data\\AbstractMapper');
+        $mapperMock = $this->createMock(AbstractMapper::class);
         $mapperMock->expects($this->once())
                    ->method('fetchAll')
                    ->with($collection)
@@ -206,11 +233,12 @@ class CollectionTest extends \PHPUnit\Framework\TestCase
         $collection->fetchAll();
     }
 
-    function test_fetchAll_should_persist_on_attached_mapper_with_extra_param()
+    #[Test]
+    public function fetchAll_should_persist_on_attached_mapper_with_extra_param(): void
     {
         $extra = 'extra stub';
         $collection = new Collection('name_whatever');
-        $mapperMock = $this->createMock('Respect\\Data\\AbstractMapper');
+        $mapperMock = $this->createMock(AbstractMapper::class);
         $mapperMock->expects($this->once())
                    ->method('fetchAll')
                    ->with($collection, $extra)
@@ -219,7 +247,8 @@ class CollectionTest extends \PHPUnit\Framework\TestCase
         $collection->fetchAll($extra);
     }
 
-    function test_array_offsetExists_should_NOT_do_anything()
+    #[Test]
+    public function array_offsetExists_should_NOT_do_anything(): void
     {
         $touched = Collection::foo()->bar;
         $this->assertFalse(isset($touched['magic']));
@@ -227,30 +256,31 @@ class CollectionTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($untouched, $touched);
     }
 
-    function test_persist_on_collection_should_exception_if_mapper_dont_exist()
+    #[Test]
+    public function persist_on_collection_should_exception_if_mapper_dont_exist(): void
     {
         $this->expectException(\RuntimeException::class);
         Collection::foo()->persist(new \stdClass);
     }
 
-    function test_remove_on_collection_should_exception_if_mapper_dont_exist()
+    #[Test]
+    public function remove_on_collection_should_exception_if_mapper_dont_exist(): void
     {
         $this->expectException(\RuntimeException::class);
         Collection::foo()->remove(new \stdClass);
     }
 
-    function test_fetch_on_collection_should_exception_if_mapper_dont_exist()
+    #[Test]
+    public function fetch_on_collection_should_exception_if_mapper_dont_exist(): void
     {
         $this->expectException(\RuntimeException::class);
         Collection::foo()->fetch();
     }
 
-    function test_fetchAll_on_collection_should_exception_if_mapper_dont_exist()
+    #[Test]
+    public function fetchAll_on_collection_should_exception_if_mapper_dont_exist(): void
     {
         $this->expectException(\RuntimeException::class);
         Collection::foo()->fetchAll();
     }
-
-
-    
 }

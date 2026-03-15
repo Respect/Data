@@ -4,19 +4,32 @@ declare(strict_types=1);
 
 namespace Respect\Data;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
 use Respect\Data\Collections\Collection;
 
-class AbstractMapperTest extends \PHPUnit\Framework\TestCase
+#[CoversClass(AbstractMapper::class)]
+class AbstractMapperTest extends TestCase
 {
-    protected $mapper;
+    protected AbstractMapper $mapper;
 
     protected function setUp(): void
     {
-        parent::setUp();
-        $this->mapper = $this->getMockForAbstractClass('Respect\Data\AbstractMapper');
+        $this->mapper = new class extends AbstractMapper {
+            protected function createStatement(Collection $fromCollection, mixed $withExtra = null): mixed
+            {
+                return null;
+            }
+
+            public function flush(): void
+            {
+            }
+        };
     }
 
-    function test_registerCollection_should_add_collection_to_pool()
+    #[Test]
+    public function registerCollection_should_add_collection_to_pool(): void
     {
         $coll = Collection::foo();
         $this->mapper->registerCollection('my_alias', $coll);
@@ -28,7 +41,8 @@ class AbstractMapperTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($coll, $this->mapper->my_alias);
     }
 
-    function test_magic_setter_should_add_collection_to_pool()
+    #[Test]
+    public function magic_setter_should_add_collection_to_pool(): void
     {
         $coll = Collection::foo();
         $this->mapper->my_alias = $coll;
@@ -40,14 +54,17 @@ class AbstractMapperTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($coll, $this->mapper->my_alias);
     }
 
-    function test_magic_call_should_bypass_to_collection()
+    #[Test]
+    public function magic_call_should_bypass_to_collection(): void
     {
         $collection = $this->mapper->foo()->bar()->baz();
         $expected = Collection::foo();
         $expected->setMapper($this->mapper);
         $this->assertEquals($expected->bar->baz, $collection);
     }
-    function test_magic_getter_should_bypass_to_collection()
+
+    #[Test]
+    public function magic_getter_should_bypass_to_collection(): void
     {
         $collection = $this->mapper->foo->bar->baz;
         $expected = Collection::foo();

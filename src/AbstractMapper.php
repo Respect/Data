@@ -120,7 +120,7 @@ abstract class AbstractMapper
 
     public function isTracked(object $entity): bool
     {
-        return $this->tracked->contains($entity);
+        return $this->tracked->offsetExists($entity);
     }
 
     protected function fetchHydrated(Collection $collection, mixed $statement): SplObjectStorage|false
