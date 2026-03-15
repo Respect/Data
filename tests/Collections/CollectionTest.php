@@ -145,13 +145,12 @@ class CollectionTest extends \PHPUnit\Framework\TestCase
     function test_persist_should_persist_on_attached_mapper()
     {
         $persisted = new \stdClass();
-        $result = 'result stub';
         $collection = new Collection('name_whatever');
         $mapperMock = $this->createMock('Respect\\Data\\AbstractMapper');
         $mapperMock->expects($this->once())
                    ->method('persist')
                    ->with($persisted, $collection)
-                   ->willReturn($result);
+                   ->willReturn(true);
         $collection->setMapper($mapperMock);
         $collection->persist($persisted);
     }
@@ -159,13 +158,12 @@ class CollectionTest extends \PHPUnit\Framework\TestCase
     function test_remove_should_persist_on_attached_mapper()
     {
         $removed = new \stdClass();
-        $result = 'result stub';
         $collection = new Collection('name_whatever');
         $mapperMock = $this->createMock('Respect\\Data\\AbstractMapper');
         $mapperMock->expects($this->once())
                    ->method('remove')
                    ->with($removed, $collection)
-                   ->willReturn($result);
+                   ->willReturn(true);
         $collection->setMapper($mapperMock);
         $collection->remove($removed);
     }
@@ -198,27 +196,25 @@ class CollectionTest extends \PHPUnit\Framework\TestCase
     }
     function test_fetchAll_should_persist_on_attached_mapper()
     {
-        $result = 'result stub';
         $collection = new Collection('name_whatever');
         $mapperMock = $this->createMock('Respect\\Data\\AbstractMapper');
         $mapperMock->expects($this->once())
                    ->method('fetchAll')
                    ->with($collection)
-                   ->willReturn($result);
+                   ->willReturn([]);
         $collection->setMapper($mapperMock);
         $collection->fetchAll();
     }
 
     function test_fetchAll_should_persist_on_attached_mapper_with_extra_param()
     {
-        $result = 'result stub';
         $extra = 'extra stub';
         $collection = new Collection('name_whatever');
         $mapperMock = $this->createMock('Respect\\Data\\AbstractMapper');
         $mapperMock->expects($this->once())
                    ->method('fetchAll')
                    ->with($collection, $extra)
-                   ->willReturn($result);
+                   ->willReturn([]);
         $collection->setMapper($mapperMock);
         $collection->fetchAll($extra);
     }

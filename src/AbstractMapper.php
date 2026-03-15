@@ -9,16 +9,17 @@ use SplObjectStorage;
 
 abstract class AbstractMapper
 {
-    protected $style;
-    protected $new;
-    protected $tracked;
-    protected $changed;
-    protected $removed;
-    protected $collections = array();
+    protected ?Styles\Stylable $style = null;
+    protected SplObjectStorage $new;
+    protected SplObjectStorage $tracked;
+    protected SplObjectStorage $changed;
+    protected SplObjectStorage $removed;
+    /** @var array<string, Collection> */
+    protected array $collections = [];
 
-    abstract protected function createStatement(Collection $fromCollection, $withExtra = null);
+    abstract protected function createStatement(Collection $fromCollection, mixed $withExtra = null): mixed;
 
-    protected function parseHydrated(SplObjectStorage $hydrated)
+    protected function parseHydrated(SplObjectStorage $hydrated): mixed
     {
         $this->tracked->addAll($hydrated);
         $hydrated->rewind();
@@ -26,7 +27,7 @@ abstract class AbstractMapper
         return $hydrated->current();
     }
 
-    public function getStyle()
+    public function getStyle(): Styles\Stylable
     {
         if (null === $this->style) {
             $this->setStyle(new Styles\Standard());
@@ -35,7 +36,7 @@ abstract class AbstractMapper
         return $this->style;
     }
 
-    public function setStyle(Styles\Stylable $style)
+    public function setStyle(Styles\Stylable $style): static
     {
         $this->style = $style;
 
@@ -50,23 +51,23 @@ abstract class AbstractMapper
         $this->new      = new SplObjectStorage();
     }
 
-    abstract public function flush();
+    abstract public function flush(): void;
 
-    public function reset()
+    public function reset(): void
     {
         $this->changed = new SplObjectStorage();
         $this->removed = new SplObjectStorage();
         $this->new = new SplObjectStorage();
     }
 
-    public function markTracked($entity, Collection $collection)
+    public function markTracked(object $entity, Collection $collection): bool
     {
         $this->tracked[$entity] = $collection;
 
         return true;
     }
 
-    public function fetch(Collection $fromCollection, $withExtra = null)
+    public function fetch(Collection $fromCollection, mixed $withExtra = null): mixed
     {
         $statement = $this->createStatement($fromCollection, $withExtra);
         $hydrated = $this->fetchHydrated($fromCollection, $statement);
@@ -77,10 +78,10 @@ abstract class AbstractMapper
         return $this->parseHydrated($hydrated);
     }
 
-    public function fetchAll(Collection $fromCollection, $withExtra = null)
+    public function fetchAll(Collection $fromCollection, mixed $withExtra = null): array
     {
         $statement = $this->createStatement($fromCollection, $withExtra);
-        $entities = array();
+        $entities = [];
 
         while ($hydrated = $this->fetchHydrated($fromCollection, $statement)) {
             $entities[] = $this->parseHydrated($hydrated);
@@ -89,7 +90,7 @@ abstract class AbstractMapper
         return $entities;
     }
 
-    public function persist($object, Collection $onCollection)
+    public function persist(object $object, Collection $onCollection): bool
     {
         $this->changed[$object] = true;
 
@@ -103,7 +104,7 @@ abstract class AbstractMapper
         return true;
     }
 
-    public function remove($object, Collection $fromCollection)
+    public function remove(object $object, Collection $fromCollection): bool
     {
         $this->changed[$object] = true;
         $this->removed[$object] = true;
@@ -117,12 +118,12 @@ abstract class AbstractMapper
         return true;
     }
 
-    public function isTracked($entity)
+    public function isTracked(object $entity): bool
     {
         return $this->tracked->contains($entity);
     }
 
-    protected function fetchHydrated(Collection $collection, $statement)
+    protected function fetchHydrated(Collection $collection, mixed $statement): SplObjectStorage|false
     {
         if (!$collection->hasMore()) {
             return $this->fetchSingle($collection, $statement);
@@ -131,7 +132,7 @@ abstract class AbstractMapper
         }
     }
 
-    public function __get($name)
+    public function __get(string $name): Collection
     {
         if (isset($this->collections[$name])) {
             return $this->collections[$name];
@@ -143,17 +144,17 @@ abstract class AbstractMapper
         return $coll;
     }
 
-    public function __isset($alias)
+    public function __isset(string $alias): bool
     {
         return isset($this->collections[$alias]);
     }
 
-    public function __set($alias, $collection)
+    public function __set(string $alias, mixed $collection): void
     {
-        return $this->registerCollection($alias, $collection);
+        $this->registerCollection($alias, $collection);
     }
 
-    public function __call($name, $children)
+    public function __call(string $name, array $children): Collection
     {
         $collection = Collection::__callstatic($name, $children);
         $collection->setMapper($this);
@@ -161,7 +162,7 @@ abstract class AbstractMapper
         return $collection;
     }
 
-    public function registerCollection($alias, Collection $collection)
+    public function registerCollection(string $alias, Collection $collection): void
     {
         $collection->setMapper($this);
         $this->collections[$alias] = $collection;

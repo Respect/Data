@@ -6,28 +6,28 @@ namespace Respect\Data\Styles;
 
 abstract class AbstractStyle implements Stylable
 {
-    protected function camelCaseToSeparator($name, $separator = '_')
+    protected function camelCaseToSeparator(string $name, string $separator = '_'): string
     {
         return preg_replace('/(?<=[a-z])([A-Z])/', $separator.'$1', $name);
     }
 
-    protected function separatorToCamelCase($name, $separator = '_')
+    protected function separatorToCamelCase(string $name, string $separator = '_'): string
     {
         $separator = preg_quote($separator, '/');
 
         return preg_replace_callback(
             "/{$separator}([a-zA-Z])/",
-            function ($m) { return strtoupper($m[1]); },
+            fn($m) => strtoupper($m[1]),
             $name
         );
     }
 
-    protected function pluralToSingular($name)
+    protected function pluralToSingular(string $name): string
     {
-        $replacements = array(
+        $replacements = [
             '/^(.+)ies$/' => '$1y',
             '/^(.+)s$/' => '$1',
-        );
+        ];
         foreach ($replacements as $key => $value) {
             if (preg_match($key, $name)) {
                 return preg_replace($key, $value, $name);
@@ -37,12 +37,12 @@ abstract class AbstractStyle implements Stylable
         return $name;
     }
 
-    protected function singularToPlural($name)
+    protected function singularToPlural(string $name): string
     {
-        $replacements = array(
+        $replacements = [
             '/^(.+)y$/' => '$1ies',
             '/^(.+)([^s])$/' => '$1$2s',
-        );
+        ];
         foreach ($replacements as $key => $value) {
             if (preg_match($key, $name)) {
                 return preg_replace($key, $value, $name);

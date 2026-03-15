@@ -6,6 +6,6 @@ namespace Respect\Data\Collections;
 
 interface Filterable
 {
-    public function getFilters(Collection $collection);
-    public function filterable(Collection $collection);
+    public function getFilters(Collection $collection): mixed;
+    public function filterable(Collection $collection): mixed;
 }

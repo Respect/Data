@@ -15,37 +15,39 @@ namespace Respect\Data\Styles;
  *            title                     category_id
  *
  */
-class Plural extends Standard
+final class Plural extends Standard
 {
-    public function remoteIdentifier($name)
+    public function remoteIdentifier(string $name): string
     {
         return $this->pluralToSingular($name).'_id';
     }
 
-    public function remoteFromIdentifier($name)
+    public function remoteFromIdentifier(string $name): ?string
     {
         if ($this->isRemoteIdentifier($name)) {
             return $this->singularToPlural(substr($name, 0, -3));
         }
+
+        return null;
     }
 
-    public function realName($name)
+    public function realName(string $name): string
     {
         $name    = strtolower($this->camelCaseToSeparator($name, '_'));
-        $pieces  = array_map(array($this, 'singularToPlural'), explode('_', $name));
+        $pieces  = array_map($this->singularToPlural(...), explode('_', $name));
 
         return implode('_', $pieces);
     }
 
-    public function styledName($name)
+    public function styledName(string $name): string
     {
-        $pieces  = array_map(array($this, 'pluralToSingular'), explode('_', $name));
+        $pieces  = array_map($this->pluralToSingular(...), explode('_', $name));
         $name    = $this->separatorToCamelCase(implode('_', $pieces), '_');
 
         return ucfirst($name);
     }
 
-    public function composed($left, $right)
+    public function composed(string $left, string $right): string
     {
         $left  = $this->singularToPlural($left);
         $right = $this->singularToPlural($right);
