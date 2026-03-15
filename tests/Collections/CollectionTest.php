@@ -297,4 +297,85 @@ class CollectionTest extends TestCase
         $this->expectException(RuntimeException::class);
         Collection::foo()->fetchAll();
     }
+
+    #[Test]
+    public function usingShouldCreateCollectionWithCondition(): void
+    {
+        $coll = Collection::using(42);
+        $this->assertInstanceOf(Collection::class, $coll);
+        $this->assertEquals(42, $coll->getCondition());
+    }
+
+    #[Test]
+    public function haveShouldReturnFalseForMissingExtra(): void
+    {
+        $coll = new Collection('foo');
+        $this->assertFalse($coll->have('nonexistent'));
+    }
+
+    #[Test]
+    public function haveShouldReturnTrueForExistingExtra(): void
+    {
+        $coll = new Collection('foo');
+        $coll->extra('key', 'value');
+        $this->assertTrue($coll->have('key'));
+    }
+
+    #[Test]
+    public function getExtraShouldReturnNullForMissingExtra(): void
+    {
+        $coll = new Collection('foo');
+        $this->assertNull($coll->getExtra('nonexistent'));
+    }
+
+    #[Test]
+    public function getExtraShouldReturnValueForExistingExtra(): void
+    {
+        $coll = new Collection('foo');
+        $coll->extra('key', 'value');
+        $this->assertEquals('value', $coll->getExtra('key'));
+    }
+
+    #[Test]
+    public function extraShouldReturnSelf(): void
+    {
+        $coll = new Collection('foo');
+        $result = $coll->extra('key', 'value');
+        $this->assertSame($coll, $result);
+    }
+
+    #[Test]
+    public function getParentNameShouldReturnNullWhenNoParent(): void
+    {
+        $coll = new Collection('foo');
+        $this->assertNull($coll->getParentName());
+    }
+
+    #[Test]
+    public function getNextNameShouldReturnNullWhenNoNext(): void
+    {
+        $coll = new Collection('foo');
+        $this->assertNull($coll->getNextName());
+    }
+
+    #[Test]
+    public function hasNextShouldReturnFalseWhenNoNext(): void
+    {
+        $coll = new Collection('foo');
+        $this->assertFalse($coll->hasNext());
+    }
+
+    #[Test]
+    public function magicGetShouldUseRegisteredCollectionFromMapper(): void
+    {
+        $registered = Collection::bar();
+        $mapperMock = $this->createMock(AbstractMapper::class);
+        $mapperMock->method('__isset')->with('bar')->willReturn(true);
+        $mapperMock->method('__get')->with('bar')->willReturn($registered);
+
+        $coll = new Collection('foo');
+        $coll->setMapper($mapperMock);
+        $result = $coll->bar;
+        $this->assertEquals('bar', $result->getNextName());
+    }
 }

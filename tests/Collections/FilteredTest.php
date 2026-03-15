@@ -28,4 +28,13 @@ class FilteredTest extends TestCase
         $this->assertEquals(['bar'], $children1->getExtra('filters'));
         $this->assertEquals(['bat'], $children2->getExtra('filters'));
     }
+
+    #[Test]
+    public function callStaticShouldCreateFilteredCollectionWithName(): void
+    {
+        $coll = Filtered::items();
+        $this->assertInstanceOf(Filtered::class, $coll);
+        $this->assertEquals('items', $coll->getName());
+        $this->assertEquals([], $coll->getExtra('filters'));
+    }
 }

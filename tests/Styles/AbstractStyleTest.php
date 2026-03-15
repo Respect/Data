@@ -114,4 +114,16 @@ class AbstractStyleTest extends TestCase
             $separatorToCamelCaseMethod->invoke($this->style, $separated, $separator),
         );
     }
+
+    public function testPluralToSingularReturnsUnchangedWhenNoMatch(): void
+    {
+        $method = new ReflectionMethod($this->style, 'pluralToSingular');
+        $this->assertEquals('fox', $method->invoke($this->style, 'fox'));
+    }
+
+    public function testSingularToPluralReturnsUnchangedWhenNoMatch(): void
+    {
+        $method = new ReflectionMethod($this->style, 'singularToPlural');
+        $this->assertEquals('news', $method->invoke($this->style, 'news'));
+    }
 }

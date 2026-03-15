@@ -28,4 +28,13 @@ class MixedTest extends TestCase
         $this->assertEquals(['foo' => ['bar']], $children1->getExtra('mixins'));
         $this->assertEquals(['bat' => ['bar']], $children2->getExtra('mixins'));
     }
+
+    #[Test]
+    public function callStaticShouldCreateMixCollectionWithName(): void
+    {
+        $coll = Mix::items();
+        $this->assertInstanceOf(Mix::class, $coll);
+        $this->assertEquals('items', $coll->getName());
+        $this->assertEquals([], $coll->getExtra('mixins'));
+    }
 }

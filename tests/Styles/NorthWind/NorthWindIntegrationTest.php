@@ -9,7 +9,6 @@ use PHPUnit\Framework\TestCase;
 use Respect\Data\InMemoryMapper;
 use Respect\Data\Styles\NorthWind;
 
-#[CoversClass(InMemoryMapper::class)]
 #[CoversClass(NorthWind::class)]
 class NorthWindIntegrationTest extends TestCase
 {

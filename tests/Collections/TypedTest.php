@@ -28,4 +28,13 @@ class TypedTest extends TestCase
         $this->assertEquals('a', $children1->getExtra('type'));
         $this->assertEquals('b', $children2->getExtra('type'));
     }
+
+    #[Test]
+    public function callStaticShouldCreateTypedCollectionWithName(): void
+    {
+        $coll = Typed::items();
+        $this->assertInstanceOf(Typed::class, $coll);
+        $this->assertEquals('items', $coll->getName());
+        $this->assertEquals('', $coll->getExtra('type'));
+    }
 }

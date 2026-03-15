@@ -40,6 +40,7 @@
         }
     },
     "scripts": {
+        "coverage": "vendor/bin/phpunit --coverage-text",
         "phpcs": "vendor/bin/phpcs",
         "phpstan": "vendor/bin/phpstan analyze",
         "phpunit": "vendor/bin/phpunit",
