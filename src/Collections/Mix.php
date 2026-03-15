@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Respect\Data\Collections;
 
 class Mix extends Collection
