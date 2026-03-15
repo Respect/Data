@@ -127,7 +127,9 @@ class CollectionTest extends TestCase
             Collection::children(),
             Collection::here(),
         );
-        $this->assertEquals(3, count($coll->getNext()->getChildren()));
+        $next = $coll->getNext();
+        $this->assertNotNull($next);
+        $this->assertEquals(3, count($next->getChildren()));
     }
 
     #[Test]
@@ -135,8 +137,9 @@ class CollectionTest extends TestCase
     {
         $coll = new Collection('foo_collection');
         $coll->addChild(new Collection('bar_child'));
-        $child = $coll->getChildren();
-        $child = reset($child);
+        $children = $coll->getChildren();
+        $child = reset($children);
+        $this->assertInstanceOf(Collection::class, $child);
         $this->assertEquals(false, $child->isRequired());
         $this->assertEquals($coll->getName(), $child->getParentName());
     }

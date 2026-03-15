@@ -154,10 +154,13 @@ final class InMemoryMapper extends AbstractMapper
             $pk = $this->getStyle()->identifier($tableName);
             $pkValue = $entity->{$pk};
 
-            foreach ($this->tables[$tableName] as $index => $existing) {
+            $rows = $this->tables[$tableName];
+            foreach ($rows as $index => $existing) {
                 if (isset($existing[$pk]) && $existing[$pk] == $pkValue) {
-                    unset($this->tables[$tableName][$index]);
-                    $this->tables[$tableName] = array_values($this->tables[$tableName]);
+                    unset($rows[$index]);
+                    /** @var list<array<string, mixed>> $reindexed */
+                    $reindexed = array_values($rows);
+                    $this->tables[$tableName] = $reindexed;
 
                     break;
                 }

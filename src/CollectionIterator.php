@@ -6,9 +6,11 @@ namespace Respect\Data;
 
 use RecursiveArrayIterator;
 use RecursiveIteratorIterator;
+use Respect\Data\Collections\Collection;
 
 use function is_array;
 
+/** @extends RecursiveArrayIterator<array-key, Collection> */
 final class CollectionIterator extends RecursiveArrayIterator
 {
     /** @var array<string, int> */
@@ -19,17 +21,21 @@ final class CollectionIterator extends RecursiveArrayIterator
     {
         $this->namesCounts = &$namesCounts;
 
-        parent::__construct(is_array($target) ? $target : [$target]);
+        /** @var array<Collection> $items */
+        $items = is_array($target) ? $target : [$target];
+
+        parent::__construct($items);
     }
 
+    /** @return RecursiveIteratorIterator<CollectionIterator> */
     public static function recursive(mixed $target): RecursiveIteratorIterator
     {
-        return new RecursiveIteratorIterator(new static($target), 1);
+        return new RecursiveIteratorIterator(new self($target), 1);
     }
 
-    public function key(): string|int|null
+    public function key(): string
     {
-        $name = $this->current()->getName();
+        $name = $this->current()->getName() ?? '';
 
         if (isset($this->namesCounts[$name])) {
             return $name . ++$this->namesCounts[$name];

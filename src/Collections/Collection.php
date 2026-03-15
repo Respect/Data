@@ -8,6 +8,9 @@ use ArrayAccess;
 use Respect\Data\AbstractMapper;
 use RuntimeException;
 
+use function assert;
+
+/** @implements ArrayAccess<string, Collection> */
 class Collection implements ArrayAccess
 {
     protected bool $required = true;
@@ -163,7 +166,9 @@ class Collection implements ArrayAccess
 
     public function offsetGet(mixed $condition): mixed
     {
-        $this->last->condition = $condition;
+        if ($this->last !== null) {
+            $this->last->condition = $condition;
+        }
 
         return $this;
     }
@@ -211,7 +216,10 @@ class Collection implements ArrayAccess
 
     public function stack(Collection $collection): static
     {
-        $this->last->setNext($collection);
+        if ($this->last !== null) {
+            $this->last->setNext($collection);
+        }
+
         $this->last = $collection;
 
         return $this;
@@ -228,7 +236,10 @@ class Collection implements ArrayAccess
     public function __get(string $name): static
     {
         if (isset($this->mapper) && isset($this->mapper->$name)) {
-            return $this->stack(clone $this->mapper->$name);
+            assert($this->mapper->$name instanceof Collection);
+            $cloned = clone $this->mapper->$name;
+
+            return $this->stack($cloned);
         }
 
         return $this->stack(new self($name));

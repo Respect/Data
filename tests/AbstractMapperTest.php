@@ -43,7 +43,9 @@ class AbstractMapperTest extends TestCase
 
         $ref = new ReflectionObject($this->mapper);
         $prop = $ref->getProperty('collections');
-        $this->assertContains($coll, $prop->getValue($this->mapper));
+        /** @var array<string, Collection> $collections */
+        $collections = $prop->getValue($this->mapper);
+        $this->assertContains($coll, $collections);
 
         $this->assertEquals($coll, $this->mapper->my_alias);
     }
@@ -56,7 +58,9 @@ class AbstractMapperTest extends TestCase
 
         $ref = new ReflectionObject($this->mapper);
         $prop = $ref->getProperty('collections');
-        $this->assertContains($coll, $prop->getValue($this->mapper));
+        /** @var array<string, Collection> $collections */
+        $collections = $prop->getValue($this->mapper);
+        $this->assertContains($coll, $collections);
 
         $this->assertEquals($coll, $this->mapper->my_alias);
     }
