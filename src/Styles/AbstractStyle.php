@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Respect\Data\Styles;
 
 abstract class AbstractStyle implements Stylable
@@ -31,6 +33,8 @@ abstract class AbstractStyle implements Stylable
                 return preg_replace($key, $value, $name);
             }
         }
+
+        return $name;
     }
 
     protected function singularToPlural($name)
@@ -44,5 +48,7 @@ abstract class AbstractStyle implements Stylable
                 return preg_replace($key, $value, $name);
             }
         }
+
+        return $name;
     }
 }

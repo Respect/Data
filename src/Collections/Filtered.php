@@ -1,21 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Respect\Data\Collections;
 
-class Typed extends Collection
+class Filtered extends Collection
 {
     public static function __callStatic($name, $children)
     {
         $collection = new self();
-        $collection->extra('type', '');
+        $collection->extra('filters', array());
 
         return $collection->__call($name, $children);
     }
 
-    public static function by($type)
+    public static function by($name)
     {
         $collection = new Collection();
-        $collection->extra('type', $type);
+        $collection->extra('filters', func_get_args());
 
         return $collection;
     }

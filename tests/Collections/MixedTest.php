@@ -1,13 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Respect\Data\Collections;
 
-class FilteredTest extends \PHPUnit\Framework\TestCase
+class MixedTest extends \PHPUnit\Framework\TestCase
 {
     function test_collection_can_be_created_statically_with_children()
     {
-        $children_1 = Filtered::by('bar')->bar();
-        $children_2 = Filtered::by('bat')->baz()->bat();
+        $children_1 = Mix::with(array('foo' => array('bar')))->bar();
+        $children_2 = Mix::with(array('bat' => array('bar')))->baz()->bat();
         $coll = Collection::foo($children_1, $children_2)->bar();
         $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll);
         $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll->getNext());
@@ -15,8 +17,8 @@ class FilteredTest extends \PHPUnit\Framework\TestCase
         $this->assertInstanceOf('Respect\Data\Collections\Collection', $children_2);
         $this->assertTrue($coll->hasChildren());
         $this->assertEquals(2, count($coll->getChildren()));
-        $this->assertEquals(array('bar'), $children_1->getExtra('filters'));
-        $this->assertEquals(array('bat'), $children_2->getExtra('filters'));
+        $this->assertEquals(array('foo' => array('bar')), $children_1->getExtra('mixins'));
+        $this->assertEquals(array('bat' => array('bar')), $children_2->getExtra('mixins'));
     }
    
 }

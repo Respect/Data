@@ -31,7 +31,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Respect\\": "library/Respect"
+            "Respect\\Data\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Respect\\Data\\": "tests/"
         }
     },
     "scripts": {

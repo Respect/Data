@@ -1,9 +1,9 @@
 parameters:
-  level: 1
+  level: 2
   paths:
-    - library/
+    - src/
     - tests/
   ignoreErrors:
-    - message: '/Call to an undefined static method Respect\\Data\\Collections\\(Collection|Filtered|Mix|Typed)::\w+\(\)\./'
-    - message: '/Call to an undefined method Respect\\Data\\AbstractMapper::\w+\(\)\./'
+    - message: '/Call to an undefined (static )?method Respect\\Data\\(AbstractMapper|Collections\\(Collection|Filtered|Mix|Typed))::\w+\(\)\./'
+    - message: '/Access to an undefined property Respect\\Data\\Collections\\Collection::\$\w+\./'
     - message: '/Unsafe usage of new static\(\)\./'
