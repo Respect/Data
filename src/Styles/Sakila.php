@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Respect\Data\Styles;
 
-class Sakila extends Standard
+final class Sakila extends Standard
 {
-    public function identifier($name)
+    public function identifier(string $name): string
     {
         return $this->remoteIdentifier($name);
     }

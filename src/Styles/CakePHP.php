@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Respect\Data\Styles;
 
-class CakePHP extends Standard
+final class CakePHP extends Standard
 {
-    public function realName($name)
+    public function realName(string $name): string
     {
         $name       = $this->camelCaseToSeparator($name, '_');
         $name       = strtolower($name);
@@ -16,19 +16,21 @@ class CakePHP extends Standard
         return implode('_', $pieces);
     }
 
-    public function remoteIdentifier($name)
+    public function remoteIdentifier(string $name): string
     {
         return $this->pluralToSingular($name).'_id';
     }
 
-    public function remoteFromIdentifier($name)
+    public function remoteFromIdentifier(string $name): ?string
     {
         if ($this->isRemoteIdentifier($name)) {
             return $this->singularToPlural(substr($name, 0, -3));
         }
+
+        return null;
     }
 
-    public function styledName($name)
+    public function styledName(string $name): string
     {
         $pieces     = explode('_', $name);
         $pieces[]   = $this->pluralToSingular(array_pop($pieces));
@@ -37,7 +39,7 @@ class CakePHP extends Standard
         return ucfirst($name);
     }
 
-    public function composed($left, $right)
+    public function composed(string $left, string $right): string
     {
         $pieces     = explode('_', $right);
         $pieces[]   = $this->singularToPlural(array_pop($pieces));

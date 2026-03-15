@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Respect\Data\Collections;
 
-class Typed extends Collection
+final class Typed extends Collection
 {
-    public static function __callStatic($name, $children)
+    public static function __callStatic(string $name, array $children): static
     {
-        $collection = new self();
+        $collection = new static();
         $collection->extra('type', '');
 
         return $collection->__call($name, $children);
     }
 
-    public static function by($type)
+    public static function by(string $type): Collection
     {
         $collection = new Collection();
         $collection->extra('type', $type);

@@ -6,21 +6,21 @@ namespace Respect\Data\Styles;
 
 interface Stylable
 {
-    public function styledName($entityName);
+    public function styledName(string $entityName): string;
 
-    public function realName($styledName);
+    public function realName(string $styledName): string;
 
-    public function styledProperty($name);
+    public function styledProperty(string $name): string;
 
-    public function realProperty($name);
+    public function realProperty(string $name): string;
 
-    public function identifier($name);
+    public function identifier(string $name): string;
 
-    public function remoteIdentifier($name);
+    public function remoteIdentifier(string $name): string;
 
-    public function remoteFromIdentifier($name);
+    public function remoteFromIdentifier(string $name): ?string;
 
-    public function isRemoteIdentifier($name);
+    public function isRemoteIdentifier(string $name): bool;
 
-    public function composed($left, $right);
+    public function composed(string $left, string $right): string;
 }

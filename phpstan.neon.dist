@@ -1,5 +1,5 @@
 parameters:
-  level: 2
+  level: 5
   paths:
     - src/
     - tests/
@@ -7,3 +7,6 @@ parameters:
     - message: '/Call to an undefined (static )?method Respect\\Data\\(AbstractMapper|Collections\\(Collection|Filtered|Mix|Typed))::\w+\(\)\./'
     - message: '/Access to an undefined property Respect\\Data\\Collections\\Collection::\$\w+\./'
     - message: '/Unsafe usage of new static\(\)\./'
+    -
+      message: '/Expression .+ on a separate line does not do anything\./'
+      path: tests/

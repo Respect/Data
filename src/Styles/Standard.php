@@ -6,54 +6,56 @@ namespace Respect\Data\Styles;
 
 class Standard extends AbstractStyle
 {
-    public function styledProperty($name)
+    public function styledProperty(string $name): string
     {
         return $name;
     }
 
-    public function realName($name)
+    public function realName(string $name): string
     {
         $name = $this->camelCaseToSeparator($name, '_');
 
         return strtolower($name);
     }
 
-    public function realProperty($name)
+    public function realProperty(string $name): string
     {
         return $name;
     }
 
-    public function styledName($name)
+    public function styledName(string $name): string
     {
         $name = $this->separatorToCamelCase($name, '_');
 
         return ucfirst($name);
     }
 
-    public function identifier($name)
+    public function identifier(string $name): string
     {
         return 'id';
     }
 
-    public function remoteIdentifier($name)
+    public function remoteIdentifier(string $name): string
     {
         return $name.'_id';
     }
 
-    public function composed($left, $right)
+    public function composed(string $left, string $right): string
     {
         return "{$left}_{$right}";
     }
 
-    public function isRemoteIdentifier($name)
+    public function isRemoteIdentifier(string $name): bool
     {
         return (strlen($name) - 3 === strripos($name, '_id'));
     }
 
-    public function remoteFromIdentifier($name)
+    public function remoteFromIdentifier(string $name): ?string
     {
         if ($this->isRemoteIdentifier($name)) {
             return substr($name, 0, -3);
         }
+
+        return null;
     }
 }

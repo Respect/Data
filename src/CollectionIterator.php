@@ -7,19 +7,20 @@ namespace Respect\Data;
 use RecursiveArrayIterator;
 use RecursiveIteratorIterator;
 
-class CollectionIterator extends RecursiveArrayIterator
+final class CollectionIterator extends RecursiveArrayIterator
 {
-    protected $namesCounts = array();
+    /** @var array<string, int> */
+    protected array $namesCounts = [];
 
-    public static function recursive($target)
+    public static function recursive(mixed $target): RecursiveIteratorIterator
     {
         return new RecursiveIteratorIterator(new static($target), 1);
     }
 
-    public function __construct($target = array(), &$namesCounts = array())
+    public function __construct(mixed $target = [], array &$namesCounts = [])
     {
         $this->namesCounts = &$namesCounts;
-        parent::__construct(is_array($target) ? $target : array($target));
+        parent::__construct(is_array($target) ? $target : [$target]);
     }
 
     public function key(): string|int|null
@@ -40,10 +41,10 @@ class CollectionIterator extends RecursiveArrayIterator
         return $this->current()->hasMore();
     }
 
-    public function getChildren(): ?RecursiveArrayIterator
+    public function getChildren(): RecursiveArrayIterator
     {
         $c = $this->current();
-        $pool = array();
+        $pool = [];
 
         if ($c->hasChildren()) {
             $pool = $c->getChildren();

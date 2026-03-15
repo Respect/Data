@@ -4,44 +4,46 @@ declare(strict_types=1);
 
 namespace Respect\Data\Styles;
 
-class NorthWind extends Standard
+final class NorthWind extends Standard
 {
-    public function realName($name)
+    public function realName(string $name): string
     {
         return $name;
     }
 
-    public function styledName($name)
+    public function styledName(string $name): string
     {
         return $name;
     }
 
-    public function composed($left, $right)
+    public function composed(string $left, string $right): string
     {
         $left = $this->pluralToSingular($left);
 
         return "{$left}{$right}";
     }
 
-    public function identifier($name)
+    public function identifier(string $name): string
     {
         return $this->pluralToSingular($name).'ID';
     }
 
-    public function remoteIdentifier($name)
+    public function remoteIdentifier(string $name): string
     {
         return $this->pluralToSingular($name).'ID';
     }
 
-    public function isRemoteIdentifier($name)
+    public function isRemoteIdentifier(string $name): bool
     {
         return (strlen($name) - 2 === strripos($name, 'ID'));
     }
 
-    public function remoteFromIdentifier($name)
+    public function remoteFromIdentifier(string $name): ?string
     {
         if ($this->isRemoteIdentifier($name)) {
             return $this->singularToPlural(substr($name, 0, -2));
         }
+
+        return null;
     }
 }

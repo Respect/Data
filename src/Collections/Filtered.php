@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Respect\Data\Collections;
 
-class Filtered extends Collection
+final class Filtered extends Collection
 {
-    public static function __callStatic($name, $children)
+    public static function __callStatic(string $name, array $children): static
     {
-        $collection = new self();
-        $collection->extra('filters', array());
+        $collection = new static();
+        $collection->extra('filters', []);
 
         return $collection->__call($name, $children);
     }
 
-    public static function by($name)
+    public static function by(string $name): Collection
     {
         $collection = new Collection();
         $collection->extra('filters', func_get_args());
