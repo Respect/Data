@@ -7,16 +7,22 @@ namespace Respect\Data;
 use Respect\Data\Collections\Collection;
 use SplObjectStorage;
 
+use function assert;
+
 abstract class AbstractMapper
 {
     protected Styles\Stylable|null $style = null;
 
+    /** @var SplObjectStorage<object, mixed> */
     protected SplObjectStorage $new;
 
+    /** @var SplObjectStorage<object, mixed> */
     protected SplObjectStorage $tracked;
 
+    /** @var SplObjectStorage<object, mixed> */
     protected SplObjectStorage $changed;
 
+    /** @var SplObjectStorage<object, mixed> */
     protected SplObjectStorage $removed;
 
     /** @var array<string, Collection> */
@@ -33,7 +39,7 @@ abstract class AbstractMapper
     public function getStyle(): Styles\Stylable
     {
         if ($this->style === null) {
-            $this->setStyle(new Styles\Standard());
+            $this->style = new Styles\Standard();
         }
 
         return $this->style;
@@ -125,6 +131,7 @@ abstract class AbstractMapper
 
     public function __set(string $alias, mixed $collection): void
     {
+        assert($collection instanceof Collection);
         $this->registerCollection($alias, $collection);
     }
 
