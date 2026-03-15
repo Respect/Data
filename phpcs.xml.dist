@@ -17,4 +17,9 @@
     <rule ref="Respect">
         <exclude name="SlevomatCodingStandard.Classes.SuperfluousAbstractClassNaming.SuperfluousPrefix" />
     </rule>
+
+    <!-- Test code and stub entities use snake_case properties matching DB columns -->
+    <rule ref="Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps">
+        <exclude-pattern>tests/</exclude-pattern>
+    </rule>
 </ruleset>

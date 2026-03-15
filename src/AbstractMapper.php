@@ -48,6 +48,11 @@ abstract class AbstractMapper
 
     abstract public function flush(): void;
 
+    abstract public function fetch(Collection $collection, mixed $extra = null): mixed;
+
+    /** @return array<int, mixed> */
+    abstract public function fetchAll(Collection $collection, mixed $extra = null): array;
+
     public function reset(): void
     {
         $this->changed = new SplObjectStorage();
@@ -60,30 +65,6 @@ abstract class AbstractMapper
         $this->tracked[$entity] = $collection;
 
         return true;
-    }
-
-    public function fetch(Collection $fromCollection, mixed $withExtra = null): mixed
-    {
-        $statement = $this->createStatement($fromCollection, $withExtra);
-        $hydrated = $this->fetchHydrated($fromCollection, $statement);
-        if (!$hydrated) {
-            return false;
-        }
-
-        return $this->parseHydrated($hydrated);
-    }
-
-    /** @return array<int, mixed> */
-    public function fetchAll(Collection $fromCollection, mixed $withExtra = null): array
-    {
-        $statement = $this->createStatement($fromCollection, $withExtra);
-        $entities = [];
-
-        while ($hydrated = $this->fetchHydrated($fromCollection, $statement)) {
-            $entities[] = $this->parseHydrated($hydrated);
-        }
-
-        return $entities;
     }
 
     public function persist(object $object, Collection $onCollection): bool
@@ -123,25 +104,6 @@ abstract class AbstractMapper
     {
         $collection->setMapper($this);
         $this->collections[$alias] = $collection;
-    }
-
-    abstract protected function createStatement(Collection $fromCollection, mixed $withExtra = null): mixed;
-
-    protected function parseHydrated(SplObjectStorage $hydrated): mixed
-    {
-        $this->tracked->addAll($hydrated);
-        $hydrated->rewind();
-
-        return $hydrated->current();
-    }
-
-    protected function fetchHydrated(Collection $collection, mixed $statement): SplObjectStorage|false
-    {
-        if (!$collection->hasMore()) {
-            return $this->fetchSingle($collection, $statement);
-        }
-
-        return $this->fetchMulti($collection, $statement);
     }
 
     public function __get(string $name): Collection
