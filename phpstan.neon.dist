@@ -5,7 +5,7 @@ parameters:
     - tests/
   ignoreErrors:
     - message: '/Call to an undefined (static )?method Respect\\Data\\(AbstractMapper|Collections\\(Collection|Filtered|Mix|Typed))::\w+\(\)\./'
-    - message: '/Access to an undefined property Respect\\Data\\(AbstractMapper|Collections\\Collection)::\$\w+\./'
+    - message: '/Access to an undefined property Respect\\Data\\(AbstractMapper|InMemoryMapper|Collections\\Collection)::\$\w+\./'
     - message: '/Unsafe usage of new static\(\)\./'
     -
       message: '/Expression .+ on a separate line does not do anything\./'

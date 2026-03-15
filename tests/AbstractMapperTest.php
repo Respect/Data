@@ -22,9 +22,15 @@ class AbstractMapperTest extends TestCase
             {
             }
 
-            protected function createStatement(Collection $fromCollection, mixed $withExtra = null): mixed
+            public function fetch(Collection $collection, mixed $extra = null): mixed
             {
-                return null;
+                return false;
+            }
+
+            /** @return array<int, mixed> */
+            public function fetchAll(Collection $collection, mixed $extra = null): array
+            {
+                return [];
             }
         };
     }
