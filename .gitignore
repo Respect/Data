@@ -2,3 +2,4 @@ composer.lock
 Makefile
 /vendor/
 .phpunit.result.cache
+.phpcs.cache
