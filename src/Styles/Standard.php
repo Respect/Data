@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace Respect\Data\Styles;
 
+use function strlen;
+use function strripos;
+use function strtolower;
+use function substr;
+use function ucfirst;
+
 class Standard extends AbstractStyle
 {
     public function styledProperty(string $name): string
@@ -37,20 +43,20 @@ class Standard extends AbstractStyle
 
     public function remoteIdentifier(string $name): string
     {
-        return $name.'_id';
+        return $name . '_id';
     }
 
     public function composed(string $left, string $right): string
     {
-        return "{$left}_{$right}";
+        return $left . '_' . $right;
     }
 
     public function isRemoteIdentifier(string $name): bool
     {
-        return (strlen($name) - 3 === strripos($name, '_id'));
+        return strlen($name) - 3 === strripos($name, '_id');
     }
 
-    public function remoteFromIdentifier(string $name): ?string
+    public function remoteFromIdentifier(string $name): string|null
     {
         if ($this->isRemoteIdentifier($name)) {
             return substr($name, 0, -3);

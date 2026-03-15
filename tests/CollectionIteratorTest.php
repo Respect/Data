@@ -9,28 +9,30 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Respect\Data\Collections\Collection;
 
+use function iterator_to_array;
+
 #[CoversClass(CollectionIterator::class)]
 class CollectionIteratorTest extends TestCase
 {
     #[Test]
-    public function static_builder_should_create_recursive_iterator(): void
+    public function staticBuilderShouldCreateRecursiveIterator(): void
     {
         $this->assertInstanceOf(
             'RecursiveIteratorIterator',
-            CollectionIterator::recursive(Collection::foo())
+            CollectionIterator::recursive(Collection::foo()),
         );
     }
 
     #[Test]
-    public function constructing_should_accept_collections_or_arrays(): void
+    public function constructingShouldAcceptCollectionsOrArrays(): void
     {
         $iterator = new CollectionIterator(Collection::foo());
-        $iterator2 = new CollectionIterator(array(Collection::foo()));
+        $iterator2 = new CollectionIterator([Collection::foo()]);
         $this->assertEquals($iterator, $iterator2);
     }
 
     #[Test]
-    public function key_should_track_nameCounts(): void
+    public function keyShouldTrackNameCounts(): void
     {
         $i = new CollectionIterator(Collection::foo());
         $this->assertEquals('foo', $i->key());
@@ -39,7 +41,7 @@ class CollectionIteratorTest extends TestCase
     }
 
     #[Test]
-    public function hasChildren_consider_empties(): void
+    public function hasChildrenConsiderEmpties(): void
     {
         $coll = Collection::foo();
         $iterator = new CollectionIterator($coll);
@@ -47,7 +49,7 @@ class CollectionIteratorTest extends TestCase
     }
 
     #[Test]
-    public function hasChildren_use_collection_children(): void
+    public function hasChildrenUseCollectionChildren(): void
     {
         $coll = Collection::foo(Collection::bar());
         $iterator = new CollectionIterator($coll);
@@ -55,7 +57,7 @@ class CollectionIteratorTest extends TestCase
     }
 
     #[Test]
-    public function hasChildren_use_collection_next(): void
+    public function hasChildrenUseCollectionNext(): void
     {
         $coll = Collection::foo()->bar;
         $iterator = new CollectionIterator($coll);
@@ -63,7 +65,7 @@ class CollectionIteratorTest extends TestCase
     }
 
     #[Test]
-    public function getChildren_consider_empties(): void
+    public function getChildrenConsiderEmpties(): void
     {
         $coll = Collection::foo();
         $iterator = new CollectionIterator($coll);
@@ -71,17 +73,17 @@ class CollectionIteratorTest extends TestCase
     }
 
     #[Test]
-    public function getChildren_use_collection_children(): void
+    public function getChildrenUseCollectionChildren(): void
     {
         $coll = Collection::foo(Collection::bar(), Collection::baz());
-        list($foo_child, $bar_child) = $coll->getChildren();
+        [$fooChild, $barChild] = $coll->getChildren();
         $items = iterator_to_array(CollectionIterator::recursive($coll));
-        $this->assertContains($foo_child, $items);
-        $this->assertContains($bar_child, $items);
+        $this->assertContains($fooChild, $items);
+        $this->assertContains($barChild, $items);
     }
 
     #[Test]
-    public function getChildren_use_collection_next(): void
+    public function getChildrenUseCollectionNext(): void
     {
         $coll = Collection::foo()->bar;
         $iterator = new CollectionIterator($coll);

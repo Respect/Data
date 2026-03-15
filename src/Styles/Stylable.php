@@ -18,7 +18,7 @@ interface Stylable
 
     public function remoteIdentifier(string $name): string;
 
-    public function remoteFromIdentifier(string $name): ?string;
+    public function remoteFromIdentifier(string $name): string|null;
 
     public function isRemoteIdentifier(string $name): bool;
 

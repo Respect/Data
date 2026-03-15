@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 namespace Respect\Data\Styles;
 
+use function array_pop;
+use function explode;
+use function implode;
+use function strtolower;
+use function substr;
+use function ucfirst;
+
 final class CakePHP extends Standard
 {
     public function realName(string $name): string
@@ -18,10 +25,10 @@ final class CakePHP extends Standard
 
     public function remoteIdentifier(string $name): string
     {
-        return $this->pluralToSingular($name).'_id';
+        return $this->pluralToSingular($name) . '_id';
     }
 
-    public function remoteFromIdentifier(string $name): ?string
+    public function remoteFromIdentifier(string $name): string|null
     {
         if ($this->isRemoteIdentifier($name)) {
             return $this->singularToPlural(substr($name, 0, -3));
@@ -45,6 +52,6 @@ final class CakePHP extends Standard
         $pieces[]   = $this->singularToPlural(array_pop($pieces));
         $right      = implode('_', $pieces);
 
-        return "{$left}_{$right}";
+        return $left . '_' . $right;
     }
 }

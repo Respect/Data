@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Respect\Data\Styles;
 
+use function strlen;
+use function strripos;
+use function substr;
+
 final class NorthWind extends Standard
 {
     public function realName(string $name): string
@@ -20,25 +24,25 @@ final class NorthWind extends Standard
     {
         $left = $this->pluralToSingular($left);
 
-        return "{$left}{$right}";
+        return $left . $right;
     }
 
     public function identifier(string $name): string
     {
-        return $this->pluralToSingular($name).'ID';
+        return $this->pluralToSingular($name) . 'ID';
     }
 
     public function remoteIdentifier(string $name): string
     {
-        return $this->pluralToSingular($name).'ID';
+        return $this->pluralToSingular($name) . 'ID';
     }
 
     public function isRemoteIdentifier(string $name): bool
     {
-        return (strlen($name) - 2 === strripos($name, 'ID'));
+        return strlen($name) - 2 === strripos($name, 'ID');
     }
 
-    public function remoteFromIdentifier(string $name): ?string
+    public function remoteFromIdentifier(string $name): string|null
     {
         if ($this->isRemoteIdentifier($name)) {
             return $this->singularToPlural(substr($name, 0, -2));

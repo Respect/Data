@@ -4,22 +4,32 @@ declare(strict_types=1);
 
 namespace Respect\Data\Collections;
 
-use Respect\Data\AbstractMapper;
 use ArrayAccess;
+use Respect\Data\AbstractMapper;
+use RuntimeException;
 
 class Collection implements ArrayAccess
 {
     protected bool $required = true;
-    protected ?AbstractMapper $mapper = null;
-    protected ?string $name = null;
-    protected mixed $condition = [];
-    protected ?Collection $parent = null;
-    protected ?Collection $next = null;
-    protected ?Collection $last = null;
+
+    protected AbstractMapper|null $mapper = null;
+
+    protected Collection|null $parent = null;
+
+    protected Collection|null $next = null;
+
+    protected Collection|null $last = null;
+
     /** @var Collection[] */
     protected array $children = [];
+
     /** @var array<string, mixed> */
     protected array $extras = [];
+
+    public function __construct(protected string|null $name = null, protected mixed $condition = [])
+    {
+        $this->last = $this;
+    }
 
     public function extra(string $name, mixed $specs): static
     {
@@ -50,49 +60,6 @@ class Collection implements ArrayAccess
         return $collection;
     }
 
-    public static function __callStatic(string $name, array $children): static
-    {
-        $collection = new static();
-
-        return $collection->__call($name, $children);
-    }
-
-    public function __construct(?string $name = null, mixed $condition = [])
-    {
-        $this->name = $name;
-        $this->condition = $condition;
-        $this->last = $this;
-    }
-
-    public function __get(string $name): static
-    {
-        if (isset($this->mapper) && isset($this->mapper->$name)) {
-            return $this->stack(clone $this->mapper->$name);
-        }
-
-        return $this->stack(new self($name));
-    }
-
-    public function __call(string $name, array $children): static
-    {
-        if (!isset($this->name)) {
-            $this->name = $name;
-            foreach ($children as $child) {
-                if ($child instanceof Collection) {
-                    $this->addChild($child);
-                } else {
-                    $this->setCondition($child);
-                }
-            }
-
-            return $this;
-        }
-
-        $collection = self::__callStatic($name, $children);
-
-        return $this->stack($collection);
-    }
-
     public function addChild(Collection $child): void
     {
         $clone = clone $child;
@@ -105,7 +72,7 @@ class Collection implements ArrayAccess
     public function persist(object $object): mixed
     {
         if (!$this->mapper) {
-            throw new \RuntimeException();
+            throw new RuntimeException();
         }
 
         return $this->mapper->persist($object, $this);
@@ -114,7 +81,7 @@ class Collection implements ArrayAccess
     public function remove(object $object): mixed
     {
         if (!$this->mapper) {
-            throw new \RuntimeException();
+            throw new RuntimeException();
         }
 
         return $this->mapper->remove($object, $this);
@@ -123,7 +90,7 @@ class Collection implements ArrayAccess
     public function fetch(mixed $extra = null): mixed
     {
         if (!$this->mapper) {
-            throw new \RuntimeException();
+            throw new RuntimeException();
         }
 
         return $this->mapper->fetch($this, $extra);
@@ -132,7 +99,7 @@ class Collection implements ArrayAccess
     public function fetchAll(mixed $extra = null): mixed
     {
         if (!$this->mapper) {
-            throw new \RuntimeException();
+            throw new RuntimeException();
         }
 
         return $this->mapper->fetchAll($this, $extra);
@@ -149,22 +116,22 @@ class Collection implements ArrayAccess
         return $this->condition;
     }
 
-    public function getName(): ?string
+    public function getName(): string|null
     {
         return $this->name;
     }
 
-    public function getNext(): ?Collection
+    public function getNext(): Collection|null
     {
         return $this->next;
     }
 
-    public function getParentName(): ?string
+    public function getParentName(): string|null
     {
         return $this->parent ? $this->parent->getName() : null;
     }
 
-    public function getNextName(): ?string
+    public function getNextName(): string|null
     {
         return $this->next ? $this->next->getName() : null;
     }
@@ -181,7 +148,7 @@ class Collection implements ArrayAccess
 
     public function hasNext(): bool
     {
-        return !is_null($this->next);
+        return $this->next !== null;
     }
 
     public function isRequired(): bool
@@ -216,11 +183,12 @@ class Collection implements ArrayAccess
         $this->condition = $condition;
     }
 
-    public function setMapper(?AbstractMapper $mapper = null): void
+    public function setMapper(AbstractMapper|null $mapper = null): void
     {
         foreach ($this->children as $child) {
             $child->setMapper($mapper);
         }
+
         $this->mapper = $mapper;
     }
 
@@ -247,5 +215,43 @@ class Collection implements ArrayAccess
         $this->last = $collection;
 
         return $this;
+    }
+
+    /** @param array<int, mixed> $children */
+    public static function __callStatic(string $name, array $children): static
+    {
+        $collection = new static();
+
+        return $collection->__call($name, $children);
+    }
+
+    public function __get(string $name): static
+    {
+        if (isset($this->mapper) && isset($this->mapper->$name)) {
+            return $this->stack(clone $this->mapper->$name);
+        }
+
+        return $this->stack(new self($name));
+    }
+
+    /** @param array<int, mixed> $children */
+    public function __call(string $name, array $children): static
+    {
+        if (!isset($this->name)) {
+            $this->name = $name;
+            foreach ($children as $child) {
+                if ($child instanceof Collection) {
+                    $this->addChild($child);
+                } else {
+                    $this->setCondition($child);
+                }
+            }
+
+            return $this;
+        }
+
+        $collection = self::__callStatic($name, $children);
+
+        return $this->stack($collection);
     }
 }

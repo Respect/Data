@@ -9,27 +9,30 @@ use SplObjectStorage;
 
 abstract class AbstractMapper
 {
-    protected ?Styles\Stylable $style = null;
+    protected Styles\Stylable|null $style = null;
+
     protected SplObjectStorage $new;
+
     protected SplObjectStorage $tracked;
+
     protected SplObjectStorage $changed;
+
     protected SplObjectStorage $removed;
+
     /** @var array<string, Collection> */
     protected array $collections = [];
 
-    abstract protected function createStatement(Collection $fromCollection, mixed $withExtra = null): mixed;
-
-    protected function parseHydrated(SplObjectStorage $hydrated): mixed
+    public function __construct()
     {
-        $this->tracked->addAll($hydrated);
-        $hydrated->rewind();
-
-        return $hydrated->current();
+        $this->tracked  = new SplObjectStorage();
+        $this->changed  = new SplObjectStorage();
+        $this->removed  = new SplObjectStorage();
+        $this->new      = new SplObjectStorage();
     }
 
     public function getStyle(): Styles\Stylable
     {
-        if (null === $this->style) {
+        if ($this->style === null) {
             $this->setStyle(new Styles\Standard());
         }
 
@@ -41,14 +44,6 @@ abstract class AbstractMapper
         $this->style = $style;
 
         return $this;
-    }
-
-    public function __construct()
-    {
-        $this->tracked  = new SplObjectStorage();
-        $this->changed  = new SplObjectStorage();
-        $this->removed  = new SplObjectStorage();
-        $this->new      = new SplObjectStorage();
     }
 
     abstract public function flush(): void;
@@ -78,6 +73,7 @@ abstract class AbstractMapper
         return $this->parseHydrated($hydrated);
     }
 
+    /** @return array<int, mixed> */
     public function fetchAll(Collection $fromCollection, mixed $withExtra = null): array
     {
         $statement = $this->createStatement($fromCollection, $withExtra);
@@ -123,13 +119,29 @@ abstract class AbstractMapper
         return $this->tracked->offsetExists($entity);
     }
 
+    public function registerCollection(string $alias, Collection $collection): void
+    {
+        $collection->setMapper($this);
+        $this->collections[$alias] = $collection;
+    }
+
+    abstract protected function createStatement(Collection $fromCollection, mixed $withExtra = null): mixed;
+
+    protected function parseHydrated(SplObjectStorage $hydrated): mixed
+    {
+        $this->tracked->addAll($hydrated);
+        $hydrated->rewind();
+
+        return $hydrated->current();
+    }
+
     protected function fetchHydrated(Collection $collection, mixed $statement): SplObjectStorage|false
     {
         if (!$collection->hasMore()) {
             return $this->fetchSingle($collection, $statement);
-        } else {
-            return $this->fetchMulti($collection, $statement);
         }
+
+        return $this->fetchMulti($collection, $statement);
     }
 
     public function __get(string $name): Collection
@@ -154,17 +166,12 @@ abstract class AbstractMapper
         $this->registerCollection($alias, $collection);
     }
 
+    /** @param array<int, mixed> $children */
     public function __call(string $name, array $children): Collection
     {
         $collection = Collection::__callstatic($name, $children);
         $collection->setMapper($this);
 
         return $collection;
-    }
-
-    public function registerCollection(string $alias, Collection $collection): void
-    {
-        $collection->setMapper($this);
-        $this->collections[$alias] = $collection;
     }
 }
