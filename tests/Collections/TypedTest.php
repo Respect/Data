@@ -8,22 +8,24 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+use function count;
+
 #[CoversClass(Typed::class)]
 class TypedTest extends TestCase
 {
     #[Test]
-    public function collection_can_be_created_statically_with_children(): void
+    public function collectionCanBeCreatedStaticallyWithChildren(): void
     {
-        $children_1 = Typed::by('a')->bar();
-        $children_2 = Typed::by('b')->baz()->bat();
-        $coll = Collection::foo($children_1, $children_2)->bar();
+        $children1 = Typed::by('a')->bar();
+        $children2 = Typed::by('b')->baz()->bat();
+        $coll = Collection::foo($children1, $children2)->bar();
         $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll);
         $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll->getNext());
-        $this->assertInstanceOf('Respect\Data\Collections\Collection', $children_1);
-        $this->assertInstanceOf('Respect\Data\Collections\Collection', $children_2);
+        $this->assertInstanceOf('Respect\Data\Collections\Collection', $children1);
+        $this->assertInstanceOf('Respect\Data\Collections\Collection', $children2);
         $this->assertTrue($coll->hasChildren());
         $this->assertEquals(2, count($coll->getChildren()));
-        $this->assertEquals('a', $children_1->getExtra('type'));
-        $this->assertEquals('b', $children_2->getExtra('type'));
+        $this->assertEquals('a', $children1->getExtra('type'));
+        $this->assertEquals('b', $children2->getExtra('type'));
     }
 }

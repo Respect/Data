@@ -7,6 +7,7 @@ namespace Respect\Data;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use ReflectionObject;
 use Respect\Data\Collections\Collection;
 
 #[CoversClass(AbstractMapper::class)]
@@ -17,24 +18,24 @@ class AbstractMapperTest extends TestCase
     protected function setUp(): void
     {
         $this->mapper = new class extends AbstractMapper {
+            public function flush(): void
+            {
+            }
+
             protected function createStatement(Collection $fromCollection, mixed $withExtra = null): mixed
             {
                 return null;
-            }
-
-            public function flush(): void
-            {
             }
         };
     }
 
     #[Test]
-    public function registerCollection_should_add_collection_to_pool(): void
+    public function registerCollectionShouldAddCollectionToPool(): void
     {
         $coll = Collection::foo();
         $this->mapper->registerCollection('my_alias', $coll);
 
-        $ref = new \ReflectionObject($this->mapper);
+        $ref = new ReflectionObject($this->mapper);
         $prop = $ref->getProperty('collections');
         $this->assertContains($coll, $prop->getValue($this->mapper));
 
@@ -42,12 +43,12 @@ class AbstractMapperTest extends TestCase
     }
 
     #[Test]
-    public function magic_setter_should_add_collection_to_pool(): void
+    public function magicSetterShouldAddCollectionToPool(): void
     {
         $coll = Collection::foo();
         $this->mapper->my_alias = $coll;
 
-        $ref = new \ReflectionObject($this->mapper);
+        $ref = new ReflectionObject($this->mapper);
         $prop = $ref->getProperty('collections');
         $this->assertContains($coll, $prop->getValue($this->mapper));
 
@@ -55,7 +56,7 @@ class AbstractMapperTest extends TestCase
     }
 
     #[Test]
-    public function magic_call_should_bypass_to_collection(): void
+    public function magicCallShouldBypassToCollection(): void
     {
         $collection = $this->mapper->foo()->bar()->baz();
         $expected = Collection::foo();
@@ -64,7 +65,7 @@ class AbstractMapperTest extends TestCase
     }
 
     #[Test]
-    public function magic_getter_should_bypass_to_collection(): void
+    public function magicGetterShouldBypassToCollection(): void
     {
         $collection = $this->mapper->foo->bar->baz;
         $expected = Collection::foo();

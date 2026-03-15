@@ -7,5 +7,6 @@ namespace Respect\Data\Collections;
 interface Typable
 {
     public function getType(Collection $collection): mixed;
+
     public function typable(Collection $collection): mixed;
 }
