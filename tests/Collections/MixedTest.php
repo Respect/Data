@@ -4,9 +4,15 @@ declare(strict_types=1);
 
 namespace Respect\Data\Collections;
 
-class MixedTest extends \PHPUnit\Framework\TestCase
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
+
+#[CoversClass(Mix::class)]
+class MixedTest extends TestCase
 {
-    function test_collection_can_be_created_statically_with_children()
+    #[Test]
+    public function collection_can_be_created_statically_with_children(): void
     {
         $children_1 = Mix::with(array('foo' => array('bar')))->bar();
         $children_2 = Mix::with(array('bat' => array('bar')))->baz()->bat();
@@ -20,5 +26,4 @@ class MixedTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(array('foo' => array('bar')), $children_1->getExtra('mixins'));
         $this->assertEquals(array('bat' => array('bar')), $children_2->getExtra('mixins'));
     }
-   
 }

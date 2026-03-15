@@ -4,9 +4,15 @@ declare(strict_types=1);
 
 namespace Respect\Data\Collections;
 
-class FilteredTest extends \PHPUnit\Framework\TestCase
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
+
+#[CoversClass(Filtered::class)]
+class FilteredTest extends TestCase
 {
-    function test_collection_can_be_created_statically_with_children()
+    #[Test]
+    public function collection_can_be_created_statically_with_children(): void
     {
         $children_1 = Filtered::by('bar')->bar();
         $children_2 = Filtered::by('bat')->baz()->bat();
@@ -20,5 +26,4 @@ class FilteredTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(array('bar'), $children_1->getExtra('filters'));
         $this->assertEquals(array('bat'), $children_2->getExtra('filters'));
     }
-   
 }

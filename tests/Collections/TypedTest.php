@@ -4,9 +4,15 @@ declare(strict_types=1);
 
 namespace Respect\Data\Collections;
 
-class TypedTest extends \PHPUnit\Framework\TestCase
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
+
+#[CoversClass(Typed::class)]
+class TypedTest extends TestCase
 {
-    function test_collection_can_be_created_statically_with_children()
+    #[Test]
+    public function collection_can_be_created_statically_with_children(): void
     {
         $children_1 = Typed::by('a')->bar();
         $children_2 = Typed::by('b')->baz()->bat();
@@ -20,5 +26,4 @@ class TypedTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals('a', $children_1->getExtra('type'));
         $this->assertEquals('b', $children_2->getExtra('type'));
     }
-   
 }
