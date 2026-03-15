@@ -89,4 +89,12 @@ class CollectionIteratorTest extends TestCase
         $iterator = new CollectionIterator($coll);
         $this->assertTrue($iterator->hasChildren());
     }
+
+    #[Test]
+    public function recursiveTraversalShouldVisitNextChain(): void
+    {
+        $coll = Collection::foo()->bar->baz;
+        $items = iterator_to_array(CollectionIterator::recursive($coll));
+        $this->assertCount(3, $items);
+    }
 }

@@ -9,7 +9,6 @@ use PHPUnit\Framework\TestCase;
 use Respect\Data\InMemoryMapper;
 use Respect\Data\Styles\Sakila;
 
-#[CoversClass(InMemoryMapper::class)]
 #[CoversClass(Sakila::class)]
 class SakilaIntegrationTest extends TestCase
 {

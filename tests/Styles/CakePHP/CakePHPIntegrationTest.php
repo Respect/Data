@@ -9,7 +9,6 @@ use PHPUnit\Framework\TestCase;
 use Respect\Data\InMemoryMapper;
 use Respect\Data\Styles\CakePHP;
 
-#[CoversClass(InMemoryMapper::class)]
 #[CoversClass(CakePHP::class)]
 class CakePHPIntegrationTest extends TestCase
 {

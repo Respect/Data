@@ -9,7 +9,6 @@ use PHPUnit\Framework\TestCase;
 use Respect\Data\InMemoryMapper;
 use Respect\Data\Styles\Plural;
 
-#[CoversClass(InMemoryMapper::class)]
 #[CoversClass(Plural::class)]
 class PluralIntegrationTest extends TestCase
 {
