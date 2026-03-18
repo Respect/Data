@@ -26,33 +26,9 @@ class Collection implements ArrayAccess
     /** @var Collection[] */
     protected array $children = [];
 
-    /** @var array<string, mixed> */
-    protected array $extras = [];
-
     public function __construct(protected string|null $name = null, protected mixed $condition = [])
     {
         $this->last = $this;
-    }
-
-    public function extra(string $name, mixed $specs): static
-    {
-        $this->extras[$name] = $specs;
-
-        return $this;
-    }
-
-    public function getExtra(string $name): mixed
-    {
-        if ($this->have($name)) {
-            return $this->extras[$name];
-        }
-
-        return null;
-    }
-
-    public function have(string $name): bool
-    {
-        return isset($this->extras[$name]);
     }
 
     public static function using(mixed $condition): static
@@ -129,14 +105,9 @@ class Collection implements ArrayAccess
         return $this->next;
     }
 
-    public function getParentName(): string|null
+    public function getParent(): Collection|null
     {
-        return $this->parent ? $this->parent->getName() : null;
-    }
-
-    public function getNextName(): string|null
-    {
-        return $this->next ? $this->next->getName() : null;
+        return $this->parent;
     }
 
     public function hasChildren(): bool
@@ -166,9 +137,7 @@ class Collection implements ArrayAccess
 
     public function offsetGet(mixed $condition): mixed
     {
-        if ($this->last !== null) {
-            $this->last->condition = $condition;
-        }
+        $this->last?->setCondition($condition);
 
         return $this;
     }
@@ -216,10 +185,7 @@ class Collection implements ArrayAccess
 
     public function stack(Collection $collection): static
     {
-        if ($this->last !== null) {
-            $this->last->setNext($collection);
-        }
-
+        $this->last?->setNext($collection);
         $this->last = $collection;
 
         return $this;
@@ -261,7 +227,8 @@ class Collection implements ArrayAccess
             return $this;
         }
 
-        $collection = self::__callStatic($name, $children);
+        $collection = new Collection();
+        $collection->__call($name, $children);
 
         return $this->stack($collection);
     }

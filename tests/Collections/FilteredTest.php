@@ -19,14 +19,14 @@ class FilteredTest extends TestCase
         $children1 = Filtered::by('bar')->bar();
         $children2 = Filtered::by('bat')->baz()->bat();
         $coll = Collection::foo($children1, $children2)->bar();
-        $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll);
-        $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll->getNext());
-        $this->assertInstanceOf('Respect\Data\Collections\Collection', $children1);
-        $this->assertInstanceOf('Respect\Data\Collections\Collection', $children2);
+        $this->assertInstanceOf(Collection::class, $coll);
+        $this->assertInstanceOf(Collection::class, $coll->getNext());
+        $this->assertInstanceOf(Filtered::class, $children1);
+        $this->assertInstanceOf(Filtered::class, $children2);
         $this->assertTrue($coll->hasChildren());
         $this->assertEquals(2, count($coll->getChildren()));
-        $this->assertEquals(['bar'], $children1->getExtra('filters'));
-        $this->assertEquals(['bat'], $children2->getExtra('filters'));
+        $this->assertEquals(['bar'], $children1->getFilters());
+        $this->assertEquals(['bat'], $children2->getFilters());
     }
 
     #[Test]
@@ -35,6 +35,27 @@ class FilteredTest extends TestCase
         $coll = Filtered::items();
         $this->assertInstanceOf(Filtered::class, $coll);
         $this->assertEquals('items', $coll->getName());
-        $this->assertEquals([], $coll->getExtra('filters'));
+        $this->assertEquals([], $coll->getFilters());
+    }
+
+    #[Test]
+    public function isIdentifierOnlyReturnsTrueForIdentifierOnlyFilter(): void
+    {
+        $coll = Filtered::by(Filtered::IDENTIFIER_ONLY)->post();
+        $this->assertTrue($coll->isIdentifierOnly());
+    }
+
+    #[Test]
+    public function isIdentifierOnlyReturnsFalseForNamedFilters(): void
+    {
+        $coll = Filtered::by('title')->post();
+        $this->assertFalse($coll->isIdentifierOnly());
+    }
+
+    #[Test]
+    public function isIdentifierOnlyReturnsFalseForEmptyFilters(): void
+    {
+        $coll = Filtered::post();
+        $this->assertFalse($coll->isIdentifierOnly());
     }
 }

@@ -103,12 +103,26 @@ class AbstractMapperTest extends TestCase
     }
 
     #[Test]
-    public function setStyleShouldChangeStyle(): void
+    public function styleShouldComeFromEntityFactory(): void
     {
         $style = new CakePHP();
-        $result = $this->mapper->setStyle($style);
-        $this->assertSame($style, $this->mapper->getStyle());
-        $this->assertSame($this->mapper, $result);
+        $mapper = new class (new EntityFactory(style: $style)) extends AbstractMapper {
+            public function flush(): void
+            {
+            }
+
+            public function fetch(Collection $collection, mixed $extra = null): mixed
+            {
+                return false;
+            }
+
+            /** @return array<int, mixed> */
+            public function fetchAll(Collection $collection, mixed $extra = null): array
+            {
+                return [];
+            }
+        };
+        $this->assertSame($style, $mapper->getStyle());
     }
 
     #[Test]

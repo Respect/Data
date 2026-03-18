@@ -6,6 +6,7 @@ namespace Respect\Data\Styles\CakePHP;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Respect\Data\EntityFactory;
 use Respect\Data\InMemoryMapper;
 use Respect\Data\Styles\CakePHP;
 
@@ -19,9 +20,10 @@ class CakePHPIntegrationTest extends TestCase
     protected function setUp(): void
     {
         $this->style = new CakePHP();
-        $this->mapper = new InMemoryMapper();
-        $this->mapper->setStyle($this->style);
-        $this->mapper->entityNamespace = __NAMESPACE__ . '\\';
+        $this->mapper = new InMemoryMapper(new EntityFactory(
+            style: $this->style,
+            entityNamespace: __NAMESPACE__ . '\\',
+        ));
 
         $this->mapper->seed('posts', [
             ['id' => 5, 'title' => 'Post Title', 'text' => 'Post Text', 'author_id' => 1],
