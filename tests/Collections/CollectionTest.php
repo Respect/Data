@@ -84,7 +84,7 @@ class CollectionTest extends TestCase
         $coll->someTest;
         $this->assertEquals(
             'someTest',
-            $coll->getNextName(),
+            $coll->getNext()?->getName(),
             'First time should change next item',
         );
     }
@@ -96,13 +96,13 @@ class CollectionTest extends TestCase
         $coll->someTest;
         $this->assertEquals(
             'someTest',
-            $coll->getNextName(),
+            $coll->getNext()?->getName(),
             'First time should change next item',
         );
         $coll->anotherTest;
         $this->assertEquals(
             'someTest',
-            $coll->getNextName(),
+            $coll->getNext()?->getName(),
             'The next item on a chain should never be changed after first time',
         );
     }
@@ -141,7 +141,7 @@ class CollectionTest extends TestCase
         $child = reset($children);
         $this->assertInstanceOf(Collection::class, $child);
         $this->assertEquals(false, $child->isRequired());
-        $this->assertEquals($coll->getName(), $child->getParentName());
+        $this->assertEquals($coll->getName(), $child->getParent()?->getName());
     }
 
     #[Test]
@@ -307,55 +307,17 @@ class CollectionTest extends TestCase
     }
 
     #[Test]
-    public function haveShouldReturnFalseForMissingExtra(): void
+    public function getParentShouldReturnNullWhenNoParent(): void
     {
         $coll = new Collection('foo');
-        $this->assertFalse($coll->have('nonexistent'));
+        $this->assertNull($coll->getParent());
     }
 
     #[Test]
-    public function haveShouldReturnTrueForExistingExtra(): void
+    public function getNextShouldReturnNullWhenNoNext(): void
     {
         $coll = new Collection('foo');
-        $coll->extra('key', 'value');
-        $this->assertTrue($coll->have('key'));
-    }
-
-    #[Test]
-    public function getExtraShouldReturnNullForMissingExtra(): void
-    {
-        $coll = new Collection('foo');
-        $this->assertNull($coll->getExtra('nonexistent'));
-    }
-
-    #[Test]
-    public function getExtraShouldReturnValueForExistingExtra(): void
-    {
-        $coll = new Collection('foo');
-        $coll->extra('key', 'value');
-        $this->assertEquals('value', $coll->getExtra('key'));
-    }
-
-    #[Test]
-    public function extraShouldReturnSelf(): void
-    {
-        $coll = new Collection('foo');
-        $result = $coll->extra('key', 'value');
-        $this->assertSame($coll, $result);
-    }
-
-    #[Test]
-    public function getParentNameShouldReturnNullWhenNoParent(): void
-    {
-        $coll = new Collection('foo');
-        $this->assertNull($coll->getParentName());
-    }
-
-    #[Test]
-    public function getNextNameShouldReturnNullWhenNoNext(): void
-    {
-        $coll = new Collection('foo');
-        $this->assertNull($coll->getNextName());
+        $this->assertNull($coll->getNext());
     }
 
     #[Test]
@@ -376,6 +338,6 @@ class CollectionTest extends TestCase
         $coll = new Collection('foo');
         $coll->setMapper($mapperMock);
         $result = $coll->bar;
-        $this->assertEquals('bar', $result->getNextName());
+        $this->assertEquals('bar', $result->getNext()?->getName());
     }
 }

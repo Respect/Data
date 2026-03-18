@@ -6,6 +6,7 @@ namespace Respect\Data\Styles\NorthWind;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Respect\Data\EntityFactory;
 use Respect\Data\InMemoryMapper;
 use Respect\Data\Styles\NorthWind;
 
@@ -19,9 +20,10 @@ class NorthWindIntegrationTest extends TestCase
     protected function setUp(): void
     {
         $this->style = new NorthWind();
-        $this->mapper = new InMemoryMapper();
-        $this->mapper->setStyle($this->style);
-        $this->mapper->entityNamespace = __NAMESPACE__ . '\\';
+        $this->mapper = new InMemoryMapper(new EntityFactory(
+            style: $this->style,
+            entityNamespace: __NAMESPACE__ . '\\',
+        ));
 
         $this->mapper->seed('Posts', [
             ['PostID' => 5, 'Title' => 'Post Title', 'Text' => 'Post Text', 'AuthorID' => 1],

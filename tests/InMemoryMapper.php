@@ -5,14 +5,10 @@ declare(strict_types=1);
 namespace Respect\Data;
 
 use Respect\Data\Collections\Collection;
-use stdClass;
 
 use function array_filter;
-use function array_key_exists;
 use function array_values;
 use function assert;
-use function class_exists;
-use function get_object_vars;
 use function is_array;
 use function reset;
 
@@ -22,8 +18,6 @@ final class InMemoryMapper extends AbstractMapper
     private array $tables = [];
 
     private int $lastInsertId = 1000;
-
-    public string $entityNamespace = '\\';
 
     /** @param list<array<string, mixed>> $rows */
     public function seed(string $table, array $rows): void
@@ -52,10 +46,11 @@ final class InMemoryMapper extends AbstractMapper
         }
 
         $row = $rows[0];
-        $entity = $this->createEntity($name);
+        $factory = $this->entityFactory;
+        $entity = $factory->createByName($name);
 
         foreach ($row as $key => $value) {
-            $entity->{$key} = $value;
+            $factory->set($entity, $key, $value);
         }
 
         if ($collection->hasMore()) {
@@ -86,11 +81,13 @@ final class InMemoryMapper extends AbstractMapper
 
         $entities = [];
 
+        $factory = $this->entityFactory;
+
         foreach ($rows as $row) {
-            $entity = $this->createEntity($name);
+            $entity = $factory->createByName($name);
 
             foreach ($row as $key => $value) {
-                $entity->{$key} = $value;
+                $factory->set($entity, $key, $value);
             }
 
             if ($collection->hasMore()) {
@@ -106,16 +103,18 @@ final class InMemoryMapper extends AbstractMapper
 
     public function flush(): void
     {
+        $factory = $this->entityFactory;
+
         foreach ($this->new as $entity) {
             $collection = $this->tracked[$entity];
             assert($collection instanceof Collection);
             $tableName = (string) $collection->getName();
             $pk = $this->getStyle()->identifier($tableName);
-            $row = get_object_vars($entity);
+            $row = $factory->extractProperties($entity);
 
             if (!isset($row[$pk])) {
                 ++$this->lastInsertId;
-                $entity->{$pk} = $this->lastInsertId;
+                $factory->set($entity, $pk, $this->lastInsertId);
                 $row[$pk] = $this->lastInsertId;
             }
 
@@ -135,8 +134,8 @@ final class InMemoryMapper extends AbstractMapper
             assert($collection instanceof Collection);
             $tableName = (string) $collection->getName();
             $pk = $this->getStyle()->identifier($tableName);
-            $pkValue = $entity->{$pk};
-            $row = get_object_vars($entity);
+            $pkValue = $factory->get($entity, $pk);
+            $row = $factory->extractProperties($entity);
 
             foreach ($this->tables[$tableName] as $index => $existing) {
                 if (isset($existing[$pk]) && $existing[$pk] == $pkValue) {
@@ -152,7 +151,7 @@ final class InMemoryMapper extends AbstractMapper
             assert($collection instanceof Collection);
             $tableName = (string) $collection->getName();
             $pk = $this->getStyle()->identifier($tableName);
-            $pkValue = $entity->{$pk};
+            $pkValue = $factory->get($entity, $pk);
 
             $rows = $this->tables[$tableName];
             foreach ($rows as $index => $existing) {
@@ -173,18 +172,19 @@ final class InMemoryMapper extends AbstractMapper
     private function resolveRelations(object $entity, Collection $collection): void
     {
         $style = $this->getStyle();
+        $factory = $this->entityFactory;
         $next = $collection->getNext();
 
         if ($next !== null) {
             $nextName = (string) $next->getName();
             $fkCol = $style->remoteIdentifier($nextName);
+            $fkValue = $factory->get($entity, $fkCol);
 
-            if (array_key_exists($fkCol, get_object_vars($entity))) {
-                $fkValue = $entity->{$fkCol};
+            if ($fkValue !== null) {
                 $childEntity = $this->findRelatedEntity($nextName, $fkValue, $next);
 
                 if ($childEntity !== null) {
-                    $entity->{$fkCol} = $childEntity;
+                    $factory->set($entity, $fkCol, $childEntity);
                 }
             }
         }
@@ -192,25 +192,26 @@ final class InMemoryMapper extends AbstractMapper
         foreach ($collection->getChildren() as $child) {
             $childName = (string) $child->getName();
             $fkCol = $style->remoteIdentifier($childName);
+            $fkValue = $factory->get($entity, $fkCol);
 
-            if (!array_key_exists($fkCol, get_object_vars($entity))) {
+            if ($fkValue === null) {
                 continue;
             }
 
-            $fkValue = $entity->{$fkCol};
             $childEntity = $this->findRelatedEntity($childName, $fkValue, $child);
 
             if ($childEntity === null) {
                 continue;
             }
 
-            $entity->{$fkCol} = $childEntity;
+            $factory->set($entity, $fkCol, $childEntity);
         }
     }
 
     private function findRelatedEntity(string $tableName, mixed $fkValue, Collection $collection): object|null
     {
         $style = $this->getStyle();
+        $factory = $this->entityFactory;
         $pk = $style->identifier($tableName);
         $rows = $this->tables[$tableName] ?? [];
 
@@ -219,10 +220,10 @@ final class InMemoryMapper extends AbstractMapper
                 continue;
             }
 
-            $childEntity = $this->createEntity($tableName);
+            $childEntity = $factory->createByName($tableName);
 
             foreach ($row as $key => $value) {
-                $childEntity->{$key} = $value;
+                $factory->set($childEntity, $key, $value);
             }
 
             if ($collection->hasMore()) {
@@ -235,17 +236,5 @@ final class InMemoryMapper extends AbstractMapper
         }
 
         return null;
-    }
-
-    private function createEntity(string $entityName): object
-    {
-        $className = $this->getStyle()->styledName($entityName);
-        $fullClass = $this->entityNamespace . $className;
-
-        if (class_exists($fullClass)) {
-            return new $fullClass();
-        }
-
-        return new stdClass();
     }
 }

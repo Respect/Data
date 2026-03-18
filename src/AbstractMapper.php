@@ -11,8 +11,6 @@ use function assert;
 
 abstract class AbstractMapper
 {
-    protected Styles\Stylable|null $style = null;
-
     /** @var SplObjectStorage<object, mixed> */
     protected SplObjectStorage $new;
 
@@ -28,8 +26,9 @@ abstract class AbstractMapper
     /** @var array<string, Collection> */
     protected array $collections = [];
 
-    public function __construct()
-    {
+    public function __construct(
+        public readonly EntityFactory $entityFactory = new EntityFactory(),
+    ) {
         $this->tracked  = new SplObjectStorage();
         $this->changed  = new SplObjectStorage();
         $this->removed  = new SplObjectStorage();
@@ -38,18 +37,7 @@ abstract class AbstractMapper
 
     public function getStyle(): Styles\Stylable
     {
-        if ($this->style === null) {
-            $this->style = new Styles\Standard();
-        }
-
-        return $this->style;
-    }
-
-    public function setStyle(Styles\Stylable $style): static
-    {
-        $this->style = $style;
-
-        return $this;
+        return $this->entityFactory->style;
     }
 
     abstract public function flush(): void;

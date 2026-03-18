@@ -6,6 +6,7 @@ namespace Respect\Data\Styles\Plural;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Respect\Data\EntityFactory;
 use Respect\Data\InMemoryMapper;
 use Respect\Data\Styles\Plural;
 
@@ -19,9 +20,10 @@ class PluralIntegrationTest extends TestCase
     protected function setUp(): void
     {
         $this->style = new Plural();
-        $this->mapper = new InMemoryMapper();
-        $this->mapper->setStyle($this->style);
-        $this->mapper->entityNamespace = __NAMESPACE__ . '\\';
+        $this->mapper = new InMemoryMapper(new EntityFactory(
+            style: $this->style,
+            entityNamespace: __NAMESPACE__ . '\\',
+        ));
 
         $this->mapper->seed('posts', [
             ['id' => 5, 'title' => 'Post Title', 'text' => 'Post Text', 'author_id' => 1],
