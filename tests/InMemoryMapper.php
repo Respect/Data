@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Respect\Data;
 
 use Respect\Data\Collections\Collection;
+use SplObjectStorage;
+use stdClass;
 
 use function array_filter;
 use function array_values;
@@ -28,33 +30,26 @@ final class InMemoryMapper extends AbstractMapper
     public function fetch(Collection $collection, mixed $extra = null): mixed
     {
         $name = (string) $collection->getName();
-        $rows = $this->tables[$name] ?? [];
-        $condition = $collection->getCondition();
-        $style = $this->getStyle();
+        $row = $this->findRow($name, $collection->getCondition());
 
-        if ($condition !== null && $condition !== []) {
-            $pk = $style->identifier($name);
-            $pkValue = is_array($condition) ? reset($condition) : $condition;
-            $rows = array_values(array_filter(
-                $rows,
-                static fn(array $row): bool => isset($row[$pk]) && $row[$pk] == $pkValue,
-            ));
-        }
-
-        if ($rows === []) {
+        if ($row === null) {
             return false;
         }
 
-        $row = $rows[0];
-        $factory = $this->entityFactory;
-        $entity = $factory->createByName($name);
+        $rowObject = $this->rowToObject($row);
+        $entityName = $collection->resolveEntityName($this->entityFactory, $rowObject);
+        $entity = $this->entityFactory->createByName($entityName);
 
         foreach ($row as $key => $value) {
-            $factory->set($entity, $key, $value);
+            $this->entityFactory->set($entity, $key, $value);
         }
 
         if ($collection->hasMore()) {
-            $this->resolveRelations($entity, $collection);
+            /** @var SplObjectStorage<object, Collection> $entities */
+            $entities = new SplObjectStorage();
+            $entities[$entity] = $collection;
+            $this->fetchRelated($entity, $collection, $entities);
+            $this->postHydrate($entities);
         }
 
         $this->markTracked($entity, $collection);
@@ -66,55 +61,45 @@ final class InMemoryMapper extends AbstractMapper
     public function fetchAll(Collection $collection, mixed $extra = null): array
     {
         $name = (string) $collection->getName();
-        $rows = $this->tables[$name] ?? [];
-        $condition = $collection->getCondition();
-        $style = $this->getStyle();
-
-        if ($condition !== null && $condition !== []) {
-            $pk = $style->identifier($name);
-            $pkValue = is_array($condition) ? reset($condition) : $condition;
-            $rows = array_values(array_filter(
-                $rows,
-                static fn(array $row): bool => isset($row[$pk]) && $row[$pk] == $pkValue,
-            ));
-        }
-
-        $entities = [];
-
-        $factory = $this->entityFactory;
+        $rows = $this->findRows($name, $collection->getCondition());
+        $result = [];
 
         foreach ($rows as $row) {
-            $entity = $factory->createByName($name);
+            $rowObject = $this->rowToObject($row);
+            $entityName = $collection->resolveEntityName($this->entityFactory, $rowObject);
+            $entity = $this->entityFactory->createByName($entityName);
 
             foreach ($row as $key => $value) {
-                $factory->set($entity, $key, $value);
+                $this->entityFactory->set($entity, $key, $value);
             }
 
             if ($collection->hasMore()) {
-                $this->resolveRelations($entity, $collection);
+                /** @var SplObjectStorage<object, Collection> $entities */
+                $entities = new SplObjectStorage();
+                $entities[$entity] = $collection;
+                $this->fetchRelated($entity, $collection, $entities);
+                $this->postHydrate($entities);
             }
 
             $this->markTracked($entity, $collection);
-            $entities[] = $entity;
+            $result[] = $entity;
         }
 
-        return $entities;
+        return $result;
     }
 
     public function flush(): void
     {
-        $factory = $this->entityFactory;
-
         foreach ($this->new as $entity) {
             $collection = $this->tracked[$entity];
             assert($collection instanceof Collection);
             $tableName = (string) $collection->getName();
             $pk = $this->getStyle()->identifier($tableName);
-            $row = $factory->extractProperties($entity);
+            $row = $this->entityFactory->extractProperties($entity);
 
             if (!isset($row[$pk])) {
                 ++$this->lastInsertId;
-                $factory->set($entity, $pk, $this->lastInsertId);
+                $this->entityFactory->set($entity, $pk, $this->lastInsertId);
                 $row[$pk] = $this->lastInsertId;
             }
 
@@ -134,8 +119,8 @@ final class InMemoryMapper extends AbstractMapper
             assert($collection instanceof Collection);
             $tableName = (string) $collection->getName();
             $pk = $this->getStyle()->identifier($tableName);
-            $pkValue = $factory->get($entity, $pk);
-            $row = $factory->extractProperties($entity);
+            $pkValue = $this->entityFactory->get($entity, $pk);
+            $row = $this->entityFactory->extractProperties($entity);
 
             foreach ($this->tables[$tableName] as $index => $existing) {
                 if (isset($existing[$pk]) && $existing[$pk] == $pkValue) {
@@ -151,7 +136,7 @@ final class InMemoryMapper extends AbstractMapper
             assert($collection instanceof Collection);
             $tableName = (string) $collection->getName();
             $pk = $this->getStyle()->identifier($tableName);
-            $pkValue = $factory->get($entity, $pk);
+            $pkValue = $this->entityFactory->get($entity, $pk);
 
             $rows = $this->tables[$tableName];
             foreach ($rows as $index => $existing) {
@@ -169,72 +154,105 @@ final class InMemoryMapper extends AbstractMapper
         $this->reset();
     }
 
-    private function resolveRelations(object $entity, Collection $collection): void
+    /** @param SplObjectStorage<object, Collection> $entities */
+    private function fetchRelated(object $parent, Collection $collection, SplObjectStorage $entities): void
     {
-        $style = $this->getStyle();
-        $factory = $this->entityFactory;
         $next = $collection->getNext();
 
         if ($next !== null) {
-            $nextName = (string) $next->getName();
-            $fkCol = $style->remoteIdentifier($nextName);
-            $fkValue = $factory->get($entity, $fkCol);
-
-            if ($fkValue !== null) {
-                $childEntity = $this->findRelatedEntity($nextName, $fkValue, $next);
-
-                if ($childEntity !== null) {
-                    $factory->set($entity, $fkCol, $childEntity);
-                }
-            }
+            $this->fetchRelatedCollection($parent, $next, $entities);
         }
 
         foreach ($collection->getChildren() as $child) {
-            $childName = (string) $child->getName();
-            $fkCol = $style->remoteIdentifier($childName);
-            $fkValue = $factory->get($entity, $fkCol);
-
-            if ($fkValue === null) {
-                continue;
-            }
-
-            $childEntity = $this->findRelatedEntity($childName, $fkValue, $child);
-
-            if ($childEntity === null) {
-                continue;
-            }
-
-            $factory->set($entity, $fkCol, $childEntity);
+            $this->fetchRelatedCollection($parent, $child, $entities);
         }
     }
 
-    private function findRelatedEntity(string $tableName, mixed $fkValue, Collection $collection): object|null
+    /** @param SplObjectStorage<object, Collection> $entities */
+    private function fetchRelatedCollection(
+        object $parent,
+        Collection $related,
+        SplObjectStorage $entities,
+    ): void {
+        $relatedName = (string) $related->getName();
+        $fkCol = $this->getStyle()->remoteIdentifier($relatedName);
+        $fkValue = $this->entityFactory->get($parent, $fkCol);
+
+        if ($fkValue === null) {
+            return;
+        }
+
+        $pk = $this->getStyle()->identifier($relatedName);
+        $row = $this->findRowByPk($relatedName, $pk, $fkValue);
+
+        if ($row === null) {
+            return;
+        }
+
+        $rowObject = $this->rowToObject($row);
+        $entityName = $related->resolveEntityName($this->entityFactory, $rowObject);
+        $childEntity = $this->entityFactory->createByName($entityName);
+
+        foreach ($row as $key => $value) {
+            $this->entityFactory->set($childEntity, $key, $value);
+        }
+
+        $entities[$childEntity] = $related;
+        $this->markTracked($childEntity, $related);
+
+        if (!$related->hasMore()) {
+            return;
+        }
+
+        $this->fetchRelated($childEntity, $related, $entities);
+    }
+
+    /** @return array<string, mixed>|null */
+    private function findRow(string $table, mixed $condition): array|null
     {
-        $style = $this->getStyle();
-        $factory = $this->entityFactory;
-        $pk = $style->identifier($tableName);
-        $rows = $this->tables[$tableName] ?? [];
+        $rows = $this->findRows($table, $condition);
 
-        foreach ($rows as $row) {
-            if (!isset($row[$pk]) || $row[$pk] != $fkValue) {
-                continue;
+        return $rows[0] ?? null;
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function findRows(string $table, mixed $condition): array
+    {
+        $rows = $this->tables[$table] ?? [];
+
+        if ($condition === null || $condition === []) {
+            return $rows;
+        }
+
+        $pk = $this->getStyle()->identifier($table);
+        $pkValue = is_array($condition) ? reset($condition) : $condition;
+
+        return array_values(array_filter(
+            $rows,
+            static fn(array $row): bool => isset($row[$pk]) && $row[$pk] == $pkValue,
+        ));
+    }
+
+    /** @return array<string, mixed>|null */
+    private function findRowByPk(string $table, string $pk, mixed $pkValue): array|null
+    {
+        foreach ($this->tables[$table] ?? [] as $row) {
+            if (isset($row[$pk]) && $row[$pk] == $pkValue) {
+                return $row;
             }
-
-            $childEntity = $factory->createByName($tableName);
-
-            foreach ($row as $key => $value) {
-                $factory->set($childEntity, $key, $value);
-            }
-
-            if ($collection->hasMore()) {
-                $this->resolveRelations($childEntity, $collection);
-            }
-
-            $this->markTracked($childEntity, $collection);
-
-            return $childEntity;
         }
 
         return null;
+    }
+
+    /** @param array<string, mixed> $row */
+    private function rowToObject(array $row): object
+    {
+        $obj = new stdClass();
+        foreach ($row as $key => $value) {
+            $obj->{$key} = $value;
+        }
+
+        return $obj;
     }
 }

@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Respect\Data;
 
 use Respect\Data\Collections\Collection;
+use Respect\Data\Collections\Composite;
+use Respect\Data\Collections\Filtered;
 use SplObjectStorage;
 
 use function assert;
+use function count;
 
 abstract class AbstractMapper
 {
@@ -63,6 +66,14 @@ abstract class AbstractMapper
 
     public function persist(object $object, Collection $onCollection): bool
     {
+        $next = $onCollection->getNext();
+        if ($onCollection instanceof Filtered && $next !== null) {
+            $next->setMapper($this);
+            $next->persist($object);
+
+            return true;
+        }
+
         $this->changed[$object] = true;
 
         if ($this->isTracked($object)) {
@@ -98,6 +109,75 @@ abstract class AbstractMapper
     {
         $collection->setMapper($this);
         $this->collections[$alias] = $collection;
+    }
+
+    /** @param SplObjectStorage<object, Collection> $entities */
+    protected function postHydrate(SplObjectStorage $entities): void
+    {
+        $entitiesClone = clone $entities;
+
+        foreach ($entities as $instance) {
+            foreach ($this->entityFactory->extractProperties($instance) as $field => $v) {
+                if (!$this->getStyle()->isRemoteIdentifier($field)) {
+                    continue;
+                }
+
+                foreach ($entitiesClone as $sub) {
+                    $this->tryHydration($entities, $sub, $field, $v);
+                }
+
+                $this->entityFactory->set($instance, $field, $v);
+            }
+        }
+    }
+
+    /** @param SplObjectStorage<object, Collection> $entities */
+    protected function tryHydration(SplObjectStorage $entities, object $sub, string $field, mixed &$v): void
+    {
+        $tableName = (string) $entities[$sub]->getName();
+        $primaryName = $this->getStyle()->identifier($tableName);
+
+        if (
+            $tableName !== $this->getStyle()->remoteFromIdentifier($field)
+                || $this->entityFactory->get($sub, $primaryName) != $v
+        ) {
+            return;
+        }
+
+        $v = $sub;
+    }
+
+    /**
+     * @param SplObjectStorage<object, Collection> $entities
+     *
+     * @return array<int, object>
+     */
+    protected function buildEntitiesInstances(
+        Collection $collection,
+        SplObjectStorage $entities,
+    ): array {
+        $entitiesInstances = [];
+
+        foreach (CollectionIterator::recursive($collection) as $c) {
+            assert($c instanceof Collection);
+            if ($c instanceof Filtered && !$c->getFilters()) {
+                continue;
+            }
+
+            $entityInstance = $this->entityFactory->createByName((string) $c->getName());
+
+            if ($c instanceof Composite) {
+                $compositionCount = count($c->getCompositions());
+                for ($i = 0; $i < $compositionCount; $i++) {
+                    $entitiesInstances[] = $entityInstance;
+                }
+            }
+
+            $entities[$entityInstance] = $c;
+            $entitiesInstances[] = $entityInstance;
+        }
+
+        return $entitiesInstances;
     }
 
     public function __get(string $name): Collection

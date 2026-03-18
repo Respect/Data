@@ -7,6 +7,8 @@ namespace Respect\Data\Collections;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Respect\Data\EntityFactory;
+use stdClass;
 
 use function count;
 
@@ -36,5 +38,24 @@ class TypedTest extends TestCase
         $this->assertInstanceOf(Typed::class, $coll);
         $this->assertEquals('items', $coll->getName());
         $this->assertEquals('', $coll->getType());
+    }
+
+    #[Test]
+    public function resolveEntityNameReturnsDiscriminatorValue(): void
+    {
+        $coll = Typed::by('type')->issues();
+        $factory = new EntityFactory();
+        $row = new stdClass();
+        $row->type = 'Bug';
+        $this->assertEquals('Bug', $coll->resolveEntityName($factory, $row));
+    }
+
+    #[Test]
+    public function resolveEntityNameFallsBackToCollectionName(): void
+    {
+        $coll = Typed::by('type')->issues();
+        $factory = new EntityFactory();
+        $row = new stdClass();
+        $this->assertEquals('issues', $coll->resolveEntityName($factory, $row));
     }
 }
