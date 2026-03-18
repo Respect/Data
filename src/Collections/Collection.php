@@ -6,6 +6,7 @@ namespace Respect\Data\Collections;
 
 use ArrayAccess;
 use Respect\Data\AbstractMapper;
+use Respect\Data\EntityFactory;
 use RuntimeException;
 
 use function assert;
@@ -98,6 +99,11 @@ class Collection implements ArrayAccess
     public function getName(): string|null
     {
         return $this->name;
+    }
+
+    public function resolveEntityName(EntityFactory $factory, object $row): string
+    {
+        return $this->name ?? '';
     }
 
     public function getNext(): Collection|null

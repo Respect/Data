@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionObject;
 use Respect\Data\Collections\Collection;
+use Respect\Data\Collections\Filtered;
 use Respect\Data\Styles\CakePHP;
 use Respect\Data\Styles\Standard;
 use SplObjectStorage;
@@ -225,5 +226,92 @@ class AbstractMapperTest extends TestCase
         $coll = $this->mapper->unregistered;
         $this->assertInstanceOf(Collection::class, $coll);
         $this->assertEquals('unregistered', $coll->getName());
+    }
+
+    #[Test]
+    public function postHydrateReplacesFkWithMatchingEntity(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('comment', [
+            ['id' => 1, 'text' => 'Hello', 'post_id' => 5],
+        ]);
+        $mapper->seed('post', [
+            ['id' => 5, 'title' => 'Post'],
+        ]);
+
+        $comment = $mapper->comment->post->fetch();
+        $this->assertIsObject($comment);
+        $post = $mapper->entityFactory->get($comment, 'post_id');
+        $this->assertIsObject($post);
+        $this->assertEquals(5, $mapper->entityFactory->get($post, 'id'));
+        $this->assertEquals('Post', $mapper->entityFactory->get($post, 'title'));
+    }
+
+    #[Test]
+    public function postHydrateLeavesFkUnchangedWhenNoMatch(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('comment', [
+            ['id' => 1, 'text' => 'Hello', 'post_id' => 999],
+        ]);
+        $mapper->seed('post', [
+            ['id' => 5, 'title' => 'Post'],
+        ]);
+
+        $comment = $mapper->comment->post->fetch();
+        $this->assertIsObject($comment);
+        $this->assertEquals(999, $mapper->entityFactory->get($comment, 'post_id'));
+    }
+
+    #[Test]
+    public function postHydrateMatchesIntFkToStringPk(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('comment', [
+            ['id' => 1, 'text' => 'Hello', 'post_id' => 5],
+        ]);
+        $mapper->seed('post', [
+            ['id' => '5', 'title' => 'Post'],
+        ]);
+
+        $comment = $mapper->comment->post->fetch();
+        $this->assertIsObject($comment);
+        $post = $mapper->entityFactory->get($comment, 'post_id');
+        $this->assertIsObject($post);
+        $this->assertEquals('5', $mapper->entityFactory->get($post, 'id'));
+    }
+
+    #[Test]
+    public function filteredPersistDelegatesToParentCollection(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('post', []);
+        $mapper->seed('author', []);
+        $mapper->authorsWithPosts = Filtered::post()->author();
+
+        $author = new stdClass();
+        $author->id = null;
+        $author->name = 'Test';
+        $mapper->authorsWithPosts->persist($author);
+        $mapper->flush();
+
+        $fetched = $mapper->author->fetch();
+        $this->assertEquals('Test', $fetched->name);
+    }
+
+    #[Test]
+    public function filteredWithoutNextFallsBackToNormalPersist(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('post', []);
+
+        $post = new stdClass();
+        $post->id = null;
+        $post->title = 'Direct';
+        $mapper->post->persist($post);
+        $mapper->flush();
+
+        $fetched = $mapper->post->fetch();
+        $this->assertEquals('Direct', $fetched->title);
     }
 }
