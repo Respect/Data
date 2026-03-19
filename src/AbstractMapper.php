@@ -110,42 +110,6 @@ abstract class AbstractMapper
         return $collection->hydrator ?? $this->defaultHydrator($collection);
     }
 
-    /** @param SplObjectStorage<object, Collection> $entities */
-    protected function postHydrate(SplObjectStorage $entities): void
-    {
-        $entitiesClone = clone $entities;
-
-        foreach ($entities as $instance) {
-            foreach ($this->entityFactory->extractProperties($instance) as $field => $v) {
-                if (!$this->style->isRemoteIdentifier($field)) {
-                    continue;
-                }
-
-                foreach ($entitiesClone as $sub) {
-                    $this->tryHydration($entities, $sub, $field, $v);
-                }
-
-                $this->entityFactory->set($instance, $field, $v);
-            }
-        }
-    }
-
-    /** @param SplObjectStorage<object, Collection> $entities */
-    private function tryHydration(SplObjectStorage $entities, object $sub, string $field, mixed &$v): void
-    {
-        $tableName = (string) $entities[$sub]->name;
-        $primaryName = $this->style->identifier($tableName);
-
-        if (
-            $tableName !== $this->style->remoteFromIdentifier($field)
-                || $this->entityFactory->get($sub, $primaryName) != $v
-        ) {
-            return;
-        }
-
-        $v = $sub;
-    }
-
     public function __get(string $name): Collection
     {
         if (isset($this->collections[$name])) {

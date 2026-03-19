@@ -6,14 +6,12 @@ namespace Respect\Data\Hydrators;
 
 use Respect\Data\Collections\Collection;
 use Respect\Data\EntityFactory;
-use Respect\Data\Hydrator;
 use SplObjectStorage;
 
-use function get_object_vars;
-use function is_object;
+use function is_array;
 
-/** Hydrates entities from a nested structure (object with sub-objects keyed by collection name) */
-final class Nested implements Hydrator
+/** Hydrates entities from a nested associative array keyed by collection name */
+final class Nested extends Base
 {
     /** @return SplObjectStorage<object, Collection>|false */
     public function hydrate(
@@ -21,57 +19,71 @@ final class Nested implements Hydrator
         Collection $collection,
         EntityFactory $entityFactory,
     ): SplObjectStorage|false {
-        if (!is_object($raw)) {
+        if (!is_array($raw)) {
             return false;
         }
 
         /** @var SplObjectStorage<object, Collection> $entities */
         $entities = new SplObjectStorage();
-        $entity = $entityFactory->hydrate($raw, $collection->resolveEntityName($entityFactory, $raw));
-        $entities[$entity] = $collection;
 
-        $this->hydrateRelated($raw, $collection, $entityFactory, $entities);
+        $this->hydrateNode($raw, $collection, $entityFactory, $entities);
+
+        if ($entities->count() > 1) {
+            $this->wireRelationships($entities, $entityFactory);
+        }
 
         return $entities;
     }
 
-    /** @param SplObjectStorage<object, Collection> $entities */
-    private function hydrateRelated(
-        object $raw,
+    /**
+     * @param array<mixed, mixed> $data
+     * @param SplObjectStorage<object, Collection> $entities
+     */
+    private function hydrateNode(
+        array $data,
         Collection $collection,
         EntityFactory $entityFactory,
         SplObjectStorage $entities,
     ): void {
+        $entityName = $collection->resolveEntityName($entityFactory, (object) $data);
+        $entity = $entityFactory->createByName($entityName);
+
+        foreach ($data as $key => $value) {
+            if (is_array($value)) {
+                continue;
+            }
+
+            $entityFactory->set($entity, $key, $value);
+        }
+
+        $entities[$entity] = $collection;
+
         if ($collection->next !== null) {
-            $this->hydrateChild($raw, $collection->next, $entityFactory, $entities);
+            $this->hydrateChild($data, $collection->next, $entityFactory, $entities);
         }
 
         foreach ($collection->children as $child) {
-            $this->hydrateChild($raw, $child, $entityFactory, $entities);
+            $this->hydrateChild($data, $child, $entityFactory, $entities);
         }
     }
 
-    /** @param SplObjectStorage<object, Collection> $entities */
+    /**
+     * @param array<string, mixed> $parentData
+     * @param SplObjectStorage<object, Collection> $entities
+     */
     private function hydrateChild(
-        object $parentRaw,
+        array $parentData,
         Collection $child,
         EntityFactory $entityFactory,
         SplObjectStorage $entities,
     ): void {
         $key = $child->name;
-        if ($key === null) {
+        if ($key === null || !isset($parentData[$key]) || !is_array($parentData[$key])) {
             return;
         }
 
-        $vars = get_object_vars($parentRaw);
-        if (!isset($vars[$key]) || !is_object($vars[$key])) {
-            return;
-        }
-
-        $childRaw = $vars[$key];
-        $entity = $entityFactory->hydrate($childRaw, $child->resolveEntityName($entityFactory, $childRaw));
-        $entities[$entity] = $child;
-
-        $this->hydrateRelated($childRaw, $child, $entityFactory, $entities);
+        /** @var array<string, mixed> $childData */
+        $childData = $parentData[$key];
+        $this->hydrateNode($childData, $child, $entityFactory, $entities);
     }
 }

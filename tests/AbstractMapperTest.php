@@ -231,7 +231,7 @@ class AbstractMapperTest extends TestCase
     }
 
     #[Test]
-    public function postHydrateReplacesFkWithMatchingEntity(): void
+    public function hydrationWiresFkWithMatchingEntity(): void
     {
         $mapper = new InMemoryMapper();
         $mapper->seed('comment', [
@@ -250,7 +250,7 @@ class AbstractMapperTest extends TestCase
     }
 
     #[Test]
-    public function postHydrateLeavesFkUnchangedWhenNoMatch(): void
+    public function hydrationLeavesFkUnchangedWhenNoMatch(): void
     {
         $mapper = new InMemoryMapper();
         $mapper->seed('comment', [
@@ -266,7 +266,7 @@ class AbstractMapperTest extends TestCase
     }
 
     #[Test]
-    public function postHydrateMatchesIntFkToStringPk(): void
+    public function hydrationMatchesIntFkToStringPk(): void
     {
         $mapper = new InMemoryMapper();
         $mapper->seed('comment', [
