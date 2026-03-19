@@ -6,7 +6,6 @@ namespace Respect\Data;
 
 use Respect\Data\Collections\Collection;
 use Respect\Data\Hydrators\Nested;
-use stdClass;
 
 use function array_filter;
 use function array_values;
@@ -118,16 +117,11 @@ final class InMemoryMapper extends AbstractMapper
     /** @param array<string, mixed> $row */
     private function hydrateRow(array $row, Collection $collection): object|false
     {
-        $raw = $this->rowToObject($row);
-        $this->attachRelated($raw, $collection);
+        $this->attachRelated($row, $collection);
 
-        $entities = $this->resolveHydrator($collection)->hydrate($raw, $collection, $this->entityFactory);
+        $entities = $this->resolveHydrator($collection)->hydrate($row, $collection, $this->entityFactory);
         if ($entities === false) {
             return false;
-        }
-
-        if ($entities->count() > 1) {
-            $this->postHydrate($entities);
         }
 
         foreach ($entities as $entity) {
@@ -139,21 +133,23 @@ final class InMemoryMapper extends AbstractMapper
         return $entities->current();
     }
 
-    private function attachRelated(stdClass $parentRaw, Collection $collection): void
+    /** @param array<string, mixed> $parentRow */
+    private function attachRelated(array &$parentRow, Collection $collection): void
     {
         if ($collection->next !== null) {
-            $this->attachChild($parentRaw, $collection->next);
+            $this->attachChild($parentRow, $collection->next);
         }
 
         foreach ($collection->children as $child) {
-            $this->attachChild($parentRaw, $child);
+            $this->attachChild($parentRow, $child);
         }
     }
 
-    private function attachChild(stdClass $parentRaw, Collection $child): void
+    /** @param array<string, mixed> $parentRow */
+    private function attachChild(array &$parentRow, Collection $child): void
     {
         $childName = (string) $child->name;
-        $fkValue = $parentRaw->{$this->style->remoteIdentifier($childName)} ?? null;
+        $fkValue = $parentRow[$this->style->remoteIdentifier($childName)] ?? null;
 
         if ($fkValue === null) {
             return;
@@ -166,14 +162,11 @@ final class InMemoryMapper extends AbstractMapper
             return;
         }
 
-        $childRaw = $this->rowToObject($childRow);
-        $parentRaw->{$childName} = $childRaw;
-
-        if (!$child->more) {
-            return;
+        if ($child->more) {
+            $this->attachRelated($childRow, $child);
         }
 
-        $this->attachRelated($childRaw, $child);
+        $parentRow[$childName] = $childRow;
     }
 
     /** @return array<string, mixed>|null */
@@ -210,16 +203,5 @@ final class InMemoryMapper extends AbstractMapper
         }
 
         return null;
-    }
-
-    /** @param array<string, mixed> $row */
-    private function rowToObject(array $row): stdClass
-    {
-        $obj = new stdClass();
-        foreach ($row as $key => $value) {
-            $obj->{$key} = $value;
-        }
-
-        return $obj;
     }
 }

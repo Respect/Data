@@ -12,8 +12,6 @@ use Respect\Data\Collections\Composite;
 use Respect\Data\Collections\Filtered;
 use Respect\Data\Collections\Typed;
 use Respect\Data\EntityFactory;
-use Respect\Data\Styles\Standard;
-use Respect\Data\Styles\Stylable;
 use stdClass;
 
 #[CoversClass(Flat::class)]
@@ -141,15 +139,13 @@ class FlatTest extends TestCase
     }
 
     /** @param list<string> $columnNames */
-    private function hydrator(array $columnNames, Stylable $style = new Standard()): Flat
+    private function hydrator(array $columnNames): Flat
     {
-        return new class ($columnNames, $style) extends Flat {
+        return new class ($columnNames) extends Flat {
             /** @param list<string> $columnNames */
             public function __construct(
                 private readonly array $columnNames,
-                Stylable $style,
             ) {
-                parent::__construct($style);
             }
 
             protected function resolveColumnName(mixed $reference, mixed $raw): string

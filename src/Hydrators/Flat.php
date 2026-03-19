@@ -9,8 +9,6 @@ use Respect\Data\Collections\Collection;
 use Respect\Data\Collections\Composite;
 use Respect\Data\Collections\Filtered;
 use Respect\Data\EntityFactory;
-use Respect\Data\Hydrator;
-use Respect\Data\Styles\Stylable;
 use SplObjectStorage;
 
 use function array_pop;
@@ -23,13 +21,8 @@ use function is_array;
  *
  * Subclasses define how column names are resolved from the raw data format.
  */
-abstract class Flat implements Hydrator
+abstract class Flat extends Base
 {
-    public function __construct(
-        private readonly Stylable $style,
-    ) {
-    }
-
     /** @return SplObjectStorage<object, Collection>|false */
     public function hydrate(
         mixed $raw,
@@ -52,12 +45,16 @@ abstract class Flat implements Hydrator
 
         foreach (array_reverse($raw, true) as $col => $value) {
             $columnName = $this->resolveColumnName($col, $raw);
-            $primaryName = $this->style->identifier(
+            $primaryName = $entityFactory->style->identifier(
                 (string) $entities[$entityInstance]->name,
             );
 
-            /** @phpstan-ignore argument.type */
-            $entityFactory->set($entityInstance, $columnName, $value);
+            $entityFactory->set(
+                /** @phpstan-ignore argument.type */
+                $entityInstance,
+                $columnName,
+                $value,
+            );
 
             if ($primaryName != $columnName) {
                 continue;
@@ -66,7 +63,13 @@ abstract class Flat implements Hydrator
             $entityInstance = array_pop($entitiesInstances);
         }
 
-        return $this->resolveTypedEntities($entities, $entityFactory);
+        $entities = $this->resolveTypedEntities($entities, $entityFactory);
+
+        if ($entities->count() > 1) {
+            $this->wireRelationships($entities, $entityFactory);
+        }
+
+        return $entities;
     }
 
     /** Resolve the column name for a given reference (numeric index, namespaced key, etc.) */
