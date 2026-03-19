@@ -8,6 +8,7 @@ use RecursiveArrayIterator;
 use RecursiveIteratorIterator;
 use Respect\Data\Collections\Collection;
 
+use function array_filter;
 use function is_array;
 
 /** @extends RecursiveArrayIterator<array-key, Collection> */
@@ -29,7 +30,7 @@ final class CollectionIterator extends RecursiveArrayIterator
         parent::__construct($items);
     }
 
-    /** @return RecursiveIteratorIterator<CollectionIterator> */
+    /** @return RecursiveIteratorIterator<CollectionIterator>&iterable<string, Collection> */
     public static function recursive(Collection $target): RecursiveIteratorIterator
     {
         return new RecursiveIteratorIterator(new self($target), 1);
@@ -61,6 +62,9 @@ final class CollectionIterator extends RecursiveArrayIterator
             $pool[] = $c->next;
         }
 
-        return new static($pool, $this->namesCounts);
+        return new static(
+            array_filter($pool, static fn(Collection $c): bool => $c->name !== null),
+            $this->namesCounts,
+        );
     }
 }

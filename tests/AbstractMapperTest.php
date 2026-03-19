@@ -10,6 +10,7 @@ use PHPUnit\Framework\TestCase;
 use ReflectionObject;
 use Respect\Data\Collections\Collection;
 use Respect\Data\Collections\Filtered;
+use Respect\Data\Hydrators\Nested;
 use Respect\Data\Styles\CakePHP;
 use Respect\Data\Styles\Standard;
 use SplObjectStorage;
@@ -36,6 +37,11 @@ class AbstractMapperTest extends TestCase
             public function fetchAll(Collection $collection, mixed $extra = null): array
             {
                 return [];
+            }
+
+            protected function defaultHydrator(Collection $collection): Hydrator
+            {
+                return new Nested();
             }
         };
     }
@@ -112,6 +118,11 @@ class AbstractMapperTest extends TestCase
             public function fetchAll(Collection $collection, mixed $extra = null): array
             {
                 return [];
+            }
+
+            protected function defaultHydrator(Collection $collection): Hydrator
+            {
+                return new Nested();
             }
         };
         $this->assertSame($style, $mapper->style);

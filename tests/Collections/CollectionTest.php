@@ -8,6 +8,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Respect\Data\AbstractMapper;
+use Respect\Data\EntityFactory;
+use Respect\Data\Hydrators\Nested;
 use RuntimeException;
 use stdClass;
 
@@ -335,5 +337,29 @@ class CollectionTest extends TestCase
         $coll->mapper = $mapperMock;
         $result = $coll->bar;
         $this->assertEquals('bar', $result->next?->name);
+    }
+
+    #[Test]
+    public function hydrateFromSetsHydrator(): void
+    {
+        $hydrator = new Nested();
+        $coll = Collection::foo()->hydrateFrom($hydrator);
+        $this->assertSame($hydrator, $coll->hydrator);
+    }
+
+    #[Test]
+    public function resolveEntityNameReturnsCollectionName(): void
+    {
+        $coll = Collection::author();
+        $factory = new EntityFactory();
+        $this->assertEquals('author', $coll->resolveEntityName($factory, new stdClass()));
+    }
+
+    #[Test]
+    public function resolveEntityNameReturnsEmptyForNullName(): void
+    {
+        $coll = new Collection();
+        $factory = new EntityFactory();
+        $this->assertEquals('', $coll->resolveEntityName($factory, new stdClass()));
     }
 }

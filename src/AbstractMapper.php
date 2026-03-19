@@ -5,11 +5,8 @@ declare(strict_types=1);
 namespace Respect\Data;
 
 use Respect\Data\Collections\Collection;
-use Respect\Data\Collections\Composite;
 use Respect\Data\Collections\Filtered;
 use SplObjectStorage;
-
-use function count;
 
 abstract class AbstractMapper
 {
@@ -106,6 +103,13 @@ abstract class AbstractMapper
         $this->collections[$alias] = $collection;
     }
 
+    abstract protected function defaultHydrator(Collection $collection): Hydrator;
+
+    protected function resolveHydrator(Collection $collection): Hydrator
+    {
+        return $collection->hydrator ?? $this->defaultHydrator($collection);
+    }
+
     /** @param SplObjectStorage<object, Collection> $entities */
     protected function postHydrate(SplObjectStorage $entities): void
     {
@@ -124,42 +128,6 @@ abstract class AbstractMapper
                 $this->entityFactory->set($instance, $field, $v);
             }
         }
-    }
-
-    /**
-     * @param SplObjectStorage<object, Collection> $entities
-     *
-     * @return array<int, object>
-     */
-    protected function buildEntitiesInstances(
-        Collection $collection,
-        SplObjectStorage $entities,
-    ): array {
-        $entitiesInstances = [];
-
-        foreach (CollectionIterator::recursive($collection) as $c) {
-            if (!$c instanceof Collection) {
-                continue;
-            }
-
-            if ($c instanceof Filtered && !$c->filters) {
-                continue;
-            }
-
-            $entityInstance = $this->entityFactory->createByName((string) $c->name);
-
-            if ($c instanceof Composite) {
-                $compositionCount = count($c->compositions);
-                for ($i = 0; $i < $compositionCount; $i++) {
-                    $entitiesInstances[] = $entityInstance;
-                }
-            }
-
-            $entities[$entityInstance] = $c;
-            $entitiesInstances[] = $entityInstance;
-        }
-
-        return $entitiesInstances;
     }
 
     /** @param SplObjectStorage<object, Collection> $entities */
