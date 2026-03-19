@@ -4,7 +4,7 @@ parameters:
     - src/
     - tests/
   ignoreErrors:
-    - message: '/Call to an undefined (static )?method Respect\\Data\\(AbstractMapper|Collections\\(Collection|Filtered|Composite|Typed))::\w+\(\)\./'
+    - message: '/Call to an undefined (static )?method Respect\\Data\\(AbstractMapper|InMemoryMapper|Collections\\(Collection|Filtered|Composite|Typed))::\w+\(\)\./'
     - message: '/Access to an undefined property Respect\\Data\\(AbstractMapper|InMemoryMapper|Collections\\Collection)::\$\w+\./'
     - message: '/Unsafe usage of new static\(\)\./'
     -

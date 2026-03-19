@@ -16,8 +16,8 @@ class CompositeTest extends TestCase
     #[Test]
     public function collectionCanBeCreatedStaticallyWithChildren(): void
     {
-        $children1 = Composite::with(['foo' => ['bar']])->bar();
-        $children2 = Composite::with(['bat' => ['bar']])->baz()->bat();
+        $children1 = Composite::bar(['foo' => ['bar']]);
+        $children2 = Composite::baz(['bat' => ['bar']])->bat();
         $coll = Collection::foo($children1, $children2)->bar();
         $this->assertInstanceOf(Collection::class, $coll);
         $this->assertInstanceOf(Collection::class, $coll->next);

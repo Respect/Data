@@ -6,29 +6,17 @@ namespace Respect\Data\Collections;
 
 final class Composite extends Collection
 {
-    /**
-     * @param array<string, list<string>> $compositions
-     * @param array<mixed>|scalar|null $condition
-     */
-    public function __construct(
-        public private(set) readonly array $compositions = [],
-        string|null $name = null,
-        array|int|float|string|bool|null $condition = [],
-    ) {
-        parent::__construct($name, $condition);
-    }
-
     /** @param array<string, list<string>> $compositions */
-    public static function with(array $compositions): static
-    {
-        return new static(compositions: $compositions);
+    public function __construct(
+        string $name,
+        public private(set) readonly array $compositions = [],
+    ) {
+        parent::__construct($name);
     }
 
-    /** @param array<int, mixed> $children */
-    public static function __callStatic(string $name, array $children): static
+    /** @param array<int, array<string, list<string>>> $arguments */
+    public static function __callStatic(string $name, array $arguments): static
     {
-        $collection = new static();
-
-        return $collection->__call($name, $children);
+        return new static($name, ...$arguments);
     }
 }

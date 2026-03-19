@@ -16,8 +16,8 @@ class FilteredTest extends TestCase
     #[Test]
     public function collectionCanBeCreatedStaticallyWithChildren(): void
     {
-        $children1 = Filtered::by('bar')->bar();
-        $children2 = Filtered::by('bat')->baz()->bat();
+        $children1 = Filtered::bar('bar');
+        $children2 = Filtered::baz('bat')->bat();
         $coll = Collection::foo($children1, $children2)->bar();
         $this->assertInstanceOf(Collection::class, $coll);
         $this->assertInstanceOf(Collection::class, $coll->next);
@@ -41,14 +41,14 @@ class FilteredTest extends TestCase
     #[Test]
     public function isIdentifierOnlyReturnsTrueForIdentifierOnlyFilter(): void
     {
-        $coll = Filtered::by(Filtered::IDENTIFIER_ONLY)->post();
+        $coll = Filtered::post(Filtered::IDENTIFIER_ONLY);
         $this->assertTrue($coll->identifierOnly);
     }
 
     #[Test]
     public function isIdentifierOnlyReturnsFalseForNamedFilters(): void
     {
-        $coll = Filtered::by('title')->post();
+        $coll = Filtered::post('title');
         $this->assertFalse($coll->identifierOnly);
     }
 

@@ -132,10 +132,17 @@ abstract class AbstractMapper
         $this->registerCollection($alias, $collection);
     }
 
-    /** @param array<int, mixed> $children */
-    public function __call(string $name, array $children): Collection
+    /** @param list<Collection|array<scalar, mixed>|scalar|null> $arguments */
+    public function __call(string $name, array $arguments): Collection
     {
-        $collection = Collection::__callstatic($name, $children);
+        if (isset($this->collections[$name])) {
+            $collection = clone $this->collections[$name];
+            $collection->mapper = $this;
+
+            return $collection->with(...$arguments);
+        }
+
+        $collection = Collection::__callstatic($name, $arguments);
         $collection->mapper = $this;
 
         return $collection;

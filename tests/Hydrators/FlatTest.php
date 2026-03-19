@@ -38,7 +38,7 @@ class FlatTest extends TestCase
     public function hydrateReturnsFalseWhenNoEntitiesBuilt(): void
     {
         $hydrator = $this->hydrator([]);
-        $filtered = Filtered::by()->post();
+        $filtered = Filtered::post();
 
         $this->assertFalse($hydrator->hydrate([1, 'value'], $filtered, $this->factory));
     }
@@ -85,7 +85,7 @@ class FlatTest extends TestCase
     public function hydrateSkipsUnfilteredFilteredCollections(): void
     {
         $hydrator = $this->hydrator(['id', 'title']);
-        $filtered = Filtered::by()->post();
+        $filtered = Filtered::post();
         $collection = Collection::author();
         $collection->stack($filtered);
 
@@ -99,7 +99,7 @@ class FlatTest extends TestCase
     public function hydrateFilteredCollectionWithFilters(): void
     {
         $hydrator = $this->hydrator(['id', 'name', 'id']);
-        $filtered = Filtered::by('name')->author();
+        $filtered = Filtered::author('name');
         $collection = Collection::post();
         $collection->stack($filtered);
 
@@ -114,7 +114,7 @@ class FlatTest extends TestCase
     {
         $factory = new EntityFactory(entityNamespace: 'Respect\Data\Hydrators\\');
         $hydrator = $this->hydrator(['id', 'type', 'title']);
-        $collection = Typed::by('type')->issue();
+        $collection = Typed::issue('type');
 
         $result = $hydrator->hydrate([1, 'stdClass', 'Bug Report'], $collection, $factory);
 
@@ -127,7 +127,7 @@ class FlatTest extends TestCase
     public function hydrateWithComposite(): void
     {
         $hydrator = $this->hydrator(['id', 'title', 'id', 'bio']);
-        $composite = Composite::with(['profile' => ['bio']])->author();
+        $composite = Composite::author(['profile' => ['bio']]);
 
         $result = $hydrator->hydrate([1, 'Author', 1, 'A bio'], $composite, $this->factory);
 

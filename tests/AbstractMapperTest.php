@@ -284,6 +284,59 @@ class AbstractMapperTest extends TestCase
     }
 
     #[Test]
+    public function callingRegisteredCollectionClonesAndAppliesCondition(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('post', [
+            ['id' => 1, 'title' => 'Hello'],
+            ['id' => 2, 'title' => 'World'],
+        ]);
+
+        $mapper->postTitles = Filtered::posts('title');
+
+        $conditioned = $mapper->postTitles(['id' => 2]);
+
+        $this->assertInstanceOf(Filtered::class, $conditioned);
+        $this->assertEquals('posts', $conditioned->name);
+        $this->assertEquals(['title'], $conditioned->filters);
+        $this->assertEquals(['id' => 2], $conditioned->condition);
+        $this->assertEquals([], $mapper->postTitles->condition, 'Original collection should be unchanged');
+    }
+
+    #[Test]
+    public function callingRegisteredCollectionWithoutConditionReturnsClone(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->postTitles = Filtered::posts('title');
+
+        $clone = $mapper->postTitles();
+
+        $this->assertInstanceOf(Filtered::class, $clone);
+        $this->assertNotSame($mapper->postTitles, $clone);
+        $this->assertEquals('posts', $clone->name);
+        $this->assertEquals(['title'], $clone->filters);
+    }
+
+    #[Test]
+    public function callingRegisteredChainedCollectionDoesNotMutateTemplate(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('post', []);
+        $mapper->seed('comment', []);
+
+        $mapper->commentedPosts = Collection::posts()->comment();
+
+        $clone = $mapper->commentedPosts();
+        $clone->author; // stacks 'author' onto the clone's chain
+
+        $original = $mapper->commentedPosts;
+        $this->assertNull(
+            $original->next?->next,
+            'Stacking on a clone should not mutate the registered collection',
+        );
+    }
+
+    #[Test]
     public function filteredPersistDelegatesToParentCollection(): void
     {
         $mapper = new InMemoryMapper();

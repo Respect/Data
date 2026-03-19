@@ -14,28 +14,17 @@ final class Filtered extends Collection
     // phpcs:ignore PSR2.Classes.PropertyDeclaration
     public bool $identifierOnly { get => $this->filters === [self::IDENTIFIER_ONLY]; }
 
-    /**
-     * @param list<string> $filters
-     * @param array<mixed>|scalar|null $condition
-     */
+    /** @param list<string> $filters */
     public function __construct(
+        string $name,
         public private(set) readonly array $filters = [],
-        string|null $name = null,
-        array|int|float|string|bool|null $condition = [],
     ) {
-        parent::__construct($name, $condition);
+        parent::__construct($name);
     }
 
-    public static function by(string ...$names): static
+    /** @param array<scalar, string> $arguments */
+    public static function __callStatic(string $name, array $arguments): static
     {
-        return new static(filters: array_values($names));
-    }
-
-    /** @param array<int, mixed> $children */
-    public static function __callStatic(string $name, array $children): static
-    {
-        $collection = new static();
-
-        return $collection->__call($name, $children);
+        return new static($name, array_values($arguments));
     }
 }
