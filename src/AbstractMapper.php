@@ -8,6 +8,9 @@ use Respect\Data\Collections\Collection;
 use Respect\Data\Collections\Filtered;
 use SplObjectStorage;
 
+use function array_flip;
+use function array_intersect_key;
+
 abstract class AbstractMapper
 {
     /** @var SplObjectStorage<object, true> */
@@ -104,6 +107,27 @@ abstract class AbstractMapper
     }
 
     abstract protected function defaultHydrator(Collection $collection): Hydrator;
+
+    /**
+     * @param array<string, mixed> $columns
+     *
+     * @return array<string, mixed>
+     */
+    protected function filterColumns(array $columns, Collection $collection): array
+    {
+        if (
+            !$collection instanceof Filtered
+            || !$collection->filters
+            || $collection->identifierOnly
+            || $collection->name === null
+        ) {
+            return $columns;
+        }
+
+        $pk = $this->style->identifier($collection->name);
+
+        return array_intersect_key($columns, array_flip([...$collection->filters, $pk]));
+    }
 
     protected function resolveHydrator(Collection $collection): Hydrator
     {

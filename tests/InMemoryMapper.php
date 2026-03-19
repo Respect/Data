@@ -8,6 +8,7 @@ use Respect\Data\Collections\Collection;
 use Respect\Data\Hydrators\Nested;
 
 use function array_filter;
+use function array_merge;
 use function array_values;
 use function is_array;
 use function reset;
@@ -56,7 +57,10 @@ final class InMemoryMapper extends AbstractMapper
             $collection = $this->tracked[$entity];
             $tableName = (string) $collection->name;
             $pk = $this->style->identifier($tableName);
-            $row = $this->entityFactory->extractProperties($entity);
+            $row = $this->filterColumns(
+                $this->entityFactory->extractProperties($entity),
+                $collection,
+            );
 
             if (!isset($row[$pk])) {
                 ++$this->lastInsertId;
@@ -76,11 +80,14 @@ final class InMemoryMapper extends AbstractMapper
             $tableName = (string) $collection->name;
             $pk = $this->style->identifier($tableName);
             $pkValue = $this->entityFactory->get($entity, $pk);
-            $row = $this->entityFactory->extractProperties($entity);
+            $row = $this->filterColumns(
+                $this->entityFactory->extractProperties($entity),
+                $collection,
+            );
 
             foreach ($this->tables[$tableName] as $index => $existing) {
                 if (isset($existing[$pk]) && $existing[$pk] == $pkValue) {
-                    $this->tables[$tableName][$index] = $row;
+                    $this->tables[$tableName][$index] = array_merge($existing, $row);
 
                     break;
                 }
