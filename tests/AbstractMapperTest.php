@@ -369,4 +369,109 @@ class AbstractMapperTest extends TestCase
         $fetched = $mapper->post->fetch();
         $this->assertEquals('Direct', $fetched->title);
     }
+
+    #[Test]
+    public function filteredUpdatePersistsOnlyFilteredColumns(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('post', [
+            ['id' => 1, 'title' => 'Original', 'text' => 'Body'],
+        ]);
+
+        $mapper->postTitles = Filtered::post('title');
+        $post = $mapper->postTitles()->fetch();
+        $this->assertIsObject($post);
+
+        $mapper->entityFactory->set($post, 'title', 'Changed');
+        $mapper->postTitles()->persist($post);
+        $mapper->flush();
+
+        $fetched = $mapper->post->fetch();
+        $this->assertEquals('Changed', $mapper->entityFactory->get($fetched, 'title'));
+        $this->assertEquals('Body', $mapper->entityFactory->get($fetched, 'text'));
+    }
+
+    #[Test]
+    public function filteredInsertPersistsOnlyFilteredColumns(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('post', []);
+
+        $mapper->postTitles = Filtered::post('title');
+        $post = new stdClass();
+        $post->id = 1;
+        $post->title = 'Partial';
+        $post->text = 'Should not persist';
+        $mapper->postTitles()->persist($post);
+        $mapper->flush();
+
+        $fetched = $mapper->post->fetch();
+        $this->assertEquals('Partial', $mapper->entityFactory->get($fetched, 'title'));
+        $this->assertNull($mapper->entityFactory->get($fetched, 'text'));
+    }
+
+    #[Test]
+    public function filterColumnsPassesThroughForPlainCollection(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('post', [
+            ['id' => 1, 'title' => 'Original', 'text' => 'Body'],
+        ]);
+
+        $post = $mapper->post->fetch();
+        $this->assertIsObject($post);
+
+        $mapper->entityFactory->set($post, 'title', 'Changed');
+        $mapper->entityFactory->set($post, 'text', 'New Body');
+        $mapper->post->persist($post);
+        $mapper->flush();
+
+        $fetched = $mapper->post->fetch();
+        $this->assertEquals('Changed', $mapper->entityFactory->get($fetched, 'title'));
+        $this->assertEquals('New Body', $mapper->entityFactory->get($fetched, 'text'));
+    }
+
+    #[Test]
+    public function filterColumnsPassesThroughForEmptyFilters(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('post', [
+            ['id' => 1, 'title' => 'Original', 'text' => 'Body'],
+        ]);
+
+        $mapper->allPosts = Filtered::post();
+        $post = $mapper->allPosts()->fetch();
+        $this->assertIsObject($post);
+
+        $mapper->entityFactory->set($post, 'title', 'Changed');
+        $mapper->entityFactory->set($post, 'text', 'New Body');
+        $mapper->allPosts()->persist($post);
+        $mapper->flush();
+
+        $fetched = $mapper->post->fetch();
+        $this->assertEquals('Changed', $mapper->entityFactory->get($fetched, 'title'));
+        $this->assertEquals('New Body', $mapper->entityFactory->get($fetched, 'text'));
+    }
+
+    #[Test]
+    public function filterColumnsPassesThroughForIdentifierOnly(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('post', [
+            ['id' => 1, 'title' => 'Original', 'text' => 'Body'],
+        ]);
+
+        $mapper->postIds = Filtered::post(Filtered::IDENTIFIER_ONLY);
+        $post = $mapper->postIds()->fetch();
+        $this->assertIsObject($post);
+
+        $mapper->entityFactory->set($post, 'title', 'Changed');
+        $mapper->entityFactory->set($post, 'text', 'New Body');
+        $mapper->postIds()->persist($post);
+        $mapper->flush();
+
+        $fetched = $mapper->post->fetch();
+        $this->assertEquals('Changed', $mapper->entityFactory->get($fetched, 'title'));
+        $this->assertEquals('New Body', $mapper->entityFactory->get($fetched, 'text'));
+    }
 }
