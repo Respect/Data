@@ -20,13 +20,13 @@ class FilteredTest extends TestCase
         $children2 = Filtered::by('bat')->baz()->bat();
         $coll = Collection::foo($children1, $children2)->bar();
         $this->assertInstanceOf(Collection::class, $coll);
-        $this->assertInstanceOf(Collection::class, $coll->getNext());
+        $this->assertInstanceOf(Collection::class, $coll->next);
         $this->assertInstanceOf(Filtered::class, $children1);
         $this->assertInstanceOf(Filtered::class, $children2);
-        $this->assertTrue($coll->hasChildren());
-        $this->assertEquals(2, count($coll->getChildren()));
-        $this->assertEquals(['bar'], $children1->getFilters());
-        $this->assertEquals(['bat'], $children2->getFilters());
+        $this->assertTrue($coll->hasChildren);
+        $this->assertEquals(2, count($coll->children));
+        $this->assertEquals(['bar'], $children1->filters);
+        $this->assertEquals(['bat'], $children2->filters);
     }
 
     #[Test]
@@ -34,28 +34,28 @@ class FilteredTest extends TestCase
     {
         $coll = Filtered::items();
         $this->assertInstanceOf(Filtered::class, $coll);
-        $this->assertEquals('items', $coll->getName());
-        $this->assertEquals([], $coll->getFilters());
+        $this->assertEquals('items', $coll->name);
+        $this->assertEquals([], $coll->filters);
     }
 
     #[Test]
     public function isIdentifierOnlyReturnsTrueForIdentifierOnlyFilter(): void
     {
         $coll = Filtered::by(Filtered::IDENTIFIER_ONLY)->post();
-        $this->assertTrue($coll->isIdentifierOnly());
+        $this->assertTrue($coll->identifierOnly);
     }
 
     #[Test]
     public function isIdentifierOnlyReturnsFalseForNamedFilters(): void
     {
         $coll = Filtered::by('title')->post();
-        $this->assertFalse($coll->isIdentifierOnly());
+        $this->assertFalse($coll->identifierOnly);
     }
 
     #[Test]
     public function isIdentifierOnlyReturnsFalseForEmptyFilters(): void
     {
         $coll = Filtered::post();
-        $this->assertFalse($coll->isIdentifierOnly());
+        $this->assertFalse($coll->identifierOnly);
     }
 }

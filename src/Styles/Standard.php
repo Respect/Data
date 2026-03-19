@@ -19,9 +19,7 @@ class Standard extends AbstractStyle
 
     public function realName(string $name): string
     {
-        $name = $this->camelCaseToSeparator($name, '_');
-
-        return strtolower($name);
+        return strtolower($this->camelCaseToSeparator($name, '_'));
     }
 
     public function realProperty(string $name): string
@@ -31,9 +29,7 @@ class Standard extends AbstractStyle
 
     public function styledName(string $name): string
     {
-        $name = $this->separatorToCamelCase($name, '_');
-
-        return ucfirst($name);
+        return ucfirst($this->separatorToCamelCase($name, '_'));
     }
 
     public function identifier(string $name): string
@@ -58,10 +54,6 @@ class Standard extends AbstractStyle
 
     public function remoteFromIdentifier(string $name): string|null
     {
-        if ($this->isRemoteIdentifier($name)) {
-            return substr($name, 0, -3);
-        }
-
-        return null;
+        return $this->isRemoteIdentifier($name) ? substr($name, 0, -3) : null;
     }
 }

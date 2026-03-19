@@ -20,13 +20,13 @@ class CompositeTest extends TestCase
         $children2 = Composite::with(['bat' => ['bar']])->baz()->bat();
         $coll = Collection::foo($children1, $children2)->bar();
         $this->assertInstanceOf(Collection::class, $coll);
-        $this->assertInstanceOf(Collection::class, $coll->getNext());
+        $this->assertInstanceOf(Collection::class, $coll->next);
         $this->assertInstanceOf(Composite::class, $children1);
         $this->assertInstanceOf(Composite::class, $children2);
-        $this->assertTrue($coll->hasChildren());
-        $this->assertEquals(2, count($coll->getChildren()));
-        $this->assertEquals(['foo' => ['bar']], $children1->getCompositions());
-        $this->assertEquals(['bat' => ['bar']], $children2->getCompositions());
+        $this->assertTrue($coll->hasChildren);
+        $this->assertEquals(2, count($coll->children));
+        $this->assertEquals(['foo' => ['bar']], $children1->compositions);
+        $this->assertEquals(['bat' => ['bar']], $children2->compositions);
     }
 
     #[Test]
@@ -34,7 +34,7 @@ class CompositeTest extends TestCase
     {
         $coll = Composite::items();
         $this->assertInstanceOf(Composite::class, $coll);
-        $this->assertEquals('items', $coll->getName());
-        $this->assertEquals([], $coll->getCompositions());
+        $this->assertEquals('items', $coll->name);
+        $this->assertEquals([], $coll->compositions);
     }
 }

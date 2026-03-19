@@ -9,131 +9,73 @@ use Respect\Data\AbstractMapper;
 use Respect\Data\EntityFactory;
 use RuntimeException;
 
-use function assert;
+use function is_array;
+use function is_scalar;
 
 /** @implements ArrayAccess<string, Collection> */
 class Collection implements ArrayAccess
 {
-    protected bool $required = true;
+    public private(set) bool $required = true;
 
-    protected AbstractMapper|null $mapper = null;
+    public AbstractMapper|null $mapper = null;
 
-    protected Collection|null $parent = null;
+    public private(set) Collection|null $parent = null;
 
-    protected Collection|null $next = null;
+    public private(set) Collection|null $next = null;
 
-    protected Collection|null $last = null;
+    private Collection|null $last = null;
 
     /** @var Collection[] */
-    protected array $children = [];
+    public private(set) array $children = [];
 
-    public function __construct(protected string|null $name = null, protected mixed $condition = [])
-    {
-        $this->last = $this;
+    public bool $hasChildren { get => !empty($this->children); }
+
+    public bool $more { get => $this->hasChildren || $this->next !== null; }
+
+    /** @param array<mixed>|scalar|null $condition */
+    public function __construct(
+        public private(set) string|null $name = null,
+        public private(set) array|int|float|string|bool|null $condition = [],
+    ) {
     }
 
-    public static function using(mixed $condition): static
+    /** @param array<mixed>|scalar|null $condition */
+    public static function using(array|int|float|string|bool|null $condition): static
     {
-        $collection = new static();
-        $collection->setCondition($condition);
-
-        return $collection;
+        return new static(condition: $condition);
     }
 
     public function addChild(Collection $child): void
     {
         $clone = clone $child;
-        $clone->setRequired(false);
-        $clone->setMapper($this->mapper);
-        $clone->setParent($this);
+        $clone->required = false;
+        $clone->parent = $this;
         $this->children[] = $clone;
     }
 
-    public function persist(object $object): mixed
+    public function persist(object $object): bool
     {
-        if (!$this->mapper) {
-            throw new RuntimeException();
-        }
-
-        return $this->mapper->persist($object, $this);
+        return $this->resolveMapper()->persist($object, $this);
     }
 
-    public function remove(object $object): mixed
+    public function remove(object $object): bool
     {
-        if (!$this->mapper) {
-            throw new RuntimeException();
-        }
-
-        return $this->mapper->remove($object, $this);
+        return $this->resolveMapper()->remove($object, $this);
     }
 
     public function fetch(mixed $extra = null): mixed
     {
-        if (!$this->mapper) {
-            throw new RuntimeException();
-        }
-
-        return $this->mapper->fetch($this, $extra);
+        return $this->resolveMapper()->fetch($this, $extra);
     }
 
     public function fetchAll(mixed $extra = null): mixed
     {
-        if (!$this->mapper) {
-            throw new RuntimeException();
-        }
-
-        return $this->mapper->fetchAll($this, $extra);
-    }
-
-    /** @return Collection[] */
-    public function getChildren(): array
-    {
-        return $this->children;
-    }
-
-    public function getCondition(): mixed
-    {
-        return $this->condition;
-    }
-
-    public function getName(): string|null
-    {
-        return $this->name;
+        return $this->resolveMapper()->fetchAll($this, $extra);
     }
 
     public function resolveEntityName(EntityFactory $factory, object $row): string
     {
         return $this->name ?? '';
-    }
-
-    public function getNext(): Collection|null
-    {
-        return $this->next;
-    }
-
-    public function getParent(): Collection|null
-    {
-        return $this->parent;
-    }
-
-    public function hasChildren(): bool
-    {
-        return !empty($this->children);
-    }
-
-    public function hasMore(): bool
-    {
-        return $this->hasChildren() || $this->hasNext();
-    }
-
-    public function hasNext(): bool
-    {
-        return $this->next !== null;
-    }
-
-    public function isRequired(): bool
-    {
-        return $this->required;
     }
 
     public function offsetExists(mixed $offset): bool
@@ -143,7 +85,8 @@ class Collection implements ArrayAccess
 
     public function offsetGet(mixed $condition): mixed
     {
-        $this->last?->setCondition($condition);
+        $tail = $this->last ?? $this;
+        $tail->condition = $condition;
 
         return $this;
     }
@@ -158,43 +101,38 @@ class Collection implements ArrayAccess
         // no-op
     }
 
-    public function setCondition(mixed $condition): void
-    {
-        $this->condition = $condition;
-    }
-
-    public function setMapper(AbstractMapper|null $mapper = null): void
-    {
-        foreach ($this->children as $child) {
-            $child->setMapper($mapper);
-        }
-
-        $this->mapper = $mapper;
-    }
-
-    public function setParent(Collection $parent): void
-    {
-        $this->parent = $parent;
-    }
-
-    public function setNext(Collection $collection): void
-    {
-        $collection->setParent($this);
-        $collection->setMapper($this->mapper);
-        $this->next = $collection;
-    }
-
-    public function setRequired(bool $required): void
-    {
-        $this->required = $required;
-    }
-
     public function stack(Collection $collection): static
     {
-        $this->last?->setNext($collection);
-        $this->last = $collection;
+        $tail = $this->last ?? $this;
+        $tail->setNext($collection);
+        $this->last = $collection->last ?? $collection;
 
         return $this;
+    }
+
+    private function findMapper(): AbstractMapper|null
+    {
+        $node = $this;
+        while ($node !== null) {
+            if ($node->mapper !== null) {
+                return $node->mapper;
+            }
+
+            $node = $node->parent;
+        }
+
+        return null;
+    }
+
+    private function resolveMapper(): AbstractMapper
+    {
+        return $this->findMapper() ?? throw new RuntimeException();
+    }
+
+    private function setNext(Collection $collection): void
+    {
+        $collection->parent = $this;
+        $this->next = $collection;
     }
 
     /** @param array<int, mixed> $children */
@@ -207,11 +145,9 @@ class Collection implements ArrayAccess
 
     public function __get(string $name): static
     {
-        if (isset($this->mapper) && isset($this->mapper->$name)) {
-            assert($this->mapper->$name instanceof Collection);
-            $cloned = clone $this->mapper->$name;
-
-            return $this->stack($cloned);
+        $mapper = $this->findMapper();
+        if ($mapper !== null && isset($mapper->$name)) {
+            return $this->stack(clone $mapper->__get($name));
         }
 
         return $this->stack(new self($name));
@@ -225,17 +161,14 @@ class Collection implements ArrayAccess
             foreach ($children as $child) {
                 if ($child instanceof Collection) {
                     $this->addChild($child);
-                } else {
-                    $this->setCondition($child);
+                } elseif (is_array($child) || is_scalar($child) || $child === null) {
+                    $this->condition = $child;
                 }
             }
 
             return $this;
         }
 
-        $collection = new Collection();
-        $collection->__call($name, $children);
-
-        return $this->stack($collection);
+        return $this->stack((new Collection())->__call($name, $children));
     }
 }

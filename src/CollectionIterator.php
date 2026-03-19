@@ -16,26 +16,28 @@ final class CollectionIterator extends RecursiveArrayIterator
     /** @var array<string, int> */
     protected array $namesCounts = [];
 
-    /** @param array<string, int> $namesCounts */
-    public function __construct(mixed $target = [], array &$namesCounts = [])
+    /**
+     * @param Collection|array<Collection> $target
+     * @param array<string, int> $namesCounts
+     */
+    public function __construct(Collection|array $target = [], array &$namesCounts = [])
     {
         $this->namesCounts = &$namesCounts;
 
-        /** @var array<Collection> $items */
         $items = is_array($target) ? $target : [$target];
 
         parent::__construct($items);
     }
 
     /** @return RecursiveIteratorIterator<CollectionIterator> */
-    public static function recursive(mixed $target): RecursiveIteratorIterator
+    public static function recursive(Collection $target): RecursiveIteratorIterator
     {
         return new RecursiveIteratorIterator(new self($target), 1);
     }
 
     public function key(): string
     {
-        $name = $this->current()->getName() ?? '';
+        $name = $this->current()->name ?? '';
 
         if (isset($this->namesCounts[$name])) {
             return $name . ++$this->namesCounts[$name];
@@ -48,20 +50,15 @@ final class CollectionIterator extends RecursiveArrayIterator
 
     public function hasChildren(): bool
     {
-        return $this->current()->hasMore();
+        return $this->current()->more;
     }
 
     public function getChildren(): RecursiveArrayIterator
     {
         $c = $this->current();
-        $pool = [];
-
-        if ($c->hasChildren()) {
-            $pool = $c->getChildren();
-        }
-
-        if ($c->hasNext()) {
-            $pool[] = $c->getNext();
+        $pool = $c->hasChildren ? $c->children : [];
+        if ($c->next !== null) {
+            $pool[] = $c->next;
         }
 
         return new static($pool, $this->namesCounts);

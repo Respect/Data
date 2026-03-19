@@ -76,7 +76,7 @@ class CollectionIteratorTest extends TestCase
     public function getChildrenUseCollectionChildren(): void
     {
         $coll = Collection::foo(Collection::bar(), Collection::baz());
-        [$fooChild, $barChild] = $coll->getChildren();
+        [$fooChild, $barChild] = $coll->children;
         $items = iterator_to_array(CollectionIterator::recursive($coll));
         $this->assertContains($fooChild, $items);
         $this->assertContains($barChild, $items);

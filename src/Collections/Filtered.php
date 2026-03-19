@@ -11,26 +11,24 @@ final class Filtered extends Collection
     /** Fetch only the entity identifier (primary key, document ID, etc.) */
     public const string IDENTIFIER_ONLY = '*';
 
-    /** @var list<string> */
-    private array $filters = [];
+    // phpcs:ignore PSR2.Classes.PropertyDeclaration
+    public bool $identifierOnly { get => $this->filters === [self::IDENTIFIER_ONLY]; }
+
+    /**
+     * @param list<string> $filters
+     * @param array<mixed>|scalar|null $condition
+     */
+    public function __construct(
+        public private(set) readonly array $filters = [],
+        string|null $name = null,
+        array|int|float|string|bool|null $condition = [],
+    ) {
+        parent::__construct($name, $condition);
+    }
 
     public static function by(string ...$names): static
     {
-        $collection = new static();
-        $collection->filters = array_values($names);
-
-        return $collection;
-    }
-
-    /** @return list<string> */
-    public function getFilters(): array
-    {
-        return $this->filters;
-    }
-
-    public function isIdentifierOnly(): bool
-    {
-        return $this->filters === [self::IDENTIFIER_ONLY];
+        return new static(filters: array_values($names));
     }
 
     /** @param array<int, mixed> $children */

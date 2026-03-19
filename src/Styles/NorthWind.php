@@ -22,9 +22,7 @@ final class NorthWind extends Standard
 
     public function composed(string $left, string $right): string
     {
-        $left = $this->pluralToSingular($left);
-
-        return $left . $right;
+        return $this->pluralToSingular($left) . $right;
     }
 
     public function identifier(string $name): string
@@ -44,10 +42,6 @@ final class NorthWind extends Standard
 
     public function remoteFromIdentifier(string $name): string|null
     {
-        if ($this->isRemoteIdentifier($name)) {
-            return $this->singularToPlural(substr($name, 0, -2));
-        }
-
-        return null;
+        return $this->isRemoteIdentifier($name) ? $this->singularToPlural(substr($name, 0, -2)) : null;
     }
 }

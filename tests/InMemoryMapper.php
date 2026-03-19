@@ -10,7 +10,6 @@ use stdClass;
 
 use function array_filter;
 use function array_values;
-use function assert;
 use function is_array;
 use function reset;
 
@@ -29,8 +28,8 @@ final class InMemoryMapper extends AbstractMapper
 
     public function fetch(Collection $collection, mixed $extra = null): mixed
     {
-        $name = (string) $collection->getName();
-        $row = $this->findRow($name, $collection->getCondition());
+        $name = (string) $collection->name;
+        $row = $this->findRow($name, $collection->condition);
 
         if ($row === null) {
             return false;
@@ -44,7 +43,7 @@ final class InMemoryMapper extends AbstractMapper
             $this->entityFactory->set($entity, $key, $value);
         }
 
-        if ($collection->hasMore()) {
+        if ($collection->more) {
             /** @var SplObjectStorage<object, Collection> $entities */
             $entities = new SplObjectStorage();
             $entities[$entity] = $collection;
@@ -60,8 +59,8 @@ final class InMemoryMapper extends AbstractMapper
     /** @return array<int, mixed> */
     public function fetchAll(Collection $collection, mixed $extra = null): array
     {
-        $name = (string) $collection->getName();
-        $rows = $this->findRows($name, $collection->getCondition());
+        $name = (string) $collection->name;
+        $rows = $this->findRows($name, $collection->condition);
         $result = [];
 
         foreach ($rows as $row) {
@@ -73,7 +72,7 @@ final class InMemoryMapper extends AbstractMapper
                 $this->entityFactory->set($entity, $key, $value);
             }
 
-            if ($collection->hasMore()) {
+            if ($collection->more) {
                 /** @var SplObjectStorage<object, Collection> $entities */
                 $entities = new SplObjectStorage();
                 $entities[$entity] = $collection;
@@ -92,9 +91,8 @@ final class InMemoryMapper extends AbstractMapper
     {
         foreach ($this->new as $entity) {
             $collection = $this->tracked[$entity];
-            assert($collection instanceof Collection);
-            $tableName = (string) $collection->getName();
-            $pk = $this->getStyle()->identifier($tableName);
+            $tableName = (string) $collection->name;
+            $pk = $this->style->identifier($tableName);
             $row = $this->entityFactory->extractProperties($entity);
 
             if (!isset($row[$pk])) {
@@ -116,9 +114,8 @@ final class InMemoryMapper extends AbstractMapper
             }
 
             $collection = $this->tracked[$entity];
-            assert($collection instanceof Collection);
-            $tableName = (string) $collection->getName();
-            $pk = $this->getStyle()->identifier($tableName);
+            $tableName = (string) $collection->name;
+            $pk = $this->style->identifier($tableName);
             $pkValue = $this->entityFactory->get($entity, $pk);
             $row = $this->entityFactory->extractProperties($entity);
 
@@ -133,9 +130,8 @@ final class InMemoryMapper extends AbstractMapper
 
         foreach ($this->removed as $entity) {
             $collection = $this->tracked[$entity];
-            assert($collection instanceof Collection);
-            $tableName = (string) $collection->getName();
-            $pk = $this->getStyle()->identifier($tableName);
+            $tableName = (string) $collection->name;
+            $pk = $this->style->identifier($tableName);
             $pkValue = $this->entityFactory->get($entity, $pk);
 
             $rows = $this->tables[$tableName];
@@ -157,13 +153,13 @@ final class InMemoryMapper extends AbstractMapper
     /** @param SplObjectStorage<object, Collection> $entities */
     private function fetchRelated(object $parent, Collection $collection, SplObjectStorage $entities): void
     {
-        $next = $collection->getNext();
+        $next = $collection->next;
 
         if ($next !== null) {
             $this->fetchRelatedCollection($parent, $next, $entities);
         }
 
-        foreach ($collection->getChildren() as $child) {
+        foreach ($collection->children as $child) {
             $this->fetchRelatedCollection($parent, $child, $entities);
         }
     }
@@ -174,15 +170,15 @@ final class InMemoryMapper extends AbstractMapper
         Collection $related,
         SplObjectStorage $entities,
     ): void {
-        $relatedName = (string) $related->getName();
-        $fkCol = $this->getStyle()->remoteIdentifier($relatedName);
+        $relatedName = (string) $related->name;
+        $fkCol = $this->style->remoteIdentifier($relatedName);
         $fkValue = $this->entityFactory->get($parent, $fkCol);
 
         if ($fkValue === null) {
             return;
         }
 
-        $pk = $this->getStyle()->identifier($relatedName);
+        $pk = $this->style->identifier($relatedName);
         $row = $this->findRowByPk($relatedName, $pk, $fkValue);
 
         if ($row === null) {
@@ -200,7 +196,7 @@ final class InMemoryMapper extends AbstractMapper
         $entities[$childEntity] = $related;
         $this->markTracked($childEntity, $related);
 
-        if (!$related->hasMore()) {
+        if (!$related->more) {
             return;
         }
 
@@ -224,7 +220,7 @@ final class InMemoryMapper extends AbstractMapper
             return $rows;
         }
 
-        $pk = $this->getStyle()->identifier($table);
+        $pk = $this->style->identifier($table);
         $pkValue = is_array($condition) ? reset($condition) : $condition;
 
         return array_values(array_filter(

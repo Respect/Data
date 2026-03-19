@@ -16,6 +16,9 @@
 
     <rule ref="Respect">
         <exclude name="SlevomatCodingStandard.Classes.SuperfluousAbstractClassNaming.SuperfluousPrefix" />
+        <!-- PHPCS 4.0.x cannot parse property hooks (PHP 8.4+), remove when fixed -->
+        <exclude name="PSR2.Classes.PropertyDeclaration.Multiple" />
+        <exclude name="PSR2.Classes.PropertyDeclaration.ScopeMissing" />
     </rule>
 
     <!-- Test code and stub entities use snake_case properties matching DB columns -->
