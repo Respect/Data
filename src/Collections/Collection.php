@@ -10,9 +10,6 @@ use Respect\Data\EntityFactory;
 use Respect\Data\Hydrator;
 use RuntimeException;
 
-use function is_array;
-use function is_scalar;
-
 /** @implements ArrayAccess<string, Collection> */
 class Collection implements ArrayAccess
 {
@@ -35,17 +32,15 @@ class Collection implements ArrayAccess
 
     public bool $more { get => $this->hasChildren || $this->next !== null; }
 
-    /** @param array<mixed>|scalar|null $condition */
+    /** @var array<scalar, mixed>|scalar|null */
+    public private(set) array|int|float|string|bool|null $condition = [];
+
+    /** @param (Collection|array<scalar, mixed>|scalar|null) ...$args */
     public function __construct(
         public private(set) string|null $name = null,
-        public private(set) array|int|float|string|bool|null $condition = [],
+        self|array|int|float|string|bool|null ...$args,
     ) {
-    }
-
-    /** @param array<mixed>|scalar|null $condition */
-    public static function using(array|int|float|string|bool|null $condition): static
-    {
-        return new static(condition: $condition);
+        $this->with(...$args);
     }
 
     public function addChild(Collection $child): void
@@ -120,6 +115,16 @@ class Collection implements ArrayAccess
         return $this;
     }
 
+    /** @param self|array<scalar, mixed>|scalar|null ...$arguments */
+    public function with(self|array|int|float|string|bool|null ...$arguments): static
+    {
+        foreach ($arguments as $arg) {
+            $arg instanceof Collection ? $this->addChild($arg) : $this->condition = $arg;
+        }
+
+        return $this;
+    }
+
     private function findMapper(): AbstractMapper|null
     {
         $node = $this;
@@ -145,12 +150,10 @@ class Collection implements ArrayAccess
         $this->next = $collection;
     }
 
-    /** @param array<int, mixed> $children */
-    public static function __callStatic(string $name, array $children): static
+    /** @param array<int, mixed> $arguments */
+    public static function __callStatic(string $name, array $arguments): static
     {
-        $collection = new static();
-
-        return $collection->__call($name, $children);
+        return new static($name, ...$arguments);
     }
 
     public function __get(string $name): static
@@ -163,22 +166,46 @@ class Collection implements ArrayAccess
         return $this->stack(new self($name));
     }
 
-    /** @param array<int, mixed> $children */
+    /** @param list<self|array<scalar, mixed>|scalar|null> $children */
     public function __call(string $name, array $children): static
     {
         if (!isset($this->name)) {
             $this->name = $name;
-            foreach ($children as $child) {
-                if ($child instanceof Collection) {
-                    $this->addChild($child);
-                } elseif (is_array($child) || is_scalar($child) || $child === null) {
-                    $this->condition = $child;
-                }
-            }
 
-            return $this;
+            return $this->with(...$children);
         }
 
         return $this->stack((new Collection())->__call($name, $children));
+    }
+
+    public function __clone(): void
+    {
+        if ($this->next !== null) {
+            $this->next = clone $this->next;
+            $this->next->parent = $this;
+        }
+
+        $clonedChildren = [];
+
+        foreach ($this->children as $child) {
+            $cloned = clone $child;
+            $cloned->parent = $this;
+            $clonedChildren[] = $cloned;
+        }
+
+        $this->children = $clonedChildren;
+        $this->parent = null;
+
+        if ($this->last === null) {
+            return;
+        }
+
+        $node = $this;
+
+        while ($node->next !== null) {
+            $node = $node->next;
+        }
+
+        $this->last = $node !== $this ? $node : null;
     }
 }

@@ -18,8 +18,8 @@ class TypedTest extends TestCase
     #[Test]
     public function collectionCanBeCreatedStaticallyWithChildren(): void
     {
-        $children1 = Typed::by('a')->bar();
-        $children2 = Typed::by('b')->baz()->bat();
+        $children1 = Typed::bar('a');
+        $children2 = Typed::baz('b')->bat();
         $coll = Collection::foo($children1, $children2)->bar();
         $this->assertInstanceOf(Collection::class, $coll);
         $this->assertInstanceOf(Collection::class, $coll->next);
@@ -43,7 +43,7 @@ class TypedTest extends TestCase
     #[Test]
     public function resolveEntityNameReturnsDiscriminatorValue(): void
     {
-        $coll = Typed::by('type')->issues();
+        $coll = Typed::issues('type');
         $factory = new EntityFactory();
         $row = new stdClass();
         $row->type = 'Bug';
@@ -53,7 +53,7 @@ class TypedTest extends TestCase
     #[Test]
     public function resolveEntityNameFallsBackToCollectionName(): void
     {
-        $coll = Typed::by('type')->issues();
+        $coll = Typed::issues('type');
         $factory = new EntityFactory();
         $row = new stdClass();
         $this->assertEquals('issues', $coll->resolveEntityName($factory, $row));

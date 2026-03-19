@@ -120,7 +120,7 @@ class NestedTest extends TestCase
     public function hydrateWithTypedCollection(): void
     {
         $raw = ['id' => 1, 'title' => 'Issue', 'type' => 'stdClass'];
-        $collection = Typed::by('type')->issue();
+        $collection = Typed::issue('type');
 
         $result = $this->hydrator->hydrate($raw, $collection, $this->factory);
 

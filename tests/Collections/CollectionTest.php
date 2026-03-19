@@ -297,14 +297,6 @@ class CollectionTest extends TestCase
     }
 
     #[Test]
-    public function usingShouldCreateCollectionWithCondition(): void
-    {
-        $coll = Collection::using(42);
-        $this->assertInstanceOf(Collection::class, $coll);
-        $this->assertEquals(42, $coll->condition);
-    }
-
-    #[Test]
     public function getParentShouldReturnNullWhenNoParent(): void
     {
         $coll = new Collection('foo');
