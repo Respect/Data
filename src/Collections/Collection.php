@@ -7,6 +7,7 @@ namespace Respect\Data\Collections;
 use ArrayAccess;
 use Respect\Data\AbstractMapper;
 use Respect\Data\EntityFactory;
+use Respect\Data\Hydrator;
 use RuntimeException;
 
 use function is_array;
@@ -18,6 +19,8 @@ class Collection implements ArrayAccess
     public private(set) bool $required = true;
 
     public AbstractMapper|null $mapper = null;
+
+    public Hydrator|null $hydrator = null;
 
     public private(set) Collection|null $parent = null;
 
@@ -99,6 +102,13 @@ class Collection implements ArrayAccess
     public function offsetUnset(mixed $offset): void
     {
         // no-op
+    }
+
+    public function hydrateFrom(Hydrator $hydrator): static
+    {
+        $this->hydrator = $hydrator;
+
+        return $this;
     }
 
     public function stack(Collection $collection): static
