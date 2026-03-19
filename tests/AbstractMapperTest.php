@@ -46,12 +46,7 @@ class AbstractMapperTest extends TestCase
         $coll = Collection::foo();
         $this->mapper->registerCollection('my_alias', $coll);
 
-        $ref = new ReflectionObject($this->mapper);
-        $prop = $ref->getProperty('collections');
-        /** @var array<string, Collection> $collections */
-        $collections = $prop->getValue($this->mapper);
-        $this->assertContains($coll, $collections);
-
+        $this->assertTrue(isset($this->mapper->my_alias));
         $this->assertEquals($coll, $this->mapper->my_alias);
     }
 
@@ -61,11 +56,7 @@ class AbstractMapperTest extends TestCase
         $coll = Collection::foo();
         $this->mapper->my_alias = $coll;
 
-        $ref = new ReflectionObject($this->mapper);
-        $prop = $ref->getProperty('collections');
-        /** @var array<string, Collection> $collections */
-        $collections = $prop->getValue($this->mapper);
-        $this->assertContains($coll, $collections);
+        $this->assertTrue(isset($this->mapper->my_alias));
 
         $this->assertEquals($coll, $this->mapper->my_alias);
     }
@@ -75,7 +66,7 @@ class AbstractMapperTest extends TestCase
     {
         $collection = $this->mapper->foo()->bar()->baz();
         $expected = Collection::foo();
-        $expected->setMapper($this->mapper);
+        $expected->mapper = $this->mapper;
         $this->assertEquals($expected->bar->baz, $collection);
     }
 
@@ -84,22 +75,22 @@ class AbstractMapperTest extends TestCase
     {
         $collection = $this->mapper->foo->bar->baz;
         $expected = Collection::foo();
-        $expected->setMapper($this->mapper);
+        $expected->mapper = $this->mapper;
         $this->assertEquals($expected->bar->baz, $collection);
     }
 
     #[Test]
     public function getStyleShouldReturnDefaultStandard(): void
     {
-        $style = $this->mapper->getStyle();
+        $style = $this->mapper->style;
         $this->assertInstanceOf(Standard::class, $style);
     }
 
     #[Test]
     public function getStyleShouldReturnSameInstanceOnSubsequentCalls(): void
     {
-        $style1 = $this->mapper->getStyle();
-        $style2 = $this->mapper->getStyle();
+        $style1 = $this->mapper->style;
+        $style2 = $this->mapper->style;
         $this->assertSame($style1, $style2);
     }
 
@@ -123,7 +114,7 @@ class AbstractMapperTest extends TestCase
                 return [];
             }
         };
-        $this->assertSame($style, $mapper->getStyle());
+        $this->assertSame($style, $mapper->style);
     }
 
     #[Test]
@@ -225,7 +216,7 @@ class AbstractMapperTest extends TestCase
     {
         $coll = $this->mapper->unregistered;
         $this->assertInstanceOf(Collection::class, $coll);
-        $this->assertEquals('unregistered', $coll->getName());
+        $this->assertEquals('unregistered', $coll->name);
     }
 
     #[Test]

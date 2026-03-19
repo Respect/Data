@@ -7,7 +7,6 @@ namespace Respect\Data\Collections;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use ReflectionObject;
 use Respect\Data\AbstractMapper;
 use RuntimeException;
 use stdClass;
@@ -32,8 +31,8 @@ class CollectionTest extends TestCase
         $children2 = Collection::baz();
         $coll = Collection::foo($children1, $children2);
         $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll);
-        $this->assertTrue($coll->hasChildren());
-        $this->assertEquals(2, count($coll->getChildren()));
+        $this->assertTrue($coll->hasChildren);
+        $this->assertEquals(2, count($coll->children));
     }
 
     #[Test]
@@ -41,7 +40,7 @@ class CollectionTest extends TestCase
     {
         $coll = Collection::fooBar(42);
         $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll);
-        $this->assertEquals(42, $coll->getCondition());
+        $this->assertEquals(42, $coll->condition);
     }
 
     #[Test]
@@ -51,7 +50,7 @@ class CollectionTest extends TestCase
         $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll);
         $this->assertEquals(
             'Other dominant condition!!!',
-            $coll->getCondition(),
+            $coll->condition,
         );
     }
 
@@ -59,22 +58,19 @@ class CollectionTest extends TestCase
     public function objectConstructorShouldSetObjectAttributes(): void
     {
         $coll = new Collection('some_irrelevant_name');
-        $ref = new ReflectionObject($coll);
-        $prop = $ref->getProperty('last');
-        $this->assertSame($coll, $prop->getValue($coll), 'Constructing it manually should set last item as self');
         $this->assertEquals(
             [],
-            $coll->getCondition(),
+            $coll->condition,
             'Default condition should be an empty array',
         );
-        $this->assertEquals('some_irrelevant_name', $coll->getName());
+        $this->assertEquals('some_irrelevant_name', $coll->name);
     }
 
     #[Test]
     public function objectConstructorWithConditionShouldSetIt(): void
     {
         $coll = new Collection('some_irrelevant_name', 123);
-        $this->assertEquals(123, $coll->getCondition());
+        $this->assertEquals(123, $coll->condition);
     }
 
     #[Test]
@@ -84,7 +80,7 @@ class CollectionTest extends TestCase
         $coll->someTest;
         $this->assertEquals(
             'someTest',
-            $coll->getNext()?->getName(),
+            $coll->next?->name,
             'First time should change next item',
         );
     }
@@ -96,13 +92,13 @@ class CollectionTest extends TestCase
         $coll->someTest;
         $this->assertEquals(
             'someTest',
-            $coll->getNext()?->getName(),
+            $coll->next?->name,
             'First time should change next item',
         );
         $coll->anotherTest;
         $this->assertEquals(
             'someTest',
-            $coll->getNext()?->getName(),
+            $coll->next?->name,
             'The next item on a chain should never be changed after first time',
         );
     }
@@ -111,11 +107,11 @@ class CollectionTest extends TestCase
     public function settingConditionViaDynamicOffsetShouldUseLastNode(): void
     {
         $foo = Collection::foo()->bar->baz[42];
-        $bar = $foo->getNext();
-        $baz = $bar->getNext();
-        $this->assertEmpty($foo->getCondition());
-        $this->assertEmpty($bar->getCondition());
-        $this->assertEquals(42, $baz->getCondition());
+        $bar = $foo->next;
+        $baz = $bar->next;
+        $this->assertEmpty($foo->condition);
+        $this->assertEmpty($bar->condition);
+        $this->assertEquals(42, $baz->condition);
     }
 
     #[Test]
@@ -127,9 +123,9 @@ class CollectionTest extends TestCase
             Collection::children(),
             Collection::here(),
         );
-        $next = $coll->getNext();
+        $next = $coll->next;
         $this->assertNotNull($next);
-        $this->assertEquals(3, count($next->getChildren()));
+        $this->assertEquals(3, count($next->children));
     }
 
     #[Test]
@@ -137,25 +133,25 @@ class CollectionTest extends TestCase
     {
         $coll = new Collection('foo_collection');
         $coll->addChild(new Collection('bar_child'));
-        $children = $coll->getChildren();
+        $children = $coll->children;
         $child = reset($children);
         $this->assertInstanceOf(Collection::class, $child);
-        $this->assertEquals(false, $child->isRequired());
-        $this->assertEquals($coll->getName(), $child->getParent()?->getName());
+        $this->assertEquals(false, $child->required);
+        $this->assertEquals($coll->name, $child->parent?->name);
     }
 
     #[Test]
     public function childrenShouldMakeHasMoreTrue(): void
     {
         $coll = Collection::foo(Collection::thisIsAChildren());
-        $this->assertTrue($coll->hasMore());
+        $this->assertTrue($coll->more);
     }
 
     #[Test]
     public function chainingShouldMakeHasMoreTrue(): void
     {
         $coll = Collection::foo()->barChain;
-        $this->assertTrue($coll->hasMore());
+        $this->assertTrue($coll->more);
     }
 
     #[Test]
@@ -187,7 +183,7 @@ class CollectionTest extends TestCase
             ->method('persist')
             ->with($persisted, $collection)
             ->willReturn(true);
-        $collection->setMapper($mapperMock);
+        $collection->mapper = $mapperMock;
         $collection->persist($persisted);
     }
 
@@ -201,7 +197,7 @@ class CollectionTest extends TestCase
             ->method('remove')
             ->with($removed, $collection)
             ->willReturn(true);
-        $collection->setMapper($mapperMock);
+        $collection->mapper = $mapperMock;
         $collection->remove($removed);
     }
 
@@ -215,7 +211,7 @@ class CollectionTest extends TestCase
             ->method('fetch')
             ->with($collection)
             ->willReturn($result);
-        $collection->setMapper($mapperMock);
+        $collection->mapper = $mapperMock;
         $collection->fetch();
     }
 
@@ -230,7 +226,7 @@ class CollectionTest extends TestCase
             ->method('fetch')
             ->with($collection, $extra)
             ->willReturn($result);
-        $collection->setMapper($mapperMock);
+        $collection->mapper = $mapperMock;
         $collection->fetch($extra);
     }
 
@@ -243,7 +239,7 @@ class CollectionTest extends TestCase
             ->method('fetchAll')
             ->with($collection)
             ->willReturn([]);
-        $collection->setMapper($mapperMock);
+        $collection->mapper = $mapperMock;
         $collection->fetchAll();
     }
 
@@ -257,7 +253,7 @@ class CollectionTest extends TestCase
             ->method('fetchAll')
             ->with($collection, $extra)
             ->willReturn([]);
-        $collection->setMapper($mapperMock);
+        $collection->mapper = $mapperMock;
         $collection->fetchAll($extra);
     }
 
@@ -303,28 +299,28 @@ class CollectionTest extends TestCase
     {
         $coll = Collection::using(42);
         $this->assertInstanceOf(Collection::class, $coll);
-        $this->assertEquals(42, $coll->getCondition());
+        $this->assertEquals(42, $coll->condition);
     }
 
     #[Test]
     public function getParentShouldReturnNullWhenNoParent(): void
     {
         $coll = new Collection('foo');
-        $this->assertNull($coll->getParent());
+        $this->assertNull($coll->parent);
     }
 
     #[Test]
     public function getNextShouldReturnNullWhenNoNext(): void
     {
         $coll = new Collection('foo');
-        $this->assertNull($coll->getNext());
+        $this->assertNull($coll->next);
     }
 
     #[Test]
-    public function hasNextShouldReturnFalseWhenNoNext(): void
+    public function getNextShouldReturnNullWhenNone(): void
     {
         $coll = new Collection('foo');
-        $this->assertFalse($coll->hasNext());
+        $this->assertNull($coll->next);
     }
 
     #[Test]
@@ -336,8 +332,8 @@ class CollectionTest extends TestCase
         $mapperMock->method('__get')->with('bar')->willReturn($registered);
 
         $coll = new Collection('foo');
-        $coll->setMapper($mapperMock);
+        $coll->mapper = $mapperMock;
         $result = $coll->bar;
-        $this->assertEquals('bar', $result->getNext()?->getName());
+        $this->assertEquals('bar', $result->next?->name);
     }
 }

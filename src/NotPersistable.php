@@ -8,6 +8,6 @@ use Attribute;
 
 /** Marks a property as excluded from persistence operations */
 #[Attribute(Attribute::TARGET_PROPERTY)]
-final class NotPersistable
+final readonly class NotPersistable
 {
 }

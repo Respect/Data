@@ -30,34 +30,26 @@ final class Plural extends Standard
 
     public function remoteFromIdentifier(string $name): string|null
     {
-        if ($this->isRemoteIdentifier($name)) {
-            return $this->singularToPlural(substr($name, 0, -3));
-        }
-
-        return null;
+        return $this->isRemoteIdentifier($name) ? $this->singularToPlural(substr($name, 0, -3)) : null;
     }
 
     public function realName(string $name): string
     {
-        $name    = strtolower($this->camelCaseToSeparator($name, '_'));
-        $pieces  = array_map($this->singularToPlural(...), explode('_', $name));
-
-        return implode('_', $pieces);
+        return implode('_', array_map(
+            $this->singularToPlural(...),
+            explode('_', strtolower($this->camelCaseToSeparator($name, '_'))),
+        ));
     }
 
     public function styledName(string $name): string
     {
-        $pieces  = array_map($this->pluralToSingular(...), explode('_', $name));
-        $name    = $this->separatorToCamelCase(implode('_', $pieces), '_');
+        $pieces = array_map($this->pluralToSingular(...), explode('_', $name));
 
-        return ucfirst($name);
+        return ucfirst($this->separatorToCamelCase(implode('_', $pieces), '_'));
     }
 
     public function composed(string $left, string $right): string
     {
-        $left  = $this->singularToPlural($left);
-        $right = $this->singularToPlural($right);
-
-        return $left . '_' . $right;
+        return $this->singularToPlural($left) . '_' . $this->singularToPlural($right);
     }
 }

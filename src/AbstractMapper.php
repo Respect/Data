@@ -9,25 +9,26 @@ use Respect\Data\Collections\Composite;
 use Respect\Data\Collections\Filtered;
 use SplObjectStorage;
 
-use function assert;
 use function count;
 
 abstract class AbstractMapper
 {
-    /** @var SplObjectStorage<object, mixed> */
+    /** @var SplObjectStorage<object, true> */
     protected SplObjectStorage $new;
 
-    /** @var SplObjectStorage<object, mixed> */
+    /** @var SplObjectStorage<object, Collection> */
     protected SplObjectStorage $tracked;
 
-    /** @var SplObjectStorage<object, mixed> */
+    /** @var SplObjectStorage<object, true> */
     protected SplObjectStorage $changed;
 
-    /** @var SplObjectStorage<object, mixed> */
+    /** @var SplObjectStorage<object, true> */
     protected SplObjectStorage $removed;
 
     /** @var array<string, Collection> */
-    protected array $collections = [];
+    private array $collections = [];
+
+    public Styles\Stylable $style { get => $this->entityFactory->style; }
 
     public function __construct(
         public readonly EntityFactory $entityFactory = new EntityFactory(),
@@ -36,11 +37,6 @@ abstract class AbstractMapper
         $this->changed  = new SplObjectStorage();
         $this->removed  = new SplObjectStorage();
         $this->new      = new SplObjectStorage();
-    }
-
-    public function getStyle(): Styles\Stylable
-    {
-        return $this->entityFactory->style;
     }
 
     abstract public function flush(): void;
@@ -66,10 +62,9 @@ abstract class AbstractMapper
 
     public function persist(object $object, Collection $onCollection): bool
     {
-        $next = $onCollection->getNext();
+        $next = $onCollection->next;
         if ($onCollection instanceof Filtered && $next !== null) {
-            $next->setMapper($this);
-            $next->persist($object);
+            $this->persist($object, $next);
 
             return true;
         }
@@ -107,7 +102,7 @@ abstract class AbstractMapper
 
     public function registerCollection(string $alias, Collection $collection): void
     {
-        $collection->setMapper($this);
+        $collection->mapper = $this;
         $this->collections[$alias] = $collection;
     }
 
@@ -118,7 +113,7 @@ abstract class AbstractMapper
 
         foreach ($entities as $instance) {
             foreach ($this->entityFactory->extractProperties($instance) as $field => $v) {
-                if (!$this->getStyle()->isRemoteIdentifier($field)) {
+                if (!$this->style->isRemoteIdentifier($field)) {
                     continue;
                 }
 
@@ -129,22 +124,6 @@ abstract class AbstractMapper
                 $this->entityFactory->set($instance, $field, $v);
             }
         }
-    }
-
-    /** @param SplObjectStorage<object, Collection> $entities */
-    protected function tryHydration(SplObjectStorage $entities, object $sub, string $field, mixed &$v): void
-    {
-        $tableName = (string) $entities[$sub]->getName();
-        $primaryName = $this->getStyle()->identifier($tableName);
-
-        if (
-            $tableName !== $this->getStyle()->remoteFromIdentifier($field)
-                || $this->entityFactory->get($sub, $primaryName) != $v
-        ) {
-            return;
-        }
-
-        $v = $sub;
     }
 
     /**
@@ -159,15 +138,18 @@ abstract class AbstractMapper
         $entitiesInstances = [];
 
         foreach (CollectionIterator::recursive($collection) as $c) {
-            assert($c instanceof Collection);
-            if ($c instanceof Filtered && !$c->getFilters()) {
+            if (!$c instanceof Collection) {
                 continue;
             }
 
-            $entityInstance = $this->entityFactory->createByName((string) $c->getName());
+            if ($c instanceof Filtered && !$c->filters) {
+                continue;
+            }
+
+            $entityInstance = $this->entityFactory->createByName((string) $c->name);
 
             if ($c instanceof Composite) {
-                $compositionCount = count($c->getCompositions());
+                $compositionCount = count($c->compositions);
                 for ($i = 0; $i < $compositionCount; $i++) {
                     $entitiesInstances[] = $entityInstance;
                 }
@@ -180,6 +162,22 @@ abstract class AbstractMapper
         return $entitiesInstances;
     }
 
+    /** @param SplObjectStorage<object, Collection> $entities */
+    private function tryHydration(SplObjectStorage $entities, object $sub, string $field, mixed &$v): void
+    {
+        $tableName = (string) $entities[$sub]->name;
+        $primaryName = $this->style->identifier($tableName);
+
+        if (
+            $tableName !== $this->style->remoteFromIdentifier($field)
+                || $this->entityFactory->get($sub, $primaryName) != $v
+        ) {
+            return;
+        }
+
+        $v = $sub;
+    }
+
     public function __get(string $name): Collection
     {
         if (isset($this->collections[$name])) {
@@ -187,7 +185,7 @@ abstract class AbstractMapper
         }
 
         $coll = new Collection($name);
-        $coll->setMapper($this);
+        $coll->mapper = $this;
 
         return $coll;
     }
@@ -197,9 +195,8 @@ abstract class AbstractMapper
         return isset($this->collections[$alias]);
     }
 
-    public function __set(string $alias, mixed $collection): void
+    public function __set(string $alias, Collection $collection): void
     {
-        assert($collection instanceof Collection);
         $this->registerCollection($alias, $collection);
     }
 
@@ -207,7 +204,7 @@ abstract class AbstractMapper
     public function __call(string $name, array $children): Collection
     {
         $collection = Collection::__callstatic($name, $children);
-        $collection->setMapper($this);
+        $collection->mapper = $this;
 
         return $collection;
     }

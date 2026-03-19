@@ -15,10 +15,8 @@ final class CakePHP extends Standard
 {
     public function realName(string $name): string
     {
-        $name       = $this->camelCaseToSeparator($name, '_');
-        $name       = strtolower($name);
-        $pieces     = explode('_', $name);
-        $pieces[]   = $this->singularToPlural(array_pop($pieces));
+        $pieces = explode('_', strtolower($this->camelCaseToSeparator($name, '_')));
+        $pieces[] = $this->singularToPlural(array_pop($pieces));
 
         return implode('_', $pieces);
     }
@@ -30,28 +28,22 @@ final class CakePHP extends Standard
 
     public function remoteFromIdentifier(string $name): string|null
     {
-        if ($this->isRemoteIdentifier($name)) {
-            return $this->singularToPlural(substr($name, 0, -3));
-        }
-
-        return null;
+        return $this->isRemoteIdentifier($name) ? $this->singularToPlural(substr($name, 0, -3)) : null;
     }
 
     public function styledName(string $name): string
     {
-        $pieces     = explode('_', $name);
-        $pieces[]   = $this->pluralToSingular(array_pop($pieces));
-        $name       = $this->separatorToCamelCase(implode('_', $pieces), '_');
+        $pieces = explode('_', $name);
+        $pieces[] = $this->pluralToSingular(array_pop($pieces));
 
-        return ucfirst($name);
+        return ucfirst($this->separatorToCamelCase(implode('_', $pieces), '_'));
     }
 
     public function composed(string $left, string $right): string
     {
-        $pieces     = explode('_', $right);
-        $pieces[]   = $this->singularToPlural(array_pop($pieces));
-        $right      = implode('_', $pieces);
+        $pieces = explode('_', $right);
+        $pieces[] = $this->singularToPlural(array_pop($pieces));
 
-        return $left . '_' . $right;
+        return $left . '_' . implode('_', $pieces);
     }
 }
