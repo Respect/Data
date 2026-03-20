@@ -59,7 +59,7 @@ class SakilaIntegrationTest extends TestCase
 
         $categories = $mapper->post_category->category->fetch();
         $this->assertInstanceOf(PostCategory::class, $categories);
-        $this->assertInstanceOf(Category::class, $categories->category_id);
+        $this->assertInstanceOf(Category::class, $categories->category);
     }
 
     public function testFetchingAllEntityTypedNested(): void
@@ -67,8 +67,8 @@ class SakilaIntegrationTest extends TestCase
         $mapper = $this->mapper;
         $comment = $mapper->comment->post->author->fetchAll();
         $this->assertInstanceOf(Comment::class, $comment[0]);
-        $this->assertInstanceOf(Post::class, $comment[0]->post_id);
-        $this->assertInstanceOf(Author::class, $comment[0]->post_id->author_id);
+        $this->assertInstanceOf(Post::class, $comment[0]->post);
+        $this->assertInstanceOf(Author::class, $comment[0]->post->author);
     }
 
     public function testPersistingEntityTyped(): void

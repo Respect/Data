@@ -44,4 +44,14 @@ final class NorthWind extends Standard
     {
         return $this->isRemoteIdentifier($name) ? $this->singularToPlural(substr($name, 0, -2)) : null;
     }
+
+    public function relationProperty(string $field): string|null
+    {
+        return $this->isRemoteIdentifier($field) ? substr($field, 0, -2) : null;
+    }
+
+    public function isRelationProperty(string $name): bool
+    {
+        return !$this->isRemoteIdentifier($name) && $this->isRemoteIdentifier($name . 'ID');
+    }
 }

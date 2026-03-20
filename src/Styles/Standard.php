@@ -56,4 +56,14 @@ class Standard extends AbstractStyle
     {
         return $this->isRemoteIdentifier($name) ? substr($name, 0, -3) : null;
     }
+
+    public function relationProperty(string $field): string|null
+    {
+        return $this->isRemoteIdentifier($field) ? substr($field, 0, -3) : null;
+    }
+
+    public function isRelationProperty(string $name): bool
+    {
+        return !$this->isRemoteIdentifier($name) && $this->isRemoteIdentifier($name . '_id');
+    }
 }

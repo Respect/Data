@@ -243,10 +243,46 @@ class AbstractMapperTest extends TestCase
 
         $comment = $mapper->comment->post->fetch();
         $this->assertIsObject($comment);
-        $post = $mapper->entityFactory->get($comment, 'post_id');
+        // FK stays as its original scalar value, never overwritten with an object
+        $fk = $mapper->entityFactory->get($comment, 'post_id');
+        $this->assertIsNotObject($fk);
+        $this->assertEquals(5, $fk);
+
+        // Related entity goes to the derived relation property
+        $post = $mapper->entityFactory->get($comment, 'post');
         $this->assertIsObject($post);
         $this->assertEquals(5, $mapper->entityFactory->get($post, 'id'));
         $this->assertEquals('Post', $mapper->entityFactory->get($post, 'title'));
+    }
+
+    #[Test]
+    public function persistAfterHydrationPreservesFkAndIgnoresRelation(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('comment', [
+            ['id' => 1, 'text' => 'Hello', 'post_id' => 5],
+        ]);
+        $mapper->seed('post', [
+            ['id' => 5, 'title' => 'Post'],
+        ]);
+
+        // Fetch with relationship — hydrates $comment->post
+        $comment = $mapper->comment->post->fetch();
+        $this->assertIsObject($mapper->entityFactory->get($comment, 'post'));
+
+        // Modify and persist
+        $mapper->entityFactory->set($comment, 'text', 'Updated');
+        $mapper->comment->persist($comment);
+        $mapper->flush();
+
+        // Re-fetch without relationship
+        $updated = $mapper->comment[1]->fetch();
+        $this->assertEquals('Updated', $mapper->entityFactory->get($updated, 'text'));
+
+        // FK stayed as scalar
+        $fk = $mapper->entityFactory->get($updated, 'post_id');
+        $this->assertIsNotObject($fk);
+        $this->assertEquals(5, $fk);
     }
 
     #[Test]
@@ -278,7 +314,9 @@ class AbstractMapperTest extends TestCase
 
         $comment = $mapper->comment->post->fetch();
         $this->assertIsObject($comment);
-        $post = $mapper->entityFactory->get($comment, 'post_id');
+        // FK stays as int, relation goes to derived property
+        $this->assertEquals(5, $mapper->entityFactory->get($comment, 'post_id'));
+        $post = $mapper->entityFactory->get($comment, 'post');
         $this->assertIsObject($post);
         $this->assertEquals('5', $mapper->entityFactory->get($post, 'id'));
     }

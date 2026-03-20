@@ -11,4 +11,6 @@ class PostCategory
     public mixed $post_id = null;
 
     public mixed $category_id = null;
+
+    public mixed $category = null;
 }

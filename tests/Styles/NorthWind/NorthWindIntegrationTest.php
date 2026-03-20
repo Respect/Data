@@ -59,7 +59,7 @@ class NorthWindIntegrationTest extends TestCase
 
         $categories = $mapper->PostCategories->Categories->fetch();
         $this->assertInstanceOf(PostCategories::class, $categories);
-        $this->assertInstanceOf(Categories::class, $categories->CategoryID);
+        $this->assertInstanceOf(Categories::class, $categories->Category);
     }
 
     public function testFetchingAllEntityTypedNested(): void
@@ -67,8 +67,8 @@ class NorthWindIntegrationTest extends TestCase
         $mapper = $this->mapper;
         $comment = $mapper->Comments->Posts->Authors->fetchAll();
         $this->assertInstanceOf(Comments::class, $comment[0]);
-        $this->assertInstanceOf(Posts::class, $comment[0]->PostID);
-        $this->assertInstanceOf(Authors::class, $comment[0]->PostID->AuthorID);
+        $this->assertInstanceOf(Posts::class, $comment[0]->Post);
+        $this->assertInstanceOf(Authors::class, $comment[0]->Post->Author);
     }
 
     public function testPersistingEntityTyped(): void

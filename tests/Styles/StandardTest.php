@@ -93,4 +93,24 @@ class StandardTest extends TestCase
         $this->assertEquals($table, $this->style->remoteFromIdentifier($foreign));
         $this->assertEquals($foreign, $this->style->remoteIdentifier($table));
     }
+
+    #[DataProvider('foreignProvider')]
+    public function testRelationProperty(string $table, string $foreign): void
+    {
+        $this->assertEquals($table, $this->style->relationProperty($foreign));
+        $this->assertNull($this->style->relationProperty($table));
+    }
+
+    #[DataProvider('foreignProvider')]
+    public function testIsRelationProperty(string $table, string $foreign): void
+    {
+        $this->assertTrue($this->style->isRelationProperty($table));
+        $this->assertFalse($this->style->isRelationProperty($foreign));
+    }
+
+    #[DataProvider('foreignProvider')]
+    public function testForeignKeyIsNotRelationProperty(string $table, string $foreign): void
+    {
+        $this->assertFalse($this->style->isRelationProperty($foreign));
+    }
 }
