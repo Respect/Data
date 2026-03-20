@@ -9,6 +9,8 @@ use Respect\Data\EntityFactory;
 use Respect\Data\Hydrator;
 use SplObjectStorage;
 
+use function is_object;
+
 /** Base hydrator providing FK-to-entity wiring shared by all strategies */
 abstract class Base implements Hydrator
 {
@@ -25,6 +27,10 @@ abstract class Base implements Hydrator
                 }
 
                 foreach ($entitiesClone as $sub) {
+                    if ($sub === $instance) {
+                        continue;
+                    }
+
                     $tableName = (string) $entities[$sub]->name;
                     $primaryName = $style->identifier($tableName);
 
@@ -38,7 +44,16 @@ abstract class Base implements Hydrator
                     $v = $sub;
                 }
 
-                $entityFactory->set($instance, $field, $v);
+                if (!is_object($v)) {
+                    continue;
+                }
+
+                $relationName = $style->relationProperty($field);
+                if ($relationName === null) {
+                    continue;
+                }
+
+                $entityFactory->set($instance, $relationName, $v);
             }
         }
     }

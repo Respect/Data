@@ -61,6 +61,16 @@ class AbstractStyleTest extends TestCase
             {
                 return null;
             }
+
+            public function relationProperty(string $field): string|null
+            {
+                return null;
+            }
+
+            public function isRelationProperty(string $name): bool
+            {
+                return false;
+            }
         };
     }
 

@@ -22,5 +22,9 @@ interface Stylable
 
     public function isRemoteIdentifier(string $name): bool;
 
+    public function relationProperty(string $remoteIdentifierField): string|null;
+
+    public function isRelationProperty(string $name): bool;
+
     public function composed(string $left, string $right): string;
 }

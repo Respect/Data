@@ -13,4 +13,6 @@ class Post
     public string|null $text = null;
 
     public mixed $author_id = null;
+
+    public mixed $author = null;
 }

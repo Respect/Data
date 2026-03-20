@@ -56,7 +56,7 @@ abstract class Flat extends Base
                 $value,
             );
 
-            if ($primaryName != $columnName) {
+            if ($primaryName != $columnName && !$this->isEntityBoundary($col, $raw)) {
                 continue;
             }
 
@@ -74,6 +74,12 @@ abstract class Flat extends Base
 
     /** Resolve the column name for a given reference (numeric index, namespaced key, etc.) */
     abstract protected function resolveColumnName(mixed $reference, mixed $raw): string;
+
+    /** Check if this column is the last one for the current entity (table boundary without PK) */
+    protected function isEntityBoundary(mixed $col, mixed $raw): bool
+    {
+        return false;
+    }
 
     /**
      * @param SplObjectStorage<object, Collection> $entities

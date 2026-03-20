@@ -10,5 +10,7 @@ class Comments
 
     public mixed $PostID = null;
 
+    public mixed $Post = null;
+
     public string|null $Text = null;
 }

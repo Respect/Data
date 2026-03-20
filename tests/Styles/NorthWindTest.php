@@ -93,4 +93,35 @@ class NorthWindTest extends TestCase
         $this->assertEquals($foreign, $this->style->identifier($table));
         $this->assertEquals($foreign, $this->style->remoteIdentifier($table));
     }
+
+    /** @return array<int, array<int, string>> */
+    public static function relationProvider(): array
+    {
+        return [
+            ['Post',   'PostID'],
+            ['Author', 'AuthorID'],
+            ['Tag',    'TagID'],
+            ['User',   'UserID'],
+        ];
+    }
+
+    #[DataProvider('relationProvider')]
+    public function testRelationProperty(string $relation, string $foreign): void
+    {
+        $this->assertEquals($relation, $this->style->relationProperty($foreign));
+        $this->assertNull($this->style->relationProperty($relation));
+    }
+
+    #[DataProvider('relationProvider')]
+    public function testIsRelationProperty(string $relation, string $foreign): void
+    {
+        $this->assertTrue($this->style->isRelationProperty($relation));
+        $this->assertFalse($this->style->isRelationProperty($foreign));
+    }
+
+    #[DataProvider('relationProvider')]
+    public function testForeignKeyIsNotRelationProperty(string $relation, string $foreign): void
+    {
+        $this->assertFalse($this->style->isRelationProperty($foreign));
+    }
 }

@@ -11,4 +11,6 @@ class PostCategories
     public mixed $PostID = null;
 
     public mixed $CategoryID = null;
+
+    public mixed $Category = null;
 }
