@@ -71,7 +71,8 @@ class Collection implements ArrayAccess
         return $this->resolveMapper()->fetchAll($this, $extra);
     }
 
-    public function resolveEntityName(EntityFactory $factory, object $row): string
+    /** @param object|array<string, mixed> $row */
+    public function resolveEntityName(EntityFactory $factory, object|array $row): string
     {
         return $this->name ?? '';
     }

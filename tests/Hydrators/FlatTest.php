@@ -12,7 +12,7 @@ use Respect\Data\Collections\Composite;
 use Respect\Data\Collections\Filtered;
 use Respect\Data\Collections\Typed;
 use Respect\Data\EntityFactory;
-use stdClass;
+use Respect\Data\Stubs\Bug;
 
 #[CoversClass(Flat::class)]
 class FlatTest extends TestCase
@@ -21,7 +21,7 @@ class FlatTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->factory = new EntityFactory();
+        $this->factory = new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\');
     }
 
     #[Test]
@@ -82,6 +82,21 @@ class FlatTest extends TestCase
     }
 
     #[Test]
+    public function hydrateSkipsWiringForNullPkChild(): void
+    {
+        $hydrator = $this->hydrator(['id', 'text', 'post_id', 'id', 'title']);
+        $collection = Collection::comment()->post;
+
+        $result = $hydrator->hydrate([1, 'Hello', 5, null, null], $collection, $this->factory);
+
+        $this->assertNotFalse($result);
+        $result->rewind();
+        $entity = $result->current();
+        $this->assertEquals(1, $this->factory->get($entity, 'id'));
+        $this->assertNull($this->factory->get($entity, 'post'));
+    }
+
+    #[Test]
     public function hydrateSkipsUnfilteredFilteredCollections(): void
     {
         $hydrator = $this->hydrator(['id', 'title']);
@@ -112,15 +127,15 @@ class FlatTest extends TestCase
     #[Test]
     public function hydrateResolvesTypedEntities(): void
     {
-        $factory = new EntityFactory(entityNamespace: 'Respect\Data\Hydrators\\');
+        $factory = new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\');
         $hydrator = $this->hydrator(['id', 'type', 'title']);
         $collection = Typed::issue('type');
 
-        $result = $hydrator->hydrate([1, 'stdClass', 'Bug Report'], $collection, $factory);
+        $result = $hydrator->hydrate([1, 'Bug', 'Bug Report'], $collection, $factory);
 
         $this->assertNotFalse($result);
         $result->rewind();
-        $this->assertInstanceOf(stdClass::class, $result->current());
+        $this->assertInstanceOf(Bug::class, $result->current());
     }
 
     #[Test]
