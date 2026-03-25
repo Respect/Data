@@ -28,6 +28,13 @@ final class InMemoryMapper extends AbstractMapper
 
     public function fetch(Collection $collection, mixed $extra = null): mixed
     {
+        if ($extra === null) {
+            $cached = $this->findInIdentityMap($collection);
+            if ($cached !== null) {
+                return $cached;
+            }
+        }
+
         $row = $this->findRow((string) $collection->name, $collection->condition);
 
         return $row !== null ? $this->hydrateRow($row, $collection) : false;
@@ -53,63 +60,23 @@ final class InMemoryMapper extends AbstractMapper
 
     public function flush(): void
     {
-        foreach ($this->new as $entity) {
+        foreach ($this->pending as $entity) {
+            $op = $this->pending[$entity];
             $collection = $this->tracked[$entity];
             $tableName = (string) $collection->name;
             $pk = $this->style->identifier($tableName);
-            $row = $this->filterColumns(
-                $this->entityFactory->extractProperties($entity),
-                $collection,
-            );
 
-            if (!isset($row[$pk])) {
-                ++$this->lastInsertId;
-                $this->entityFactory->set($entity, $pk, $this->lastInsertId);
-                $row[$pk] = $this->lastInsertId;
-            }
+            match ($op) {
+                'insert' => $this->insertEntity($entity, $collection, $tableName, $pk),
+                'update' => $this->updateEntity($entity, $collection, $tableName, $pk),
+                'delete' => $this->deleteEntity($entity, $tableName, $pk),
+                default  => null,
+            };
 
-            $this->tables[$tableName][] = $row;
-        }
-
-        foreach ($this->changed as $entity) {
-            if ($this->new->offsetExists($entity) || $this->removed->offsetExists($entity)) {
-                continue;
-            }
-
-            $collection = $this->tracked[$entity];
-            $tableName = (string) $collection->name;
-            $pk = $this->style->identifier($tableName);
-            $pkValue = $this->entityFactory->get($entity, $pk);
-            $row = $this->filterColumns(
-                $this->entityFactory->extractProperties($entity),
-                $collection,
-            );
-
-            foreach ($this->tables[$tableName] as $index => $existing) {
-                if (isset($existing[$pk]) && $existing[$pk] == $pkValue) {
-                    $this->tables[$tableName][$index] = array_merge($existing, $row);
-
-                    break;
-                }
-            }
-        }
-
-        foreach ($this->removed as $entity) {
-            $collection = $this->tracked[$entity];
-            $tableName = (string) $collection->name;
-            $pk = $this->style->identifier($tableName);
-            $pkValue = $this->entityFactory->get($entity, $pk);
-
-            $rows = $this->tables[$tableName];
-            foreach ($rows as $index => $existing) {
-                if (isset($existing[$pk]) && $existing[$pk] == $pkValue) {
-                    unset($rows[$index]);
-                    /** @var list<array<string, mixed>> $reindexed */
-                    $reindexed = array_values($rows);
-                    $this->tables[$tableName] = $reindexed;
-
-                    break;
-                }
+            if ($op === 'delete') {
+                $this->evictFromIdentityMap($entity, $collection);
+            } else {
+                $this->registerInIdentityMap($entity, $collection);
             }
         }
 
@@ -119,6 +86,56 @@ final class InMemoryMapper extends AbstractMapper
     protected function defaultHydrator(Collection $collection): Hydrator
     {
         return new Nested();
+    }
+
+    private function insertEntity(object $entity, Collection $collection, string $tableName, string $pk): void
+    {
+        $row = $this->filterColumns(
+            $this->entityFactory->extractProperties($entity),
+            $collection,
+        );
+
+        if (!isset($row[$pk])) {
+            ++$this->lastInsertId;
+            $this->entityFactory->set($entity, $pk, $this->lastInsertId);
+            $row[$pk] = $this->lastInsertId;
+        }
+
+        $this->tables[$tableName][] = $row;
+    }
+
+    private function updateEntity(object $entity, Collection $collection, string $tableName, string $pk): void
+    {
+        $pkValue = $this->entityFactory->get($entity, $pk);
+        $row = $this->filterColumns(
+            $this->entityFactory->extractProperties($entity),
+            $collection,
+        );
+
+        foreach ($this->tables[$tableName] as $index => $existing) {
+            if (isset($existing[$pk]) && $existing[$pk] == $pkValue) {
+                $this->tables[$tableName][$index] = array_merge($existing, $row);
+
+                break;
+            }
+        }
+    }
+
+    private function deleteEntity(object $entity, string $tableName, string $pk): void
+    {
+        $pkValue = $this->entityFactory->get($entity, $pk);
+        $rows = $this->tables[$tableName];
+
+        foreach ($rows as $index => $existing) {
+            if (isset($existing[$pk]) && $existing[$pk] == $pkValue) {
+                unset($rows[$index]);
+                /** @var list<array<string, mixed>> $reindexed */
+                $reindexed = array_values($rows);
+                $this->tables[$tableName] = $reindexed;
+
+                break;
+            }
+        }
     }
 
     /** @param array<string, mixed> $row */
@@ -133,6 +150,7 @@ final class InMemoryMapper extends AbstractMapper
 
         foreach ($entities as $entity) {
             $this->markTracked($entity, $entities[$entity]);
+            $this->registerInIdentityMap($entity, $entities[$entity]);
         }
 
         $entities->rewind();

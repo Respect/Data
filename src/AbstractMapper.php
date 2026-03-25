@@ -10,20 +10,21 @@ use SplObjectStorage;
 
 use function array_flip;
 use function array_intersect_key;
+use function count;
+use function is_int;
+use function is_scalar;
+use function is_string;
 
 abstract class AbstractMapper
 {
-    /** @var SplObjectStorage<object, true> */
-    protected SplObjectStorage $new;
-
-    /** @var SplObjectStorage<object, Collection> */
+    /** @var SplObjectStorage<object, Collection> Maps entity → source Collection */
     protected SplObjectStorage $tracked;
 
-    /** @var SplObjectStorage<object, true> */
-    protected SplObjectStorage $changed;
+    /** @var SplObjectStorage<object, string> Maps entity → 'insert'|'update'|'delete' */
+    protected SplObjectStorage $pending;
 
-    /** @var SplObjectStorage<object, true> */
-    protected SplObjectStorage $removed;
+    /** @var array<string, array<int|string, object>> PK-indexed identity map: [collectionName][pkValue] → entity */
+    protected array $identityMap = [];
 
     /** @var array<string, Collection> */
     private array $collections = [];
@@ -33,10 +34,8 @@ abstract class AbstractMapper
     public function __construct(
         public readonly EntityFactory $entityFactory = new EntityFactory(),
     ) {
-        $this->tracked  = new SplObjectStorage();
-        $this->changed  = new SplObjectStorage();
-        $this->removed  = new SplObjectStorage();
-        $this->new      = new SplObjectStorage();
+        $this->tracked = new SplObjectStorage();
+        $this->pending = new SplObjectStorage();
     }
 
     abstract public function flush(): void;
@@ -48,9 +47,27 @@ abstract class AbstractMapper
 
     public function reset(): void
     {
-        $this->changed = new SplObjectStorage();
-        $this->removed = new SplObjectStorage();
-        $this->new = new SplObjectStorage();
+        $this->pending = new SplObjectStorage();
+    }
+
+    public function clearIdentityMap(): void
+    {
+        $this->identityMap = [];
+    }
+
+    public function trackedCount(): int
+    {
+        return count($this->tracked);
+    }
+
+    public function identityMapCount(): int
+    {
+        $total = 0;
+        foreach ($this->identityMap as $entries) {
+            $total += count($entries);
+        }
+
+        return $total;
     }
 
     public function markTracked(object $entity, Collection $collection): bool
@@ -69,13 +86,16 @@ abstract class AbstractMapper
             return true;
         }
 
-        $this->changed[$object] = true;
-
         if ($this->isTracked($object)) {
+            $currentOp = $this->pending[$object] ?? null;
+            if ($currentOp !== 'insert') {
+                $this->pending[$object] = 'update';
+            }
+
             return true;
         }
 
-        $this->new[$object] = true;
+        $this->pending[$object] = 'insert';
         $this->markTracked($object, $onCollection);
 
         return true;
@@ -83,14 +103,11 @@ abstract class AbstractMapper
 
     public function remove(object $object, Collection $fromCollection): bool
     {
-        $this->changed[$object] = true;
-        $this->removed[$object] = true;
+        $this->pending[$object] = 'delete';
 
-        if ($this->isTracked($object)) {
-            return true;
+        if (!$this->isTracked($object)) {
+            $this->markTracked($object, $fromCollection);
         }
-
-        $this->markTracked($object, $fromCollection);
 
         return true;
     }
@@ -132,6 +149,55 @@ abstract class AbstractMapper
     protected function resolveHydrator(Collection $collection): Hydrator
     {
         return $collection->hydrator ?? $this->defaultHydrator($collection);
+    }
+
+    protected function registerInIdentityMap(object $entity, Collection $coll): void
+    {
+        if ($coll->name === null) {
+            return;
+        }
+
+        $pkValue = $this->entityPkValue($entity, $coll->name);
+        if ($pkValue === null) {
+            return;
+        }
+
+        $this->identityMap[$coll->name][$pkValue] = $entity;
+    }
+
+    protected function evictFromIdentityMap(object $entity, Collection $coll): void
+    {
+        if ($coll->name === null) {
+            return;
+        }
+
+        $pkValue = $this->entityPkValue($entity, $coll->name);
+        if ($pkValue === null) {
+            return;
+        }
+
+        unset($this->identityMap[$coll->name][$pkValue]);
+    }
+
+    protected function findInIdentityMap(Collection $collection): object|null
+    {
+        if ($collection->name === null || !is_scalar($collection->condition) || $collection->more) {
+            return null;
+        }
+
+        $condition = $collection->condition;
+        if (!is_int($condition) && !is_string($condition)) {
+            return null;
+        }
+
+        return $this->identityMap[$collection->name][$condition] ?? null;
+    }
+
+    private function entityPkValue(object $entity, string $collName): int|string|null
+    {
+        $pkValue = $this->entityFactory->get($entity, $this->style->identifier($collName));
+
+        return is_int($pkValue) || is_string($pkValue) ? $pkValue : null;
     }
 
     public function __get(string $name): Collection
