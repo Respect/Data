@@ -182,7 +182,7 @@ class AbstractMapperTest extends TestCase
     }
 
     #[Test]
-    public function resetShouldClearChangedRemovedAndNew(): void
+    public function resetShouldClearPending(): void
     {
         $entity = new stdClass();
         $collection = Collection::foo();
@@ -192,20 +192,10 @@ class AbstractMapperTest extends TestCase
 
         $ref = new ReflectionObject($this->mapper);
 
-        $newProp = $ref->getProperty('new');
-        /** @var SplObjectStorage<object, mixed> $newStorage */
-        $newStorage = $newProp->getValue($this->mapper);
-        $this->assertCount(0, $newStorage);
-
-        $changedProp = $ref->getProperty('changed');
-        /** @var SplObjectStorage<object, mixed> $changedStorage */
-        $changedStorage = $changedProp->getValue($this->mapper);
-        $this->assertCount(0, $changedStorage);
-
-        $removedProp = $ref->getProperty('removed');
-        /** @var SplObjectStorage<object, mixed> $removedStorage */
-        $removedStorage = $removedProp->getValue($this->mapper);
-        $this->assertCount(0, $removedStorage);
+        $pendingProp = $ref->getProperty('pending');
+        /** @var SplObjectStorage<object, mixed> $pendingStorage */
+        $pendingStorage = $pendingProp->getValue($this->mapper);
+        $this->assertCount(0, $pendingStorage);
     }
 
     #[Test]
@@ -511,5 +501,257 @@ class AbstractMapperTest extends TestCase
         $fetched = $mapper->post->fetch();
         $this->assertEquals('Changed', $mapper->entityFactory->get($fetched, 'title'));
         $this->assertEquals('New Body', $mapper->entityFactory->get($fetched, 'text'));
+    }
+
+    #[Test]
+    public function fetchPopulatesIdentityMap(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('post', [
+            ['id' => 1, 'title' => 'First'],
+            ['id' => 2, 'title' => 'Second'],
+        ]);
+
+        $this->assertSame(0, $mapper->identityMapCount());
+
+        $mapper->post[1]->fetch();
+        $this->assertSame(1, $mapper->identityMapCount());
+
+        $mapper->post[2]->fetch();
+        $this->assertSame(2, $mapper->identityMapCount());
+    }
+
+    #[Test]
+    public function fetchReturnsCachedEntityFromIdentityMap(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('post', [
+            ['id' => 1, 'title' => 'First'],
+        ]);
+
+        $first = $mapper->post[1]->fetch();
+        $second = $mapper->post[1]->fetch();
+
+        $this->assertSame($first, $second);
+    }
+
+    #[Test]
+    public function fetchAllPopulatesIdentityMap(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('post', [
+            ['id' => 1, 'title' => 'First'],
+            ['id' => 2, 'title' => 'Second'],
+        ]);
+
+        $mapper->post->fetchAll();
+        $this->assertSame(2, $mapper->identityMapCount());
+    }
+
+    #[Test]
+    public function flushInsertRegistersInIdentityMap(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('post', []);
+
+        $entity = new stdClass();
+        $entity->title = 'New Post';
+        $mapper->post->persist($entity);
+        $mapper->flush();
+
+        $this->assertSame(1, $mapper->identityMapCount());
+    }
+
+    #[Test]
+    public function flushDeleteEvictsFromIdentityMap(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('post', [
+            ['id' => 1, 'title' => 'To Delete'],
+        ]);
+
+        $entity = $mapper->post[1]->fetch();
+        $this->assertSame(1, $mapper->identityMapCount());
+
+        $mapper->post->remove($entity);
+        $mapper->flush();
+
+        $this->assertSame(0, $mapper->identityMapCount());
+    }
+
+    #[Test]
+    public function clearIdentityMapEmptiesMap(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('post', [
+            ['id' => 1, 'title' => 'First'],
+        ]);
+
+        $mapper->post[1]->fetch();
+        $this->assertSame(1, $mapper->identityMapCount());
+
+        $mapper->clearIdentityMap();
+        $this->assertSame(0, $mapper->identityMapCount());
+    }
+
+    #[Test]
+    public function resetDoesNotClearIdentityMap(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('post', [
+            ['id' => 1, 'title' => 'First'],
+        ]);
+
+        $mapper->post[1]->fetch();
+        $this->assertSame(1, $mapper->identityMapCount());
+
+        $mapper->reset();
+        $this->assertSame(1, $mapper->identityMapCount());
+    }
+
+    #[Test]
+    public function pendingOperationTypes(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('post', [
+            ['id' => 1, 'title' => 'Existing'],
+        ]);
+
+        $ref = new ReflectionObject($mapper);
+        $pendingProp = $ref->getProperty('pending');
+
+        // persist new entity → 'insert'
+        $newEntity = new stdClass();
+        $newEntity->title = 'New';
+        $mapper->post->persist($newEntity);
+
+        /** @var SplObjectStorage<object, string> $pending */
+        $pending = $pendingProp->getValue($mapper);
+        $this->assertSame('insert', $pending[$newEntity]);
+
+        // persist existing entity → 'update'
+        $existing = $mapper->post[1]->fetch();
+        $mapper->post->persist($existing);
+        /** @var SplObjectStorage<object, string> $pending */
+        $pending = $pendingProp->getValue($mapper);
+        $this->assertSame('update', $pending[$existing]);
+
+        // remove entity → 'delete'
+        $mapper->post->remove($existing);
+        /** @var SplObjectStorage<object, string> $pending */
+        $pending = $pendingProp->getValue($mapper);
+        $this->assertSame('delete', $pending[$existing]);
+    }
+
+    #[Test]
+    public function trackedCountReflectsTrackedEntities(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('post', [
+            ['id' => 1, 'title' => 'First'],
+        ]);
+
+        $this->assertSame(0, $mapper->trackedCount());
+
+        $mapper->post[1]->fetch();
+        $this->assertSame(1, $mapper->trackedCount());
+    }
+
+    #[Test]
+    public function registerSkipsEntityWithNullCollectionName(): void
+    {
+        $mapper = new InMemoryMapper();
+        $entity = new stdClass();
+        $entity->id = 1;
+
+        // Collection with null name — register should be a no-op
+        $coll = new Collection();
+        $mapper->persist($entity, $coll);
+        $mapper->flush();
+
+        $this->assertSame(0, $mapper->identityMapCount());
+    }
+
+    #[Test]
+    public function registerSkipsEntityWithNoPkValue(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('post', []);
+
+        // Entity with no 'id' property
+        $entity = new stdClass();
+        $entity->title = 'No PK';
+        $mapper->post->persist($entity);
+
+        // Before flush, entity has no PK — identity map should not contain it yet
+        // (identity map registration happens during flush, after PK is assigned)
+        $this->assertSame(0, $mapper->identityMapCount());
+    }
+
+    #[Test]
+    public function deleteEvictsUsingTrackedCollection(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('post', [
+            ['id' => 1, 'title' => 'Test'],
+        ]);
+
+        $entity = $mapper->post[1]->fetch();
+        $this->assertSame(1, $mapper->identityMapCount());
+
+        // Remove via a different collection — flush uses the tracked one (name='post')
+        $mapper->post->remove($entity);
+        $mapper->flush();
+
+        $this->assertSame(0, $mapper->identityMapCount());
+    }
+
+    #[Test]
+    public function findInIdentityMapSkipsNonScalarCondition(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('post', [
+            ['id' => 1, 'title' => 'First'],
+        ]);
+
+        // Populate identity map
+        $mapper->post[1]->fetch();
+        $this->assertSame(1, $mapper->identityMapCount());
+
+        // fetchAll uses array/null condition — should always hit the backend
+        $all = $mapper->post->fetchAll();
+        $this->assertNotEmpty($all);
+    }
+
+    #[Test]
+    public function registerSkipsEntityWithNonScalarPk(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('post', []);
+
+        $entity = new stdClass();
+        $entity->id = ['not', 'scalar'];
+        $entity->title = 'Bad PK';
+        $mapper->post->persist($entity);
+        $mapper->flush();
+
+        // Entity with non-scalar PK should not enter identity map
+        $this->assertSame(0, $mapper->identityMapCount());
+    }
+
+    #[Test]
+    public function findInIdentityMapSkipsCollectionWithChildren(): void
+    {
+        $mapper = new InMemoryMapper();
+        $mapper->seed('comment', [
+            ['id' => 1, 'text' => 'Hello', 'post_id' => 5],
+        ]);
+        $mapper->seed('post', [
+            ['id' => 5, 'title' => 'Post'],
+        ]);
+
+        // Fetch with relationship (has children) — should bypass identity map
+        $comment = $mapper->comment->post->fetch();
+        $this->assertIsObject($comment);
     }
 }
