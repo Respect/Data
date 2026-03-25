@@ -6,6 +6,7 @@ namespace Respect\Data\Collections;
 
 use Respect\Data\EntityFactory;
 
+use function is_array;
 use function is_string;
 
 final class Typed extends Collection
@@ -17,9 +18,10 @@ final class Typed extends Collection
         parent::__construct($name);
     }
 
-    public function resolveEntityName(EntityFactory $factory, object $row): string
+    /** @param object|array<string, mixed> $row */
+    public function resolveEntityName(EntityFactory $factory, object|array $row): string
     {
-        $name = $factory->get($row, $this->type);
+        $name = is_array($row) ? ($row[$this->type] ?? null) : $factory->get($row, $this->type);
 
         return is_string($name) ? $name : ($this->name ?? '');
     }

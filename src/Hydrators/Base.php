@@ -9,51 +9,42 @@ use Respect\Data\EntityFactory;
 use Respect\Data\Hydrator;
 use SplObjectStorage;
 
-use function is_object;
-
-/** Base hydrator providing FK-to-entity wiring shared by all strategies */
+/** Base hydrator providing collection-tree entity wiring */
 abstract class Base implements Hydrator
 {
     /** @param SplObjectStorage<object, Collection> $entities */
     protected function wireRelationships(SplObjectStorage $entities, EntityFactory $entityFactory): void
     {
         $style = $entityFactory->style;
-        $entitiesClone = clone $entities;
+        $others = clone $entities;
 
-        foreach ($entities as $instance) {
-            foreach ($entityFactory->extractProperties($instance) as $field => $v) {
-                if (!$style->isRemoteIdentifier($field)) {
+        foreach ($entities as $entity) {
+            $coll = $entities[$entity];
+
+            foreach ($others as $other) {
+                if ($other === $entity) {
                     continue;
                 }
 
-                foreach ($entitiesClone as $sub) {
-                    if ($sub === $instance) {
-                        continue;
-                    }
-
-                    $tableName = (string) $entities[$sub]->name;
-                    $primaryName = $style->identifier($tableName);
-
-                    if (
-                        $tableName !== $style->remoteFromIdentifier($field)
-                            || $entityFactory->get($sub, $primaryName) != $v
-                    ) {
-                        continue;
-                    }
-
-                    $v = $sub;
-                }
-
-                if (!is_object($v)) {
+                $otherColl = $others[$other];
+                if ($otherColl->parent !== $coll || $otherColl->name === null) {
                     continue;
                 }
 
-                $relationName = $style->relationProperty($field);
+                $relationName = $style->relationProperty(
+                    $style->remoteIdentifier($otherColl->name),
+                );
+
                 if ($relationName === null) {
                     continue;
                 }
 
-                $entityFactory->set($instance, $relationName, $v);
+                $pk = $entityFactory->get($other, $style->identifier($otherColl->name));
+                if ($pk === null) {
+                    continue;
+                }
+
+                $entityFactory->set($entity, $relationName, $other);
             }
         }
     }

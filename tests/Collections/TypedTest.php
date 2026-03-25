@@ -8,7 +8,6 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Respect\Data\EntityFactory;
-use stdClass;
 
 use function count;
 
@@ -45,9 +44,7 @@ class TypedTest extends TestCase
     {
         $coll = Typed::issues('type');
         $factory = new EntityFactory();
-        $row = new stdClass();
-        $row->type = 'Bug';
-        $this->assertEquals('Bug', $coll->resolveEntityName($factory, $row));
+        $this->assertEquals('Bug', $coll->resolveEntityName($factory, ['type' => 'Bug']));
     }
 
     #[Test]
@@ -55,7 +52,6 @@ class TypedTest extends TestCase
     {
         $coll = Typed::issues('type');
         $factory = new EntityFactory();
-        $row = new stdClass();
-        $this->assertEquals('issues', $coll->resolveEntityName($factory, $row));
+        $this->assertEquals('issues', $coll->resolveEntityName($factory, []));
     }
 }

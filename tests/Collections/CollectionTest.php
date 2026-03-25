@@ -10,8 +10,8 @@ use PHPUnit\Framework\TestCase;
 use Respect\Data\AbstractMapper;
 use Respect\Data\EntityFactory;
 use Respect\Data\Hydrators\Nested;
+use Respect\Data\Stubs\Foo;
 use RuntimeException;
-use stdClass;
 
 use function count;
 use function reset;
@@ -178,7 +178,7 @@ class CollectionTest extends TestCase
     #[Test]
     public function persistShouldPersistOnAttachedMapper(): void
     {
-        $persisted = new stdClass();
+        $persisted = new Foo();
         $collection = new Collection('name_whatever');
         $mapperMock = $this->createMock(AbstractMapper::class);
         $mapperMock->expects($this->once())
@@ -192,7 +192,7 @@ class CollectionTest extends TestCase
     #[Test]
     public function removeShouldPersistOnAttachedMapper(): void
     {
-        $removed = new stdClass();
+        $removed = new Foo();
         $collection = new Collection('name_whatever');
         $mapperMock = $this->createMock(AbstractMapper::class);
         $mapperMock->expects($this->once())
@@ -272,14 +272,14 @@ class CollectionTest extends TestCase
     public function persistOnCollectionShouldExceptionIfMapperDontExist(): void
     {
         $this->expectException(RuntimeException::class);
-        Collection::foo()->persist(new stdClass());
+        Collection::foo()->persist(new Foo());
     }
 
     #[Test]
     public function removeOnCollectionShouldExceptionIfMapperDontExist(): void
     {
         $this->expectException(RuntimeException::class);
-        Collection::foo()->remove(new stdClass());
+        Collection::foo()->remove(new Foo());
     }
 
     #[Test]
@@ -305,13 +305,6 @@ class CollectionTest extends TestCase
 
     #[Test]
     public function getNextShouldReturnNullWhenNoNext(): void
-    {
-        $coll = new Collection('foo');
-        $this->assertNull($coll->next);
-    }
-
-    #[Test]
-    public function getNextShouldReturnNullWhenNone(): void
     {
         $coll = new Collection('foo');
         $this->assertNull($coll->next);
@@ -344,7 +337,7 @@ class CollectionTest extends TestCase
     {
         $coll = Collection::author();
         $factory = new EntityFactory();
-        $this->assertEquals('author', $coll->resolveEntityName($factory, new stdClass()));
+        $this->assertEquals('author', $coll->resolveEntityName($factory, new Foo()));
     }
 
     #[Test]
@@ -352,6 +345,6 @@ class CollectionTest extends TestCase
     {
         $coll = new Collection();
         $factory = new EntityFactory();
-        $this->assertEquals('', $coll->resolveEntityName($factory, new stdClass()));
+        $this->assertEquals('', $coll->resolveEntityName($factory, new Foo()));
     }
 }

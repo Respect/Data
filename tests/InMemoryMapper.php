@@ -91,7 +91,7 @@ final class InMemoryMapper extends AbstractMapper
     private function insertEntity(object $entity, Collection $collection, string $tableName, string $pk): void
     {
         $row = $this->filterColumns(
-            $this->entityFactory->extractProperties($entity),
+            $this->entityFactory->extractColumns($entity),
             $collection,
         );
 
@@ -108,7 +108,7 @@ final class InMemoryMapper extends AbstractMapper
     {
         $pkValue = $this->entityFactory->get($entity, $pk);
         $row = $this->filterColumns(
-            $this->entityFactory->extractProperties($entity),
+            $this->entityFactory->extractColumns($entity),
             $collection,
         );
 

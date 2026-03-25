@@ -21,7 +21,7 @@ class NestedTest extends TestCase
     protected function setUp(): void
     {
         $this->hydrator = new Nested();
-        $this->factory = new EntityFactory();
+        $this->factory = new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\');
     }
 
     #[Test]
@@ -119,7 +119,7 @@ class NestedTest extends TestCase
     #[Test]
     public function hydrateWithTypedCollection(): void
     {
-        $raw = ['id' => 1, 'title' => 'Issue', 'type' => 'stdClass'];
+        $raw = ['id' => 1, 'title' => 'Issue', 'type' => 'Bug'];
         $collection = Typed::issue('type');
 
         $result = $this->hydrator->hydrate($raw, $collection, $this->factory);
