@@ -6,7 +6,7 @@ namespace Respect\Data\Styles\Sakila;
 
 class Author
 {
-    public mixed $author_id = null;
+    public int $authorId;
 
     public string|null $name = null;
 }

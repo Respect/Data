@@ -712,22 +712,6 @@ class AbstractMapperTest extends TestCase
     }
 
     #[Test]
-    public function registerSkipsEntityWithNonScalarPk(): void
-    {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
-        $mapper->seed('post', []);
-
-        $entity = new Stubs\Post();
-        $entity->id = ['not', 'scalar'];
-        $entity->title = 'Bad PK';
-        $mapper->post->persist($entity);
-        $mapper->flush();
-
-        // Entity with non-scalar PK should not enter identity map
-        $this->assertSame(0, $mapper->identityMapCount());
-    }
-
-    #[Test]
     public function findInIdentityMapSkipsCollectionWithChildren(): void
     {
         $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));

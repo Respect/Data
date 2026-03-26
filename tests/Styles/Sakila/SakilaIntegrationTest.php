@@ -93,7 +93,7 @@ class SakilaIntegrationTest extends TestCase
         $mapper->comment->persist($comment);
         $mapper->flush();
 
-        $this->assertNotNull($comment->comment_id);
+        $this->assertGreaterThan(0, $comment->commentId);
         $allComments = $mapper->comment->fetchAll();
         $this->assertCount(3, $allComments);
     }

@@ -6,7 +6,7 @@ namespace Respect\Data\Styles\NorthWind;
 
 class Authors
 {
-    public mixed $AuthorID = null;
+    public int $AuthorID;
 
     public string|null $Name = null;
 }

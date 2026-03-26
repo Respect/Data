@@ -6,11 +6,9 @@ namespace Respect\Data\Styles\NorthWind;
 
 class PostCategories
 {
-    public mixed $PostCategoryID = null;
+    public int $PostCategoryID;
 
-    public mixed $PostID = null;
+    public Posts $Post;
 
-    public mixed $CategoryID = null;
-
-    public mixed $Category = null;
+    public Categories $Category;
 }

@@ -6,9 +6,9 @@ namespace Respect\Data\Stubs;
 
 class Comment
 {
-    public mixed $id = null;
+    public int $id;
 
-    public mixed $post;
+    public Post $post;
 
     public string|null $text = null;
 }

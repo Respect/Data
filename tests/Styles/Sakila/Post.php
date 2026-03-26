@@ -6,13 +6,11 @@ namespace Respect\Data\Styles\Sakila;
 
 class Post
 {
-    public mixed $post_id = null;
+    public int $postId;
 
     public string|null $title = null;
 
     public string|null $text = null;
 
-    public mixed $author_id = null;
-
-    public mixed $author = null;
+    public Author $author;
 }

@@ -6,7 +6,7 @@ namespace Respect\Data\Stubs;
 
 class Bug
 {
-    public mixed $id = null;
+    public int $id;
 
     public string|null $title = null;
 

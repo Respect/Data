@@ -93,7 +93,7 @@ class NorthWindIntegrationTest extends TestCase
         $mapper->Comments->persist($comment);
         $mapper->flush();
 
-        $this->assertNotNull($comment->CommentID);
+        $this->assertGreaterThan(0, $comment->CommentID);
         $allComments = $mapper->Comments->fetchAll();
         $this->assertCount(3, $allComments);
     }

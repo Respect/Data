@@ -6,7 +6,9 @@ namespace Respect\Data\Styles\Plural;
 
 class Category
 {
-    public mixed $id = null;
+    public int $id;
 
     public string|null $name = null;
+
+    public Category $category;
 }

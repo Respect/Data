@@ -20,6 +20,16 @@ final class NorthWind extends Standard
         return $name;
     }
 
+    public function styledProperty(string $name): string
+    {
+        return $name;
+    }
+
+    public function realProperty(string $name): string
+    {
+        return $name;
+    }
+
     public function composed(string $left, string $right): string
     {
         return $this->pluralToSingular($left) . $right;

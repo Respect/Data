@@ -6,11 +6,11 @@ namespace Respect\Data\Stubs;
 
 class Foo
 {
-    public mixed $id = null;
+    public int $id;
 
     public string|null $name = null;
 
     public string|null $title = null;
 
-    public mixed $text = null;
+    public string|null $text = null;
 }

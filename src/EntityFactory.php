@@ -6,10 +6,19 @@ namespace Respect\Data;
 
 use DomainException;
 use ReflectionClass;
+use ReflectionNamedType;
 use ReflectionProperty;
+use ReflectionUnionType;
 
 use function class_exists;
+use function is_array;
+use function is_bool;
+use function is_float;
+use function is_int;
+use function is_numeric;
 use function is_object;
+use function is_scalar;
+use function is_string;
 
 /** Creates and manipulates entity objects using Style-based naming conventions */
 class EntityFactory
@@ -47,14 +56,26 @@ class EntityFactory
 
     public function set(object $entity, string $prop, mixed $value): void
     {
-        $mirror = $this->reflectProperties($entity::class)[$prop] ?? null;
+        $styledProp = $this->style->styledProperty($prop);
+        $mirror = $this->reflectProperties($entity::class)[$styledProp] ?? null;
 
-        $mirror?->setValue($entity, $value);
+        if ($mirror === null) {
+            return;
+        }
+
+        $coerced = $this->coerce($mirror, $value);
+
+        if ($coerced === null && !($mirror->getType()?->allowsNull() ?? false)) {
+            return;
+        }
+
+        $mirror->setValue($entity, $coerced);
     }
 
     public function get(object $entity, string $prop): mixed
     {
-        $mirror = $this->reflectProperties($entity::class)[$prop] ?? null;
+        $styledProp = $this->style->styledProperty($prop);
+        $mirror = $this->reflectProperties($entity::class)[$styledProp] ?? null;
 
         if ($mirror === null || !$mirror->isInitialized($entity)) {
             return null;
@@ -71,20 +92,20 @@ class EntityFactory
     public function extractColumns(object $entity): array
     {
         $cols = $this->extractProperties($entity);
+        $relations = $this->detectRelationProperties($entity::class);
 
         foreach ($cols as $key => $value) {
-            if (!is_object($value)) {
+            if (!isset($relations[$key])) {
                 continue;
             }
 
-            if ($this->style->isRelationProperty($key)) {
-                $fk = $this->style->remoteIdentifier($key);
+            $fk = $this->style->remoteIdentifier($key);
+
+            if (is_object($value)) {
                 $cols[$fk] = $this->get($value, $this->style->identifier($key));
-                unset($cols[$key]);
-            } else {
-                $table = $this->style->remoteFromIdentifier($key) ?? $key;
-                $cols[$key] = $this->get($value, $this->style->identifier($table));
             }
+
+            unset($cols[$key]);
         }
 
         return $cols;
@@ -121,6 +142,25 @@ class EntityFactory
         return $entity;
     }
 
+    /** @return array<string, true> */
+    private function detectRelationProperties(string $class): array
+    {
+        $relations = [];
+
+        foreach ($this->reflectProperties($class) as $name => $prop) {
+            $type = $prop->getType();
+            $types = $type instanceof ReflectionUnionType ? $type->getTypes() : ($type !== null ? [$type] : []);
+            foreach ($types as $t) {
+                if ($t instanceof ReflectionNamedType && !$t->isBuiltin()) {
+                    $relations[$name] = true;
+                    break;
+                }
+            }
+        }
+
+        return $relations;
+    }
+
     /** @return ReflectionClass<object> */
     private function reflectClass(string $class): ReflectionClass
     {
@@ -143,5 +183,86 @@ class EntityFactory
         }
 
         return $this->propertyCache[$class];
+    }
+
+    private function coerce(ReflectionProperty $prop, mixed $value): mixed
+    {
+        $type = $prop->getType();
+
+        if ($type === null) {
+            throw new DomainException(
+                'Property ' . $prop->getDeclaringClass()->getName() . '::$' . $prop->getName()
+                . ' must have a type declaration',
+            );
+        }
+
+        if ($value === null) {
+            return $type->allowsNull() ? null : $value;
+        }
+
+        if ($type instanceof ReflectionNamedType) {
+            return $this->exactMatch($type, $value) ?? $this->coerceToNamedType($type, $value);
+        }
+
+        if ($type instanceof ReflectionUnionType) {
+            $members = [];
+            foreach ($type->getTypes() as $member) {
+                if (!($member instanceof ReflectionNamedType)) {
+                    continue;
+                }
+
+                $members[] = $member;
+            }
+
+            // Pass 1: exact type match (no lossy casts)
+            foreach ($members as $member) {
+                $result = $this->exactMatch($member, $value);
+                if ($result !== null) {
+                    return $result;
+                }
+            }
+
+            // Pass 2: lossy coercion (numeric string → int, scalar → string, etc.)
+            foreach ($members as $member) {
+                $result = $this->coerceToNamedType($member, $value);
+                if ($result !== null) {
+                    return $result;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /** Accept value only if it already matches the type without any conversion */
+    private function exactMatch(ReflectionNamedType $type, mixed $value): mixed
+    {
+        $name = $type->getName();
+
+        return match (true) {
+            $name === 'mixed' => $value,
+            $name === 'int' && is_int($value) => $value,
+            $name === 'float' && is_float($value) => $value,
+            $name === 'string' && is_string($value) => $value,
+            $name === 'bool' && is_bool($value) => $value,
+            $name === 'array' && is_array($value) => $value,
+            is_object($value) && $value instanceof $name => $value,
+            default => null,
+        };
+    }
+
+    /** Accept value with lossy coercion (e.g. numeric string → int) */
+    private function coerceToNamedType(ReflectionNamedType $type, mixed $value): mixed
+    {
+        $name = $type->getName();
+
+        return match (true) {
+            $name === 'mixed' => $value,
+            $name === 'int' && is_string($value) && is_numeric($value) => (int) $value,
+            $name === 'float' && is_int($value) => (float) $value,
+            $name === 'float' && is_string($value) && is_numeric($value) => (float) $value,
+            $name === 'string' && is_scalar($value) => (string) $value,
+            default => null,
+        };
     }
 }
