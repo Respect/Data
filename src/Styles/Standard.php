@@ -14,7 +14,7 @@ class Standard extends AbstractStyle
 {
     public function styledProperty(string $name): string
     {
-        return $name;
+        return $this->separatorToCamelCase($name, '_');
     }
 
     public function realName(string $name): string
@@ -24,7 +24,7 @@ class Standard extends AbstractStyle
 
     public function realProperty(string $name): string
     {
-        return $name;
+        return strtolower($this->camelCaseToSeparator($name, '_'));
     }
 
     public function styledName(string $name): string

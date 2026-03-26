@@ -6,11 +6,9 @@ namespace Respect\Data\Styles\CakePHP;
 
 class Comment
 {
-    public mixed $id = null;
+    public int $id;
 
-    public mixed $post_id = null;
-
-    public mixed $post = null;
+    public Post $post;
 
     public string|null $text = null;
 }

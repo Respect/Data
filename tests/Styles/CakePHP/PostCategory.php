@@ -6,11 +6,9 @@ namespace Respect\Data\Styles\CakePHP;
 
 class PostCategory
 {
-    public mixed $id = null;
+    public int $id;
 
-    public mixed $post_id = null;
+    public Post $post;
 
-    public mixed $category_id = null;
-
-    public mixed $category = null;
+    public Category $category;
 }

@@ -6,11 +6,9 @@ namespace Respect\Data\Styles\NorthWind;
 
 class Comments
 {
-    public mixed $CommentID = null;
+    public int $CommentID;
 
-    public mixed $PostID = null;
-
-    public mixed $Post = null;
+    public Posts $Post;
 
     public string|null $Text = null;
 }

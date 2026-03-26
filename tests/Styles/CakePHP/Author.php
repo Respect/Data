@@ -6,7 +6,7 @@ namespace Respect\Data\Styles\CakePHP;
 
 class Author
 {
-    public mixed $id = null;
+    public int $id;
 
     public string|null $name = null;
 }

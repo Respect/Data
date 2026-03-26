@@ -6,11 +6,9 @@ namespace Respect\Data\Styles\Sakila;
 
 class Comment
 {
-    public mixed $comment_id = null;
+    public int $commentId;
 
-    public mixed $post_id = null;
-
-    public mixed $post = null;
+    public Post $post;
 
     public string|null $text = null;
 }

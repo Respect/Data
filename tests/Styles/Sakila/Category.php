@@ -6,7 +6,7 @@ namespace Respect\Data\Styles\Sakila;
 
 class Category
 {
-    public mixed $category_id = null;
+    public int $categoryId;
 
     public string|null $name = null;
 

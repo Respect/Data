@@ -8,6 +8,8 @@ use DomainException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use ReflectionProperty;
+use stdClass;
 
 #[CoversClass(EntityFactory::class)]
 class EntityFactoryTest extends TestCase
@@ -190,7 +192,7 @@ class EntityFactoryTest extends TestCase
         $child = new Stubs\Category();
         $child->id = 8;
         $child->name = 'Child';
-        $child->category_id = $parent;
+        $child->category = $parent;
 
         $cols = $factory->extractColumns($child);
         $this->assertEquals(3, $cols['category_id']);
@@ -208,5 +210,89 @@ class EntityFactoryTest extends TestCase
 
         $cols = $factory->extractColumns($author);
         $this->assertEquals(['id' => 5, 'name' => 'Bob', 'bio' => null], $cols);
+    }
+
+    #[Test]
+    public function extractColumnsExcludesUninitializedRelation(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
+        $post = new Stubs\Post();
+        $post->id = 10;
+        $post->title = 'Test';
+
+        $cols = $factory->extractColumns($post);
+        $this->assertArrayNotHasKey('author', $cols);
+        $this->assertArrayNotHasKey('author_id', $cols);
+        $this->assertEquals(10, $cols['id']);
+        $this->assertEquals('Test', $cols['title']);
+    }
+
+    #[Test]
+    public function setSkipsIncompatibleType(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
+        $entity = new Stubs\TypeCoercionEntity();
+        $entity->id = 1;
+
+        // Non-coercible value leaves the non-nullable property uninitialized
+        $factory->set($entity, 'strict', 'not-a-number');
+        $ref = new ReflectionProperty($entity, 'strict');
+        $this->assertFalse($ref->isInitialized($entity));
+    }
+
+    #[Test]
+    public function setCoercesNumericStringToInt(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
+        $entity = new Stubs\TypeCoercionEntity();
+
+        $factory->set($entity, 'id', '42');
+        $this->assertSame(42, $entity->id);
+    }
+
+    #[Test]
+    public function setHandlesUnionType(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
+        $entity = new Stubs\TypeCoercionEntity();
+
+        // Union type int|string|null — exact match takes priority over lossy coercion
+        $factory->set($entity, 'flexible', '99');
+        $this->assertSame('99', $entity->flexible);
+
+        // Int stays int (exact match on int branch, not lossy-cast to string)
+        $factory->set($entity, 'flexible', 42);
+        $this->assertSame(42, $entity->flexible);
+
+        // Null should work (nullable union)
+        $factory->set($entity, 'flexible', null);
+        $this->assertNull($entity->flexible);
+    }
+
+    #[Test]
+    public function coercionFailureFallsThrough(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
+        $entity = new Stubs\TypeCoercionEntity();
+        $entity->id = 1;
+
+        // Setting an object on an int|string|null union fails all branches —
+        // property stays unchanged since the union includes null (nullable)
+        $entity->flexible = 'original';
+        $factory->set($entity, 'flexible', new stdClass());
+        $this->assertNull($entity->flexible);
+    }
+
+    #[Test]
+    public function unionLossyCoercionKicksInWhenExactMatchFails(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
+        $entity = new Stubs\TypeCoercionEntity();
+        $entity->id = 1;
+
+        // int|float with a numeric string — exact match fails (not int, not float),
+        // lossy pass coerces '42' → 42 (int branch wins)
+        $factory->set($entity, 'narrow_union', '42');
+        $this->assertSame(42, $entity->narrowUnion);
     }
 }

@@ -6,13 +6,11 @@ namespace Respect\Data\Styles\NorthWind;
 
 class Posts
 {
-    public mixed $PostID = null;
+    public int $PostID;
 
     public string|null $Title = null;
 
     public string|null $Text = null;
 
-    public mixed $AuthorID = null;
-
-    public mixed $Author = null;
+    public Authors $Author;
 }

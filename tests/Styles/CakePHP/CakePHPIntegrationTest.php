@@ -93,7 +93,7 @@ class CakePHPIntegrationTest extends TestCase
         $mapper->comments->persist($comment);
         $mapper->flush();
 
-        $this->assertNotNull($comment->id);
+        $this->assertGreaterThan(0, $comment->id);
         $allComments = $mapper->comments->fetchAll();
         $this->assertCount(3, $allComments);
     }

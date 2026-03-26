@@ -6,7 +6,7 @@ namespace Respect\Data\Styles\NorthWind;
 
 class Categories
 {
-    public mixed $CategoryID = null;
+    public int $CategoryID;
 
     public string|null $Name = null;
 

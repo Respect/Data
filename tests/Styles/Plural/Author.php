@@ -6,7 +6,7 @@ namespace Respect\Data\Styles\Plural;
 
 class Author
 {
-    public mixed $id = null;
+    public int $id;
 
     public string|null $name = null;
 }

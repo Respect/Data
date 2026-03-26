@@ -6,11 +6,11 @@ namespace Respect\Data\Stubs;
 
 class Post
 {
-    public mixed $id = null;
+    public int $id;
 
     public string|null $title = null;
 
     public string|null $text = null;
 
-    public mixed $author;
+    public Author $author;
 }

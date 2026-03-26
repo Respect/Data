@@ -6,11 +6,11 @@ namespace Respect\Data\Stubs;
 
 class Category
 {
-    public mixed $id = null;
+    public int $id;
 
     public string|null $name = null;
 
     public string|null $label = null;
 
-    public mixed $category_id = null;
+    public Category $category;
 }
