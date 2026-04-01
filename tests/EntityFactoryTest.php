@@ -596,4 +596,42 @@ class EntityFactoryTest extends TestCase
         $this->assertSame(1, $merged->id);
         $this->assertSame('Bob', $merged->name);
     }
+
+    #[Test]
+    public function enumerateFieldsReturnsScalarColumnsOnly(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
+        $fields = $factory->enumerateFields('post');
+
+        $this->assertSame(['id' => 'id', 'title' => 'title', 'text' => 'text'], $fields);
+    }
+
+    #[Test]
+    public function enumerateFieldsExcludesNotPersistable(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
+        $fields = $factory->enumerateFields('entity_with_excluded');
+
+        $this->assertSame(['name' => 'name'], $fields);
+    }
+
+    #[Test]
+    public function enumerateFieldsCachesResults(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
+        $first = $factory->enumerateFields('author');
+        $second = $factory->enumerateFields('author');
+
+        $this->assertSame($first, $second);
+    }
+
+    #[Test]
+    public function setWithStyledFlagSkipsConversion(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
+        $entity = $factory->create($factory->resolveClass('author'));
+
+        $factory->set($entity, 'name', 'Alice', styled: true);
+        $this->assertSame('Alice', $factory->get($entity, 'name'));
+    }
 }

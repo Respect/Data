@@ -6,6 +6,8 @@ namespace Respect\Data\Collections;
 
 final class Composite extends Collection
 {
+    public const string COMPOSITION_MARKER = '_WITH_';
+
     /** @param array<string, list<string>> $compositions */
     public function __construct(
         string $name,

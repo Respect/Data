@@ -38,6 +38,9 @@ class EntityFactory
     /** @var array<string, array<string, true>> */
     private array $relationCache = [];
 
+    /** @var array<string, array<string, string>> */
+    private array $fieldCache = [];
+
     public function __construct(
         public readonly Styles\Stylable $style = new Styles\Standard(),
         private readonly string $entityNamespace = '\\',
@@ -61,9 +64,9 @@ class EntityFactory
         return $this->resolveCache[$name] = $entityClass;
     }
 
-    public function set(object $entity, string $prop, mixed $value): void
+    public function set(object $entity, string $prop, mixed $value, bool $styled = false): void
     {
-        $styledProp = $this->style->styledProperty($prop);
+        $styledProp = $styled ? $prop : $this->style->styledProperty($prop);
         $mirror = $this->reflectProperties($entity::class)[$styledProp] ?? null;
 
         if ($mirror === null) {
@@ -234,6 +237,32 @@ class EntityFactory
         }
 
         return $props;
+    }
+
+    /**
+     * Enumerate persistable fields for a collection, mapping DB column names to styled property names.
+     *
+     * @return array<string, string> DB column name → styled property name
+     */
+    public function enumerateFields(string $collectionName): array
+    {
+        if (isset($this->fieldCache[$collectionName])) {
+            return $this->fieldCache[$collectionName];
+        }
+
+        $class = $this->resolveClass($collectionName);
+        $relations = $this->detectRelationProperties($class);
+        $fields = [];
+
+        foreach ($this->reflectProperties($class) as $name => $prop) {
+            if ($prop->getAttributes(NotPersistable::class) || isset($relations[$name])) {
+                continue;
+            }
+
+            $fields[$this->style->realProperty($name)] = $name;
+        }
+
+        return $this->fieldCache[$collectionName] = $fields;
     }
 
     /**
