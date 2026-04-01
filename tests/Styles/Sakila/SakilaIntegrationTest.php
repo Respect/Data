@@ -7,6 +7,7 @@ namespace Respect\Data\Styles\Sakila;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Respect\Data\EntityFactory;
+use Respect\Data\Hydrators\Nested;
 use Respect\Data\InMemoryMapper;
 use Respect\Data\Styles\Sakila;
 
@@ -20,10 +21,10 @@ class SakilaIntegrationTest extends TestCase
     protected function setUp(): void
     {
         $this->style = new Sakila();
-        $this->mapper = new InMemoryMapper(new EntityFactory(
+        $this->mapper = new InMemoryMapper(new Nested(new EntityFactory(
             style: $this->style,
             entityNamespace: __NAMESPACE__ . '\\',
-        ));
+        )));
 
         $this->mapper->seed('post', [
             ['post_id' => 5, 'title' => 'Post Title', 'text' => 'Post Text', 'author_id' => 1],

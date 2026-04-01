@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Respect\Data;
 
 use Respect\Data\Collections\Collection;
-use Respect\Data\Hydrators\Nested;
 
 use function array_filter;
 use function array_merge;
@@ -83,11 +82,6 @@ final class InMemoryMapper extends AbstractMapper
         $this->reset();
     }
 
-    protected function defaultHydrator(Collection $collection): Hydrator
-    {
-        return new Nested();
-    }
-
     private function insertEntity(object $entity, Collection $collection, string $tableName, string $id): void
     {
         $row = $this->filterColumns(
@@ -143,7 +137,7 @@ final class InMemoryMapper extends AbstractMapper
     {
         $this->attachRelated($row, $collection);
 
-        $entities = $this->resolveHydrator($collection)->hydrate($row, $collection, $this->entityFactory);
+        $entities = $this->hydrator->hydrateAll($row, $collection);
         if ($entities === false) {
             return false;
         }

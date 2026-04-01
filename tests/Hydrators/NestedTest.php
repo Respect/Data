@@ -12,6 +12,7 @@ use Respect\Data\Collections\Typed;
 use Respect\Data\EntityFactory;
 
 #[CoversClass(Nested::class)]
+#[CoversClass(Base::class)]
 class NestedTest extends TestCase
 {
     private Nested $hydrator;
@@ -20,8 +21,8 @@ class NestedTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->hydrator = new Nested();
         $this->factory = new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\');
+        $this->hydrator = new Nested($this->factory);
     }
 
     #[Test]
@@ -29,9 +30,9 @@ class NestedTest extends TestCase
     {
         $collection = Collection::author();
 
-        $this->assertFalse($this->hydrator->hydrate(null, $collection, $this->factory));
-        $this->assertFalse($this->hydrator->hydrate(false, $collection, $this->factory));
-        $this->assertFalse($this->hydrator->hydrate('string', $collection, $this->factory));
+        $this->assertFalse($this->hydrator->hydrateAll(null, $collection));
+        $this->assertFalse($this->hydrator->hydrateAll(false, $collection));
+        $this->assertFalse($this->hydrator->hydrateAll('string', $collection));
     }
 
     #[Test]
@@ -40,7 +41,7 @@ class NestedTest extends TestCase
         $raw = ['id' => 1, 'name' => 'Author Name'];
         $collection = Collection::author();
 
-        $result = $this->hydrator->hydrate($raw, $collection, $this->factory);
+        $result = $this->hydrator->hydrateAll($raw, $collection);
 
         $this->assertNotFalse($result);
         $this->assertCount(1, $result);
@@ -62,7 +63,7 @@ class NestedTest extends TestCase
         $collection = Collection::post();
         $collection->stack(Collection::author());
 
-        $result = $this->hydrator->hydrate($raw, $collection, $this->factory);
+        $result = $this->hydrator->hydrateAll($raw, $collection);
 
         $this->assertNotFalse($result);
         $this->assertCount(2, $result);
@@ -75,7 +76,7 @@ class NestedTest extends TestCase
         $collection = Collection::post();
         $collection->stack(Collection::author());
 
-        $result = $this->hydrator->hydrate($raw, $collection, $this->factory);
+        $result = $this->hydrator->hydrateAll($raw, $collection);
 
         $this->assertNotFalse($result);
         $this->assertCount(1, $result);
@@ -98,7 +99,7 @@ class NestedTest extends TestCase
         $post->stack(Collection::author());
         $collection->stack($post);
 
-        $result = $this->hydrator->hydrate($raw, $collection, $this->factory);
+        $result = $this->hydrator->hydrateAll($raw, $collection);
 
         $this->assertNotFalse($result);
         $this->assertCount(3, $result);
@@ -117,7 +118,7 @@ class NestedTest extends TestCase
         $categoryColl = Collection::category();
         $collection = Collection::post($authorColl, $categoryColl);
 
-        $result = $this->hydrator->hydrate($raw, $collection, $this->factory);
+        $result = $this->hydrator->hydrateAll($raw, $collection);
 
         $this->assertNotFalse($result);
         $this->assertCount(3, $result);
@@ -129,7 +130,7 @@ class NestedTest extends TestCase
         $raw = ['id' => 1, 'title' => 'Issue', 'type' => 'Bug'];
         $collection = Typed::issue('type');
 
-        $result = $this->hydrator->hydrate($raw, $collection, $this->factory);
+        $result = $this->hydrator->hydrateAll($raw, $collection);
 
         $this->assertNotFalse($result);
         $this->assertCount(1, $result);
@@ -143,7 +144,7 @@ class NestedTest extends TestCase
         $collection = Collection::post();
         $collection->addChild($child);
 
-        $result = $this->hydrator->hydrate($raw, $collection, $this->factory);
+        $result = $this->hydrator->hydrateAll($raw, $collection);
 
         $this->assertNotFalse($result);
         $this->assertCount(1, $result);
@@ -156,9 +157,46 @@ class NestedTest extends TestCase
         $collection = Collection::post();
         $collection->stack(Collection::author());
 
-        $result = $this->hydrator->hydrate($raw, $collection, $this->factory);
+        $result = $this->hydrator->hydrateAll($raw, $collection);
 
         $this->assertNotFalse($result);
         $this->assertCount(1, $result);
+    }
+
+    #[Test]
+    public function hydrateReturnsFalseForInvalidInput(): void
+    {
+        $this->assertFalse($this->hydrator->hydrate(null, Collection::author()));
+    }
+
+    #[Test]
+    public function hydrateReturnsRootEntity(): void
+    {
+        $raw = ['id' => 1, 'name' => 'Alice'];
+        $result = $this->hydrator->hydrate($raw, Collection::author());
+
+        $this->assertNotFalse($result);
+        $this->assertEquals(1, $this->factory->get($result, 'id'));
+        $this->assertEquals('Alice', $this->factory->get($result, 'name'));
+    }
+
+    #[Test]
+    public function hydrateReturnsRootWithWiredRelation(): void
+    {
+        $raw = [
+            'id' => 1,
+            'title' => 'Post',
+            'author' => ['id' => 5, 'name' => 'Author'],
+        ];
+        $collection = Collection::post();
+        $collection->stack(Collection::author());
+
+        $result = $this->hydrator->hydrate($raw, $collection);
+
+        $this->assertNotFalse($result);
+        $this->assertEquals(1, $this->factory->get($result, 'id'));
+        $author = $this->factory->get($result, 'author');
+        $this->assertIsObject($author);
+        $this->assertEquals(5, $this->factory->get($author, 'id'));
     }
 }

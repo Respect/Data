@@ -7,7 +7,6 @@ namespace Respect\Data\Collections;
 use ArrayAccess;
 use Respect\Data\AbstractMapper;
 use Respect\Data\CollectionNotBound;
-use Respect\Data\Hydrator;
 
 /** @implements ArrayAccess<string, Collection> */
 class Collection implements ArrayAccess
@@ -15,8 +14,6 @@ class Collection implements ArrayAccess
     public private(set) bool $required = true;
 
     public private(set) AbstractMapper|null $mapper = null;
-
-    public private(set) Hydrator|null $hydrator = null;
 
     public private(set) Collection|null $parent = null;
 
@@ -97,13 +94,6 @@ class Collection implements ArrayAccess
     public function bindMapper(AbstractMapper $mapper): static
     {
         $this->mapper = $mapper;
-
-        return $this;
-    }
-
-    public function hydrateFrom(Hydrator $hydrator): static
-    {
-        $this->hydrator = $hydrator;
 
         return $this;
     }

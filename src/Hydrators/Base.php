@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Respect\Data\Hydrators;
 
+use DomainException;
 use Respect\Data\Collections\Collection;
 use Respect\Data\Collections\Typed;
 use Respect\Data\EntityFactory;
@@ -13,10 +14,35 @@ use SplObjectStorage;
 /** Base hydrator providing collection-tree entity wiring */
 abstract class Base implements Hydrator
 {
+    public function __construct(
+        public readonly EntityFactory $entityFactory = new EntityFactory(),
+    ) {
+    }
+
+    public function hydrate(
+        mixed $raw,
+        Collection $collection,
+    ): object|false {
+        $entities = $this->hydrateAll($raw, $collection);
+        if ($entities === false) {
+            return false;
+        }
+
+        foreach ($entities as $entity) {
+            if ($entities[$entity] === $collection) {
+                return $entity;
+            }
+        }
+
+        throw new DomainException(
+            'Hydration produced no entity for collection "' . $collection->name . '"',
+        );
+    }
+
     /** @param SplObjectStorage<object, Collection> $entities */
-    protected function wireRelationships(SplObjectStorage $entities, EntityFactory $entityFactory): void
+    protected function wireRelationships(SplObjectStorage $entities): void
     {
-        $style = $entityFactory->style;
+        $style = $this->entityFactory->style;
         $others = clone $entities;
 
         foreach ($entities as $entity) {
@@ -40,12 +66,12 @@ abstract class Base implements Hydrator
                     continue;
                 }
 
-                $id = $entityFactory->get($other, $style->identifier($otherColl->name));
+                $id = $this->entityFactory->get($other, $style->identifier($otherColl->name));
                 if ($id === null) {
                     continue;
                 }
 
-                $entityFactory->set($entity, $relationName, $other);
+                $this->entityFactory->set($entity, $relationName, $other);
             }
         }
     }
@@ -57,13 +83,12 @@ abstract class Base implements Hydrator
      */
     protected function resolveEntityClass(
         Collection $collection,
-        EntityFactory $entityFactory,
         object|array $row,
     ): string {
         if ($collection instanceof Typed) {
-            return $collection->resolveEntityClass($entityFactory, $row);
+            return $collection->resolveEntityClass($this->entityFactory, $row);
         }
 
-        return $entityFactory->resolveClass((string) $collection->name);
+        return $this->entityFactory->resolveClass((string) $collection->name);
     }
 }

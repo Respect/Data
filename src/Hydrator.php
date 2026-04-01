@@ -10,10 +10,17 @@ use SplObjectStorage;
 /** Transforms raw backend data into entity instances mapped to their collections */
 interface Hydrator
 {
-    /** @return SplObjectStorage<object, Collection>|false */
+    public EntityFactory $entityFactory { get; }
+
+    /** Returns just the root entity */
     public function hydrate(
         mixed $raw,
         Collection $collection,
-        EntityFactory $entityFactory,
+    ): object|false;
+
+    /** @return SplObjectStorage<object, Collection>|false */
+    public function hydrateAll(
+        mixed $raw,
+        Collection $collection,
     ): SplObjectStorage|false;
 }

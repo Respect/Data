@@ -9,7 +9,6 @@ use Respect\Data\CollectionIterator;
 use Respect\Data\Collections\Collection;
 use Respect\Data\Collections\Composite;
 use Respect\Data\Collections\Filtered;
-use Respect\Data\EntityFactory;
 use SplObjectStorage;
 
 use function array_keys;
@@ -31,10 +30,9 @@ final class PrestyledAssoc extends Base
     private Collection|null $cachedCollection = null;
 
     /** @return SplObjectStorage<object, Collection>|false */
-    public function hydrate(
+    public function hydrateAll(
         mixed $raw,
         Collection $collection,
-        EntityFactory $entityFactory,
     ): SplObjectStorage|false {
         if (!$raw || !is_array($raw)) {
             return false;
@@ -59,19 +57,19 @@ final class PrestyledAssoc extends Base
 
             if (!isset($instances[$basePrefix])) {
                 $coll = $collMap[$basePrefix];
-                $class = $this->resolveEntityClass($coll, $entityFactory, $props);
-                $instances[$basePrefix] = $entityFactory->create($class);
+                $class = $this->resolveEntityClass($coll, $props);
+                $instances[$basePrefix] = $this->entityFactory->create($class);
                 $entities[$instances[$basePrefix]] = $coll;
             }
 
             $entity = $instances[$basePrefix];
             foreach ($props as $prop => $value) {
-                $entityFactory->set($entity, $prop, $value, styled: true);
+                $this->entityFactory->set($entity, $prop, $value, styled: true);
             }
         }
 
         if ($entities->count() > 1) {
-            $this->wireRelationships($entities, $entityFactory);
+            $this->wireRelationships($entities);
         }
 
         return $entities;

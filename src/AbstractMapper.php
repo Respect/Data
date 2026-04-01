@@ -30,10 +30,12 @@ abstract class AbstractMapper
     /** @var array<string, Collection> */
     private array $collections = [];
 
+    public EntityFactory $entityFactory { get => $this->hydrator->entityFactory; }
+
     public Styles\Stylable $style { get => $this->entityFactory->style; }
 
     public function __construct(
-        public readonly EntityFactory $entityFactory = new EntityFactory(),
+        public readonly Hydrator $hydrator,
     ) {
         $this->tracked = new SplObjectStorage();
         $this->pending = new SplObjectStorage();
@@ -130,8 +132,6 @@ abstract class AbstractMapper
         $this->collections[$alias] = $collection;
     }
 
-    abstract protected function defaultHydrator(Collection $collection): Hydrator;
-
     /**
      * @param array<string, mixed> $columns
      *
@@ -151,11 +151,6 @@ abstract class AbstractMapper
         $id = $this->style->identifier($collection->name);
 
         return array_intersect_key($columns, array_flip([...$collection->filters, $id]));
-    }
-
-    protected function resolveHydrator(Collection $collection): Hydrator
-    {
-        return $collection->hydrator ?? $this->defaultHydrator($collection);
     }
 
     protected function registerInIdentityMap(object $entity, Collection $coll): void
