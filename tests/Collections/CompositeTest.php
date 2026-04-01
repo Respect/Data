@@ -20,7 +20,7 @@ class CompositeTest extends TestCase
         $children2 = Composite::baz(['bat' => ['bar']])->bat();
         $coll = Collection::foo($children1, $children2)->bar();
         $this->assertInstanceOf(Collection::class, $coll);
-        $this->assertInstanceOf(Collection::class, $coll->next);
+        $this->assertInstanceOf(Collection::class, $coll->connectsTo);
         $this->assertInstanceOf(Composite::class, $children1);
         $this->assertInstanceOf(Composite::class, $children2);
         $this->assertTrue($coll->hasChildren);

@@ -80,9 +80,9 @@ abstract class AbstractMapper
 
     public function persist(object $object, Collection $onCollection): object
     {
-        $next = $onCollection->next;
-        if ($onCollection instanceof Filtered && $next !== null) {
-            $this->persist($object, $next);
+        $connectsTo = $onCollection->connectsTo;
+        if ($onCollection instanceof Filtered && $connectsTo !== null) {
+            $this->persist($object, $connectsTo);
 
             return $object;
         }
@@ -103,6 +103,7 @@ abstract class AbstractMapper
 
         $this->pending[$object] = 'insert';
         $this->markTracked($object, $onCollection);
+        $this->registerInIdentityMap($object, $onCollection);
 
         return $object;
     }
@@ -123,21 +124,9 @@ abstract class AbstractMapper
         return $this->tracked->offsetExists($entity);
     }
 
-    public function replaceTracked(object $old, object $new, Collection $onCollection): void
-    {
-        $op = $this->pending[$old] ?? 'update';
-        $this->tracked->offsetUnset($old);
-        $this->pending->offsetUnset($old);
-        $this->evictFromIdentityMap($old, $onCollection);
-
-        $this->markTracked($new, $onCollection);
-        $this->registerInIdentityMap($new, $onCollection);
-        $this->pending[$new] = $op;
-    }
-
     public function registerCollection(string $alias, Collection $collection): void
     {
-        $collection->mapper = $this;
+        $collection->bindMapper($this);
         $this->collections[$alias] = $collection;
     }
 
@@ -199,7 +188,7 @@ abstract class AbstractMapper
 
     protected function findInIdentityMap(Collection $collection): object|null
     {
-        if ($collection->name === null || !is_scalar($collection->condition) || $collection->more) {
+        if ($collection->name === null || !is_scalar($collection->condition) || $collection->hasMore) {
             return null;
         }
 
@@ -234,6 +223,8 @@ abstract class AbstractMapper
             $this->entityFactory->set($entity, $idName, $idValue);
         }
 
+        $op = $this->pending[$existing] ?? 'update';
+
         if ($this->entityFactory->isReadOnly($existing)) {
             $merged = $this->entityFactory->mergeEntities($existing, $entity);
 
@@ -245,7 +236,7 @@ abstract class AbstractMapper
                 $this->registerInIdentityMap($merged, $coll);
             }
 
-            $this->pending[$merged] = 'update';
+            $this->pending[$merged] = $op;
 
             return $merged;
         }
@@ -258,7 +249,7 @@ abstract class AbstractMapper
             $this->markTracked($existing, $coll);
         }
 
-        $this->pending[$existing] = 'update';
+        $this->pending[$existing] = $op;
 
         return $existing;
     }
@@ -290,9 +281,8 @@ abstract class AbstractMapper
         }
 
         $coll = new Collection($name);
-        $coll->mapper = $this;
 
-        return $coll;
+        return $coll->bindMapper($this);
     }
 
     public function __isset(string $alias): bool
@@ -310,14 +300,10 @@ abstract class AbstractMapper
     {
         if (isset($this->collections[$name])) {
             $collection = clone $this->collections[$name];
-            $collection->mapper = $this;
 
-            return $collection->with(...$arguments);
+            return $collection->bindMapper($this)->with(...$arguments);
         }
 
-        $collection = Collection::__callstatic($name, $arguments);
-        $collection->mapper = $this;
-
-        return $collection;
+        return Collection::__callstatic($name, $arguments)->bindMapper($this);
     }
 }

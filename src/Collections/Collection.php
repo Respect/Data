@@ -14,13 +14,13 @@ class Collection implements ArrayAccess
 {
     public private(set) bool $required = true;
 
-    public AbstractMapper|null $mapper = null;
+    public private(set) AbstractMapper|null $mapper = null;
 
-    public Hydrator|null $hydrator = null;
+    public private(set) Hydrator|null $hydrator = null;
 
     public private(set) Collection|null $parent = null;
 
-    public private(set) Collection|null $next = null;
+    public private(set) Collection|null $connectsTo = null;
 
     private Collection|null $last = null;
 
@@ -29,7 +29,7 @@ class Collection implements ArrayAccess
 
     public bool $hasChildren { get => !empty($this->children); }
 
-    public bool $more { get => $this->hasChildren || $this->next !== null; }
+    public bool $hasMore { get => $this->hasChildren || $this->connectsTo !== null; }
 
     /** @var array<scalar, mixed>|scalar|null */
     public private(set) array|int|float|string|bool|null $condition = [];
@@ -50,22 +50,9 @@ class Collection implements ArrayAccess
         $this->children[] = $clone;
     }
 
-    public function persist(object $object, mixed ...$changes): object
+    public function persist(object $object): object
     {
-        $mapper = $this->resolveMapper();
-
-        if ($changes) {
-            $original = $object;
-            $object = $mapper->entityFactory->withChanges($original, ...$changes);
-
-            if ($mapper->isTracked($original)) {
-                $mapper->replaceTracked($original, $object, $this);
-
-                return $object;
-            }
-        }
-
-        return $mapper->persist($object, $this);
+        return $this->resolveMapper()->persist($object, $this);
     }
 
     public function remove(object $object): bool
@@ -106,6 +93,14 @@ class Collection implements ArrayAccess
         // no-op
     }
 
+    /** @internal Used by AbstractMapper to bind this collection */
+    public function bindMapper(AbstractMapper $mapper): static
+    {
+        $this->mapper = $mapper;
+
+        return $this;
+    }
+
     public function hydrateFrom(Hydrator $hydrator): static
     {
         $this->hydrator = $hydrator;
@@ -116,7 +111,7 @@ class Collection implements ArrayAccess
     public function stack(Collection $collection): static
     {
         $tail = $this->last ?? $this;
-        $tail->setNext($collection);
+        $tail->setConnectsTo($collection);
         $this->last = $collection->last ?? $collection;
 
         return $this;
@@ -151,10 +146,10 @@ class Collection implements ArrayAccess
         return $this->findMapper() ?? throw new CollectionNotBound($this->name);
     }
 
-    private function setNext(Collection $collection): void
+    private function setConnectsTo(Collection $collection): void
     {
         $collection->parent = $this;
-        $this->next = $collection;
+        $this->connectsTo = $collection;
     }
 
     /** @param array<int, mixed> $arguments */
@@ -187,9 +182,9 @@ class Collection implements ArrayAccess
 
     public function __clone(): void
     {
-        if ($this->next !== null) {
-            $this->next = clone $this->next;
-            $this->next->parent = $this;
+        if ($this->connectsTo !== null) {
+            $this->connectsTo = clone $this->connectsTo;
+            $this->connectsTo->parent = $this;
         }
 
         $clonedChildren = [];
@@ -209,8 +204,8 @@ class Collection implements ArrayAccess
 
         $node = $this;
 
-        while ($node->next !== null) {
-            $node = $node->next;
+        while ($node->connectsTo !== null) {
+            $node = $node->connectsTo;
         }
 
         $this->last = $node !== $this ? $node : null;

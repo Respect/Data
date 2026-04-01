@@ -20,7 +20,7 @@ class FilteredTest extends TestCase
         $children2 = Filtered::baz('bat')->bat();
         $coll = Collection::foo($children1, $children2)->bar();
         $this->assertInstanceOf(Collection::class, $coll);
-        $this->assertInstanceOf(Collection::class, $coll->next);
+        $this->assertInstanceOf(Collection::class, $coll->connectsTo);
         $this->assertInstanceOf(Filtered::class, $children1);
         $this->assertInstanceOf(Filtered::class, $children2);
         $this->assertTrue($coll->hasChildren);

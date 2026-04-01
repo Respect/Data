@@ -11,9 +11,7 @@ use ReflectionProperty;
 use ReflectionUnionType;
 
 use function array_key_exists;
-use function array_keys;
 use function class_exists;
-use function implode;
 use function is_array;
 use function is_bool;
 use function is_float;
@@ -122,41 +120,6 @@ class EntityFactory
         }
 
         return $entity;
-    }
-
-    public function withChanges(object $entity, mixed ...$changes): object
-    {
-        $clone = $this->reflectClass($entity::class)->newInstanceWithoutConstructor();
-        $styledChanges = [];
-        foreach ($changes as $prop => $value) {
-            $styledChanges[$this->style->styledProperty((string) $prop)] = $value;
-        }
-
-        foreach ($this->reflectProperties($entity::class) as $name => $prop) {
-            if (array_key_exists($name, $styledChanges)) {
-                $value = $styledChanges[$name];
-                $coerced = $this->coerce($prop, $value);
-
-                if ($coerced === null && !($prop->getType()?->allowsNull() ?? false)) {
-                    throw new DomainException(
-                        'Invalid value for ' . $entity::class . '::$' . $name,
-                    );
-                }
-
-                $prop->setValue($clone, $coerced);
-                unset($styledChanges[$name]);
-            } elseif ($prop->isInitialized($entity)) {
-                $prop->setValue($clone, $prop->getValue($entity));
-            }
-        }
-
-        if ($styledChanges) {
-            throw new DomainException(
-                'Unknown properties for ' . $entity::class . ': ' . implode(', ', array_keys($styledChanges)),
-            );
-        }
-
-        return $clone;
     }
 
     public function mergeEntities(object $base, object $overlay): object

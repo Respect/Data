@@ -72,8 +72,8 @@ class AbstractMapperTest extends TestCase
     {
         $collection = $this->mapper->author()->post()->comment();
         $this->assertEquals('author', $collection->name);
-        $this->assertEquals('post', $collection->next?->name);
-        $this->assertEquals('comment', $collection->next?->next?->name);
+        $this->assertEquals('post', $collection->connectsTo?->name);
+        $this->assertEquals('comment', $collection->connectsTo?->connectsTo?->name);
     }
 
     #[Test]
@@ -81,8 +81,8 @@ class AbstractMapperTest extends TestCase
     {
         $collection = $this->mapper->author->post->comment;
         $this->assertEquals('author', $collection->name);
-        $this->assertEquals('post', $collection->next?->name);
-        $this->assertEquals('comment', $collection->next?->next?->name);
+        $this->assertEquals('post', $collection->connectsTo?->name);
+        $this->assertEquals('comment', $collection->connectsTo?->connectsTo?->name);
     }
 
     #[Test]
@@ -352,7 +352,7 @@ class AbstractMapperTest extends TestCase
 
         $original = $mapper->commentedPosts;
         $this->assertNull(
-            $original->next?->next,
+            $original->connectsTo?->connectsTo,
             'Stacking on a clone should not mutate the registered collection',
         );
     }
@@ -375,7 +375,7 @@ class AbstractMapperTest extends TestCase
     }
 
     #[Test]
-    public function filteredWithoutNextFallsBackToNormalPersist(): void
+    public function filteredWithoutConnectsToFallsBackToNormalPersist(): void
     {
         $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
         $mapper->seed('post', []);
@@ -1068,7 +1068,7 @@ class AbstractMapperTest extends TestCase
     }
 
     #[Test]
-    public function withChangesAndPersistAutoUpdatesViaIdentityMap(): void
+    public function partialEntityPersistAutoUpdatesViaIdentityMap(): void
     {
         $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
         $mapper->seed('post', [
@@ -1079,11 +1079,11 @@ class AbstractMapperTest extends TestCase
             ['id' => 20, 'name' => 'Bob', 'bio' => null],
         ]);
 
-        $post = $mapper->post->author->fetch();
+        $mapper->post->author->fetch();
         $bob = $mapper->author[20]->fetch();
 
-        // withChanges preserves PK → persist auto-detects update via identity map
-        $updated = $mapper->entityFactory->withChanges($post, title: 'Changed', author: $bob);
+        // Partial entity with same PK → persist auto-detects update via identity map
+        $updated = $mapper->entityFactory->create(Stubs\Immutable\Post::class, id: 1, title: 'Changed', author: $bob);
         $mapper->post->persist($updated);
         $mapper->flush();
 
@@ -1182,37 +1182,37 @@ class AbstractMapperTest extends TestCase
     }
 
     #[Test]
-    public function persistWithChangesOnPendingInsertReplacesOriginal(): void
+    public function persistPartialEntityOnPendingInsertMergesViaIdentityMap(): void
     {
         $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
         $mapper->seed('author', []);
 
-        $author = $mapper->entityFactory->create(Stubs\Immutable\Author::class, name: 'Alice');
+        $author = $mapper->entityFactory->create(Stubs\Immutable\Author::class, id: 1, name: 'Alice');
         $mapper->author->persist($author);
 
-        // Persist with changes on a pending-insert entity must replace, not duplicate
-        $updated = $mapper->author->persist($author, name: 'Bob');
+        // Partial entity with same PK merges via identity map, does not duplicate
+        $updated = $mapper->entityFactory->create(Stubs\Immutable\Author::class, id: 1, name: 'Bob');
+        $mapper->author->persist($updated);
         $mapper->flush();
 
         $all = $mapper->author->fetchAll();
         $this->assertCount(1, $all);
         $this->assertSame('Bob', $all[0]->name);
-        $this->assertFalse($mapper->isTracked($author));
-        $this->assertTrue($mapper->isTracked($updated));
     }
 
     #[Test]
-    public function persistWithChangesOnTrackedUpdateReplacesOriginal(): void
+    public function persistPartialEntityOnTrackedUpdateMerges(): void
     {
         $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
         $mapper->seed('author', [
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
 
-        $fetched = $mapper->author[1]->fetch();
+        $mapper->author[1]->fetch();
 
-        // Persist with changes on a tracked (fetched) entity
-        $mapper->author->persist($fetched, name: 'Bob');
+        // Partial entity with same PK auto-detects update via identity map
+        $partial = $mapper->entityFactory->create(Stubs\Immutable\Author::class, id: 1, name: 'Bob');
+        $mapper->author->persist($partial);
         $mapper->flush();
 
         $mapper->clearIdentityMap();
