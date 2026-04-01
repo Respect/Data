@@ -6,8 +6,8 @@ namespace Respect\Data\Collections;
 
 use ArrayAccess;
 use Respect\Data\AbstractMapper;
+use Respect\Data\CollectionNotBound;
 use Respect\Data\Hydrator;
-use RuntimeException;
 
 /** @implements ArrayAccess<string, Collection> */
 class Collection implements ArrayAccess
@@ -65,9 +65,7 @@ class Collection implements ArrayAccess
             }
         }
 
-        $mapper->persist($object, $this);
-
-        return $object;
+        return $mapper->persist($object, $this);
     }
 
     public function remove(object $object): bool
@@ -150,7 +148,7 @@ class Collection implements ArrayAccess
 
     private function resolveMapper(): AbstractMapper
     {
-        return $this->findMapper() ?? throw new RuntimeException();
+        return $this->findMapper() ?? throw new CollectionNotBound($this->name);
     }
 
     private function setNext(Collection $collection): void

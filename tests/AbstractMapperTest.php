@@ -758,9 +758,10 @@ class AbstractMapperTest extends TestCase
         /** @var SplObjectStorage<object, string> $pending */
         $pending = $pendingProp->getValue($mapper);
 
-        $this->assertSame('update', $pending[$replacement]);
-        $this->assertFalse($mapper->isTracked($fetched));
-        $this->assertTrue($mapper->isTracked($replacement));
+        $this->assertSame('update', $pending[$fetched]);
+        $this->assertTrue($mapper->isTracked($fetched));
+        $this->assertFalse($mapper->isTracked($replacement));
+        $this->assertSame('Updated', $fetched->title);
     }
 
     #[Test]
@@ -791,20 +792,23 @@ class AbstractMapperTest extends TestCase
 
         // Create new readonly entity (no PK) and persist via collection[pk]
         $updated = $mapper->entityFactory->create(Stubs\ReadOnlyAuthor::class, name: 'Updated', bio: 'new bio');
-        $mapper->read_only_author[1]->persist($updated);
+        $merged = $mapper->read_only_author[1]->persist($updated);
 
-        // PK should have been set from collection condition
-        $this->assertSame(1, $updated->id);
+        // Merged entity should combine both: PK from fetched, changes from updated
+        $this->assertSame(1, $merged->id);
+        $this->assertSame('Updated', $merged->name);
+        $this->assertSame('new bio', $merged->bio);
 
-        // Old entity should be evicted
+        // Merged entity should be tracked, old fetched evicted
         $this->assertFalse($mapper->isTracked($fetched));
-        $this->assertTrue($mapper->isTracked($updated));
+        $this->assertFalse($mapper->isTracked($updated));
+        $this->assertTrue($mapper->isTracked($merged));
 
         $ref = new ReflectionObject($mapper);
         $pendingProp = $ref->getProperty('pending');
         /** @var SplObjectStorage<object, string> $pending */
         $pending = $pendingProp->getValue($mapper);
-        $this->assertSame('update', $pending[$updated]);
+        $this->assertSame('update', $pending[$merged]);
     }
 
     #[Test]
@@ -1109,12 +1113,13 @@ class AbstractMapperTest extends TestCase
 
         // Replace one by identity map lookup
         $updated = $mapper->entityFactory->create(Stubs\Immutable\Author::class, name: 'Alice Updated');
-        $mapper->author[1]->persist($updated);
+        $merged = $mapper->author[1]->persist($updated);
 
-        // Original Alice should be evicted, updated Alice takes its place
+        // Original Alice should be evicted, merged entity takes its place
         $this->assertSame(3, $mapper->trackedCount());
-        $this->assertTrue($mapper->isTracked($updated));
+        $this->assertTrue($mapper->isTracked($merged));
         $this->assertFalse($mapper->isTracked($authors[0]));
+        $this->assertSame('Alice Updated', $merged->name);
     }
 
     #[Test]
@@ -1129,11 +1134,12 @@ class AbstractMapperTest extends TestCase
 
         $updated = new Stubs\Immutable\Author(id: 1, name: 'Bob');
 
-        // persist via collection[1] — PK already set, should NOT try set() again
-        $mapper->author[1]->persist($updated);
+        // persist via collection[1] — PK already set, merge produces new entity
+        $merged = $mapper->author[1]->persist($updated);
 
-        $this->assertSame(1, $updated->id);
-        $this->assertTrue($mapper->isTracked($updated));
+        $this->assertSame(1, $merged->id);
+        $this->assertSame('Bob', $merged->name);
+        $this->assertTrue($mapper->isTracked($merged));
     }
 
     #[Test]
@@ -1212,5 +1218,132 @@ class AbstractMapperTest extends TestCase
         $mapper->clearIdentityMap();
         $refetched = $mapper->author[1]->fetch();
         $this->assertSame('Bob', $refetched->name);
+    }
+
+    #[Test]
+    public function mutableMergeAppliesOverlayPropertiesToExisting(): void
+    {
+        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper->seed('author', [
+            ['id' => 1, 'name' => 'Alice', 'bio' => null],
+        ]);
+
+        $fetched = $mapper->author[1]->fetch();
+        $this->assertSame('Alice', $fetched->name);
+
+        // Persist a different mutable entity with same PK
+        $overlay = new Stubs\Author();
+        $overlay->id = 1;
+        $overlay->name = 'Bob';
+        $overlay->bio = 'new bio';
+
+        $result = $mapper->author->persist($overlay);
+
+        // Existing entity is mutated in place and returned
+        $this->assertSame($fetched, $result);
+        $this->assertSame('Bob', $fetched->name);
+        $this->assertSame('new bio', $fetched->bio);
+        $this->assertTrue($mapper->isTracked($fetched));
+        $this->assertFalse($mapper->isTracked($overlay));
+    }
+
+    #[Test]
+    public function readOnlyMergeNoDiffReturnsSameEntity(): void
+    {
+        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper->seed('author', [
+            ['id' => 1, 'name' => 'Alice', 'bio' => null],
+        ]);
+
+        $fetched = $mapper->author[1]->fetch();
+
+        // Persist readonly entity with identical properties
+        $same = new Stubs\Immutable\Author(id: 1, name: 'Alice');
+        $result = $mapper->author[1]->persist($same);
+
+        // No clone needed — same entity returned
+        $this->assertSame($fetched, $result);
+        $this->assertTrue($mapper->isTracked($fetched));
+    }
+
+    #[Test]
+    public function identityMapLookupNormalizesNumericStringCondition(): void
+    {
+        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper->seed('author', [
+            ['id' => 1, 'name' => 'Alice', 'bio' => null],
+        ]);
+
+        $fetched = $mapper->author[1]->fetch();
+
+        // Lookup with string "1" should hit the identity map
+        $fromString = $mapper->author['1']->fetch();
+        $this->assertSame($fetched, $fromString);
+    }
+
+    #[Test]
+    public function identityMapLookupReturnsNullForNonScalarCondition(): void
+    {
+        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper->seed('author', [
+            ['id' => 1, 'name' => 'Alice', 'bio' => null],
+        ]);
+
+        $mapper->author[1]->fetch();
+
+        // Float condition should not match identity map
+        $result = $mapper->author[1.5]->fetch();
+        $this->assertNotSame(true, $result === null);
+    }
+
+    #[Test]
+    public function mutableMergeTracksExistingWhenNotYetTracked(): void
+    {
+        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper->seed('author', [
+            ['id' => 1, 'name' => 'Alice', 'bio' => null],
+        ]);
+
+        // Put entity in identity map via fetch, then untrack it manually
+        $fetched = $mapper->author[1]->fetch();
+        $ref = new ReflectionObject($mapper);
+        $trackedProp = $ref->getProperty('tracked');
+        /** @var SplObjectStorage<object, mixed> $tracked */
+        $tracked = $trackedProp->getValue($mapper);
+        $tracked->offsetUnset($fetched);
+        $this->assertFalse($mapper->isTracked($fetched));
+
+        // Persist a new entity with same PK — should merge and re-track existing
+        $overlay = new Stubs\Author();
+        $overlay->id = 1;
+        $overlay->name = 'Bob';
+
+        $result = $mapper->author->persist($overlay);
+
+        $this->assertSame($fetched, $result);
+        $this->assertTrue($mapper->isTracked($fetched));
+        $this->assertSame('Bob', $fetched->name);
+    }
+
+    #[Test]
+    public function mergeWithIdentityMapNormalizesConditionFallback(): void
+    {
+        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper->seed('author', [
+            ['id' => 1, 'name' => 'Alice', 'bio' => null],
+        ]);
+
+        $fetched = $mapper->author[1]->fetch();
+
+        // Persist readonly entity without PK, via string condition "1"
+        $overlay = $mapper->entityFactory->create(Stubs\Immutable\Author::class, name: 'Updated');
+        $merged = $mapper->author['1']->persist($overlay);
+
+        // Should have matched identity map via normalized condition
+        $this->assertNotSame($fetched, $merged);
+        $this->assertSame(1, $merged->id);
+        $this->assertSame('Updated', $merged->name);
+        $this->assertTrue($mapper->isTracked($merged));
+        $this->assertFalse($mapper->isTracked($fetched));
     }
 }

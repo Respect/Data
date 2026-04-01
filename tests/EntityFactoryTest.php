@@ -536,4 +536,64 @@ class EntityFactoryTest extends TestCase
         $this->expectExceptionMessage('Invalid value');
         $factory->withChanges($entity, name: null);
     }
+
+    #[Test]
+    public function mergeEntitiesReturnsMergedCloneWhenPropertiesDiffer(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\Immutable\\');
+
+        $base = new Stubs\Immutable\Author(id: 1, name: 'Alice', bio: 'Original bio');
+        $overlay = $factory->create(Stubs\Immutable\Author::class, name: 'Bob');
+
+        $merged = $factory->mergeEntities($base, $overlay);
+        assert($merged instanceof Stubs\Immutable\Author);
+
+        $this->assertNotSame($base, $merged);
+        $this->assertNotSame($overlay, $merged);
+        $this->assertSame(1, $merged->id);
+        $this->assertSame('Bob', $merged->name);
+        $this->assertSame('Original bio', $merged->bio);
+    }
+
+    #[Test]
+    public function mergeEntitiesReturnsBaseWhenNoDifference(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\Immutable\\');
+
+        $base = new Stubs\Immutable\Author(id: 1, name: 'Alice');
+        $overlay = $factory->create(Stubs\Immutable\Author::class, id: 1, name: 'Alice');
+
+        $merged = $factory->mergeEntities($base, $overlay);
+
+        $this->assertSame($base, $merged);
+    }
+
+    #[Test]
+    public function mergeEntitiesThrowsOnClassMismatch(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\Immutable\\');
+
+        $base = new Stubs\Immutable\Author(id: 1, name: 'Alice');
+        $overlay = new Stubs\Immutable\Post(id: 1, title: 'Title');
+
+        $this->expectException(DomainException::class);
+        $this->expectExceptionMessage('Cannot merge entities of different classes');
+        $factory->mergeEntities($base, $overlay);
+    }
+
+    #[Test]
+    public function mergeEntitiesClonesWhenBasePropertyUninitialized(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\Immutable\\');
+
+        $base = $factory->create(Stubs\Immutable\Author::class, id: 1);
+        $overlay = $factory->create(Stubs\Immutable\Author::class, name: 'Bob');
+
+        $merged = $factory->mergeEntities($base, $overlay);
+        assert($merged instanceof Stubs\Immutable\Author);
+
+        $this->assertNotSame($base, $merged);
+        $this->assertSame(1, $merged->id);
+        $this->assertSame('Bob', $merged->name);
+    }
 }

@@ -8,17 +8,18 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Respect\Data\AbstractMapper;
+use Respect\Data\CollectionNotBound;
 use Respect\Data\EntityFactory;
 use Respect\Data\Hydrators\Nested;
 use Respect\Data\InMemoryMapper;
 use Respect\Data\Stubs;
 use Respect\Data\Stubs\Foo;
-use RuntimeException;
 
 use function count;
 use function reset;
 
 #[CoversClass(Collection::class)]
+#[CoversClass(CollectionNotBound::class)]
 class CollectionTest extends TestCase
 {
     #[Test]
@@ -274,28 +275,28 @@ class CollectionTest extends TestCase
     #[Test]
     public function persistOnCollectionShouldExceptionIfMapperDontExist(): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(CollectionNotBound::class);
         Collection::foo()->persist(new Foo());
     }
 
     #[Test]
     public function removeOnCollectionShouldExceptionIfMapperDontExist(): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(CollectionNotBound::class);
         Collection::foo()->remove(new Foo());
     }
 
     #[Test]
     public function fetchOnCollectionShouldExceptionIfMapperDontExist(): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(CollectionNotBound::class);
         Collection::foo()->fetch();
     }
 
     #[Test]
     public function fetchAllOnCollectionShouldExceptionIfMapperDontExist(): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(CollectionNotBound::class);
         Collection::foo()->fetchAll();
     }
 

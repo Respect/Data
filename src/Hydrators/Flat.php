@@ -50,7 +50,7 @@ abstract class Flat extends Base
             );
 
             $entityFactory->set(
-                /** @phpstan-ignore argument.type */
+                /** @phpstan-ignore argument.type (array_pop returns object|null but SplObjectStorage guarantees object key) */
                 $entityInstance,
                 $columnName,
                 $value,

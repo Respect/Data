@@ -26,10 +26,10 @@ use function is_string;
 /** Creates and manipulates entity objects using Style-based naming conventions */
 class EntityFactory
 {
-    /** @var array<string, ReflectionClass<object>> */
+    /** @var array<class-string, ReflectionClass<object>> */
     private array $classCache = [];
 
-    /** @var array<string, array<string, ReflectionProperty>> */
+    /** @var array<class-string, array<string, ReflectionProperty>> */
     private array $propertyCache = [];
 
     /** @var array<string, class-string> */
@@ -156,6 +156,43 @@ class EntityFactory
         return $clone;
     }
 
+    public function mergeEntities(object $base, object $overlay): object
+    {
+        if ($base::class !== $overlay::class) {
+            throw new DomainException(
+                'Cannot merge entities of different classes: ' . $base::class . ' and ' . $overlay::class,
+            );
+        }
+
+        $overlayProps = $this->extractProperties($overlay);
+        $hasDifference = false;
+
+        foreach ($overlayProps as $name => $value) {
+            $mirror = $this->reflectProperties($base::class)[$name];
+
+            if (!$mirror->isInitialized($base) || $mirror->getValue($base) !== $value) {
+                $hasDifference = true;
+                break;
+            }
+        }
+
+        if (!$hasDifference) {
+            return $base;
+        }
+
+        $clone = $this->reflectClass($base::class)->newInstanceWithoutConstructor();
+
+        foreach ($this->reflectProperties($base::class) as $name => $prop) {
+            if (array_key_exists($name, $overlayProps)) {
+                $prop->setValue($clone, $overlayProps[$name]);
+            } elseif ($prop->isInitialized($base)) {
+                $prop->setValue($clone, $prop->getValue($base));
+            }
+        }
+
+        return $clone;
+    }
+
     /**
      * Extract persistable columns, resolving entity objects to their reference representations.
      *
@@ -199,7 +236,11 @@ class EntityFactory
         return $props;
     }
 
-    /** @return array<string, true> */
+    /**
+     * @param class-string $class
+     *
+     * @return array<string, true>
+     */
     private function detectRelationProperties(string $class): array
     {
         if (isset($this->relationCache[$class])) {
@@ -222,13 +263,21 @@ class EntityFactory
         return $this->relationCache[$class] = $relations;
     }
 
-    /** @return ReflectionClass<object> */
+    /**
+     * @param class-string $class
+     *
+     * @return ReflectionClass<object>
+     */
     private function reflectClass(string $class): ReflectionClass
     {
-        return $this->classCache[$class] ??= new ReflectionClass($class); // @phpstan-ignore argument.type
+        return $this->classCache[$class] ??= new ReflectionClass($class);
     }
 
-    /** @return array<string, ReflectionProperty> */
+    /**
+     * @param class-string $class
+     *
+     * @return array<string, ReflectionProperty>
+     */
     private function reflectProperties(string $class): array
     {
         if (!isset($this->propertyCache[$class])) {
