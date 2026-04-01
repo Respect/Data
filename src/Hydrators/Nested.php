@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Respect\Data\Hydrators;
 
 use Respect\Data\Collections\Collection;
-use Respect\Data\EntityFactory;
 use SplObjectStorage;
 
 use function is_array;
@@ -14,10 +13,9 @@ use function is_array;
 final class Nested extends Base
 {
     /** @return SplObjectStorage<object, Collection>|false */
-    public function hydrate(
+    public function hydrateAll(
         mixed $raw,
         Collection $collection,
-        EntityFactory $entityFactory,
     ): SplObjectStorage|false {
         if (!is_array($raw)) {
             return false;
@@ -26,10 +24,10 @@ final class Nested extends Base
         /** @var SplObjectStorage<object, Collection> $entities */
         $entities = new SplObjectStorage();
 
-        $this->hydrateNode($raw, $collection, $entityFactory, $entities);
+        $this->hydrateNode($raw, $collection, $entities);
 
         if ($entities->count() > 1) {
-            $this->wireRelationships($entities, $entityFactory);
+            $this->wireRelationships($entities);
         }
 
         return $entities;
@@ -42,11 +40,10 @@ final class Nested extends Base
     private function hydrateNode(
         array $data,
         Collection $collection,
-        EntityFactory $entityFactory,
         SplObjectStorage $entities,
     ): void {
-        $entity = $entityFactory->create(
-            $this->resolveEntityClass($collection, $entityFactory, $data),
+        $entity = $this->entityFactory->create(
+            $this->resolveEntityClass($collection, $data),
         );
 
         foreach ($data as $key => $value) {
@@ -54,17 +51,17 @@ final class Nested extends Base
                 continue;
             }
 
-            $entityFactory->set($entity, $key, $value);
+            $this->entityFactory->set($entity, $key, $value);
         }
 
         $entities[$entity] = $collection;
 
         if ($collection->connectsTo !== null) {
-            $this->hydrateChild($data, $collection->connectsTo, $entityFactory, $entities);
+            $this->hydrateChild($data, $collection->connectsTo, $entities);
         }
 
         foreach ($collection->children as $child) {
-            $this->hydrateChild($data, $child, $entityFactory, $entities);
+            $this->hydrateChild($data, $child, $entities);
         }
     }
 
@@ -75,7 +72,6 @@ final class Nested extends Base
     private function hydrateChild(
         array $parentData,
         Collection $child,
-        EntityFactory $entityFactory,
         SplObjectStorage $entities,
     ): void {
         $key = $child->name;
@@ -85,6 +81,6 @@ final class Nested extends Base
 
         /** @var array<string, mixed> $childData */
         $childData = $parentData[$key];
-        $this->hydrateNode($childData, $child, $entityFactory, $entities);
+        $this->hydrateNode($childData, $child, $entities);
     }
 }

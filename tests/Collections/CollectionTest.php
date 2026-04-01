@@ -329,17 +329,11 @@ class CollectionTest extends TestCase
     }
 
     #[Test]
-    public function hydrateFromSetsHydrator(): void
-    {
-        $hydrator = new Nested();
-        $coll = Collection::foo()->hydrateFrom($hydrator);
-        $this->assertSame($hydrator, $coll->hydrator);
-    }
-
-    #[Test]
     public function persistReturnsSameEntity(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\',
+        )));
         $mapper->seed('author', []);
 
         $entity = $mapper->entityFactory->create(Stubs\Immutable\Author::class, name: 'Alice');
@@ -350,7 +344,9 @@ class CollectionTest extends TestCase
     #[Test]
     public function persistPartialEntityMergesViaIdentityMap(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\',
+        )));
         $mapper->seed('author', [
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
@@ -369,7 +365,9 @@ class CollectionTest extends TestCase
     #[Test]
     public function persistPartialEntityFlushesUpdate(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\',
+        )));
         $mapper->seed('author', [
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
@@ -389,7 +387,9 @@ class CollectionTest extends TestCase
     #[Test]
     public function persistPartialEntityOnGraphUpdatesRelation(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\',
+        )));
         $mapper->seed('post', [
             ['id' => 1, 'title' => 'Original', 'text' => 'Body', 'author_id' => 10],
         ]);
@@ -416,7 +416,9 @@ class CollectionTest extends TestCase
     #[Test]
     public function persistPartialEntityNullValueApplied(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\',
+        )));
         $mapper->seed('author', [
             ['id' => 1, 'name' => 'Alice', 'bio' => 'has bio'],
         ]);

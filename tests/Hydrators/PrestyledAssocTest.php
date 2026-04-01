@@ -17,6 +17,7 @@ use Respect\Data\Stubs\Author;
 use Respect\Data\Stubs\Bug;
 
 #[CoversClass(PrestyledAssoc::class)]
+#[CoversClass(Base::class)]
 class PrestyledAssocTest extends TestCase
 {
     private EntityFactory $factory;
@@ -29,24 +30,23 @@ class PrestyledAssocTest extends TestCase
     #[Test]
     public function hydrateReturnsFalseForEmpty(): void
     {
-        $hydrator = new PrestyledAssoc();
+        $hydrator = new PrestyledAssoc($this->factory);
         $coll = Collection::author();
 
-        $this->assertFalse($hydrator->hydrate(null, $coll, $this->factory));
-        $this->assertFalse($hydrator->hydrate([], $coll, $this->factory));
-        $this->assertFalse($hydrator->hydrate(false, $coll, $this->factory));
+        $this->assertFalse($hydrator->hydrateAll(null, $coll));
+        $this->assertFalse($hydrator->hydrateAll([], $coll));
+        $this->assertFalse($hydrator->hydrateAll(false, $coll));
     }
 
     #[Test]
     public function hydrateSingleEntity(): void
     {
-        $hydrator = new PrestyledAssoc();
+        $hydrator = new PrestyledAssoc($this->factory);
         $collection = Collection::author();
 
-        $result = $hydrator->hydrate(
+        $result = $hydrator->hydrateAll(
             ['author__id' => 1, 'author__name' => 'Alice'],
             $collection,
-            $this->factory,
         );
 
         $this->assertNotFalse($result);
@@ -60,10 +60,10 @@ class PrestyledAssocTest extends TestCase
     #[Test]
     public function hydrateMultipleEntitiesFromJoinedRow(): void
     {
-        $hydrator = new PrestyledAssoc();
+        $hydrator = new PrestyledAssoc($this->factory);
         $collection = Collection::author()->post;
 
-        $result = $hydrator->hydrate(
+        $result = $hydrator->hydrateAll(
             [
                 'author__id' => 1,
                 'author__name' => 'Alice',
@@ -72,7 +72,6 @@ class PrestyledAssocTest extends TestCase
                 'post__author' => 1,
             ],
             $collection,
-            $this->factory,
         );
 
         $this->assertNotFalse($result);
@@ -92,10 +91,10 @@ class PrestyledAssocTest extends TestCase
     #[Test]
     public function hydrateWiresRelationships(): void
     {
-        $hydrator = new PrestyledAssoc();
+        $hydrator = new PrestyledAssoc($this->factory);
         $collection = Collection::post()->author;
 
-        $result = $hydrator->hydrate(
+        $result = $hydrator->hydrateAll(
             [
                 'post__id' => 10,
                 'post__title' => 'Hello',
@@ -104,7 +103,6 @@ class PrestyledAssocTest extends TestCase
                 'author__name' => 'Alice',
             ],
             $collection,
-            $this->factory,
         );
 
         $this->assertNotFalse($result);
@@ -116,15 +114,37 @@ class PrestyledAssocTest extends TestCase
     }
 
     #[Test]
+    public function hydrateReturnsRootRegardlessOfColumnOrder(): void
+    {
+        $hydrator = new PrestyledAssoc($this->factory);
+        $collection = Collection::post()->author;
+
+        // Author columns appear before post columns
+        $result = $hydrator->hydrate(
+            [
+                'author__id' => 1,
+                'author__name' => 'Alice',
+                'post__id' => 10,
+                'post__title' => 'Hello',
+                'post__author' => 1,
+            ],
+            $collection,
+        );
+
+        $this->assertNotFalse($result);
+        $this->assertEquals(10, $this->factory->get($result, 'id'));
+        $this->assertEquals('Hello', $this->factory->get($result, 'title'));
+    }
+
+    #[Test]
     public function hydrateResolvesTypedEntities(): void
     {
-        $hydrator = new PrestyledAssoc();
+        $hydrator = new PrestyledAssoc($this->factory);
         $collection = Typed::issue('type');
 
-        $result = $hydrator->hydrate(
+        $result = $hydrator->hydrateAll(
             ['issue__id' => 1, 'issue__type' => 'Bug', 'issue__title' => 'Bug Report'],
             $collection,
-            $this->factory,
         );
 
         $this->assertNotFalse($result);
@@ -135,15 +155,14 @@ class PrestyledAssocTest extends TestCase
     #[Test]
     public function hydrateSkipsUnfilteredFilteredCollections(): void
     {
-        $hydrator = new PrestyledAssoc();
+        $hydrator = new PrestyledAssoc($this->factory);
         $filtered = Filtered::post();
         $collection = Collection::author();
         $collection->stack($filtered);
 
-        $result = $hydrator->hydrate(
+        $result = $hydrator->hydrateAll(
             ['author__id' => 1, 'author__name' => 'Alice'],
             $collection,
-            $this->factory,
         );
 
         $this->assertNotFalse($result);
@@ -153,10 +172,10 @@ class PrestyledAssocTest extends TestCase
     #[Test]
     public function hydrateCompositeEntity(): void
     {
-        $hydrator = new PrestyledAssoc();
+        $hydrator = new PrestyledAssoc($this->factory);
         $composite = Composite::author(['profile' => ['bio']])->post;
 
-        $result = $hydrator->hydrate(
+        $result = $hydrator->hydrateAll(
             [
                 'author__id' => 1,
                 'author__name' => 'Alice',
@@ -165,7 +184,6 @@ class PrestyledAssocTest extends TestCase
                 'post__title' => 'Hello',
             ],
             $composite,
-            $this->factory,
         );
 
         $this->assertNotFalse($result);
@@ -179,18 +197,16 @@ class PrestyledAssocTest extends TestCase
     #[Test]
     public function hydrateCachesCollMapAcrossRows(): void
     {
-        $hydrator = new PrestyledAssoc();
+        $hydrator = new PrestyledAssoc($this->factory);
         $collection = Collection::author();
 
-        $first = $hydrator->hydrate(
+        $first = $hydrator->hydrateAll(
             ['author__id' => 1, 'author__name' => 'Alice'],
             $collection,
-            $this->factory,
         );
-        $second = $hydrator->hydrate(
+        $second = $hydrator->hydrateAll(
             ['author__id' => 2, 'author__name' => 'Bob'],
             $collection,
-            $this->factory,
         );
 
         $this->assertNotFalse($first);
@@ -200,15 +216,14 @@ class PrestyledAssocTest extends TestCase
     #[Test]
     public function hydrateThrowsOnUnknownPrefix(): void
     {
-        $hydrator = new PrestyledAssoc();
+        $hydrator = new PrestyledAssoc($this->factory);
         $collection = Collection::author();
 
         $this->expectException(DomainException::class);
         $this->expectExceptionMessage('Unknown column prefix');
-        $hydrator->hydrate(
+        $hydrator->hydrateAll(
             ['author__id' => 1, 'unknown__foo' => 'bar'],
             $collection,
-            $this->factory,
         );
     }
 }

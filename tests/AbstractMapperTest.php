@@ -22,8 +22,8 @@ class AbstractMapperTest extends TestCase
 
     protected function setUp(): void
     {
-        $factory = new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\');
-        $this->mapper = new class ($factory) extends AbstractMapper {
+        $hydrator = new Nested(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $this->mapper = new class ($hydrator) extends AbstractMapper {
             public function flush(): void
             {
             }
@@ -37,11 +37,6 @@ class AbstractMapperTest extends TestCase
             public function fetchAll(Collection $collection, mixed $extra = null): array
             {
                 return [];
-            }
-
-            protected function defaultHydrator(Collection $collection): Hydrator
-            {
-                return new Nested();
             }
         };
     }
@@ -104,7 +99,7 @@ class AbstractMapperTest extends TestCase
     public function styleShouldComeFromEntityFactory(): void
     {
         $style = new CakePHP();
-        $mapper = new class (new EntityFactory(style: $style)) extends AbstractMapper {
+        $mapper = new class (new Nested(new EntityFactory(style: $style))) extends AbstractMapper {
             public function flush(): void
             {
             }
@@ -118,11 +113,6 @@ class AbstractMapperTest extends TestCase
             public function fetchAll(Collection $collection, mixed $extra = null): array
             {
                 return [];
-            }
-
-            protected function defaultHydrator(Collection $collection): Hydrator
-            {
-                return new Nested();
             }
         };
         $this->assertSame($style, $mapper->style);
@@ -223,7 +213,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function hydrationWiresRelatedEntity(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('comment', [
             ['id' => 1, 'text' => 'Hello', 'post_id' => 5],
         ]);
@@ -244,7 +236,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function persistAfterHydrationPreservesRelation(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('comment', [
             ['id' => 1, 'text' => 'Hello', 'post_id' => 5],
         ]);
@@ -269,7 +263,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function hydrationWithNoMatchLeavesRelationNull(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('comment', [
             ['id' => 1, 'text' => 'Hello', 'post_id' => 999],
         ]);
@@ -286,7 +282,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function hydrationWiresRelationWithStringPk(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('comment', [
             ['id' => 1, 'text' => 'Hello', 'post_id' => 5],
         ]);
@@ -304,7 +302,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function callingRegisteredCollectionClonesAndAppliesCondition(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('post', [
             ['id' => 1, 'title' => 'Hello'],
             ['id' => 2, 'title' => 'World'],
@@ -325,7 +325,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function callingRegisteredCollectionWithoutConditionReturnsClone(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $coll = Filtered::posts('title');
         $mapper->postTitles = $coll;
 
@@ -340,7 +342,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function callingRegisteredChainedCollectionDoesNotMutateTemplate(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('post', []);
         $mapper->seed('comment', []);
 
@@ -360,7 +364,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function filteredPersistDelegatesToParentCollection(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('post', []);
         $mapper->seed('author', []);
         $mapper->authorsWithPosts = Filtered::post()->author();
@@ -377,7 +383,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function filteredWithoutConnectsToFallsBackToNormalPersist(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('post', []);
 
         $post = new Stubs\Post();
@@ -392,7 +400,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function filteredUpdatePersistsOnlyFilteredColumns(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('post', [
             ['id' => 1, 'title' => 'Original', 'text' => 'Body'],
         ]);
@@ -414,7 +424,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function filteredInsertPersistsOnlyFilteredColumns(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('post', []);
 
         $postTitles = Filtered::post('title');
@@ -434,7 +446,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function filterColumnsPassesThroughForPlainCollection(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('post', [
             ['id' => 1, 'title' => 'Original', 'text' => 'Body'],
         ]);
@@ -455,7 +469,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function filterColumnsPassesThroughForEmptyFilters(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('post', [
             ['id' => 1, 'title' => 'Original', 'text' => 'Body'],
         ]);
@@ -478,7 +494,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function filterColumnsPassesThroughForIdentifierOnly(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('post', [
             ['id' => 1, 'title' => 'Original', 'text' => 'Body'],
         ]);
@@ -501,7 +519,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function fetchPopulatesIdentityMap(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('post', [
             ['id' => 1, 'title' => 'First'],
             ['id' => 2, 'title' => 'Second'],
@@ -519,7 +539,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function fetchReturnsCachedEntityFromIdentityMap(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('post', [
             ['id' => 1, 'title' => 'First'],
         ]);
@@ -533,7 +555,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function fetchAllPopulatesIdentityMap(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('post', [
             ['id' => 1, 'title' => 'First'],
             ['id' => 2, 'title' => 'Second'],
@@ -546,7 +570,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function flushInsertRegistersInIdentityMap(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('post', []);
 
         $entity = new Stubs\Post();
@@ -560,7 +586,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function flushDeleteEvictsFromIdentityMap(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('post', [
             ['id' => 1, 'title' => 'To Delete'],
         ]);
@@ -577,7 +605,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function clearIdentityMapEmptiesMap(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('post', [
             ['id' => 1, 'title' => 'First'],
         ]);
@@ -592,7 +622,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function resetDoesNotClearIdentityMap(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('post', [
             ['id' => 1, 'title' => 'First'],
         ]);
@@ -607,7 +639,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function pendingOperationTypes(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('post', [
             ['id' => 1, 'title' => 'Existing'],
         ]);
@@ -641,7 +675,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function trackedCountReflectsTrackedEntities(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('post', [
             ['id' => 1, 'title' => 'First'],
         ]);
@@ -655,7 +691,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function registerSkipsEntityWithNullCollectionName(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $entity = new Stubs\Foo();
         $entity->id = 1;
 
@@ -670,7 +708,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function registerSkipsEntityWithNoPkValue(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('post', []);
 
         // Entity with no 'id' set
@@ -686,7 +726,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function deleteEvictsUsingTrackedCollection(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('post', [
             ['id' => 1, 'title' => 'Test'],
         ]);
@@ -704,7 +746,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function findInIdentityMapSkipsNonScalarCondition(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('post', [
             ['id' => 1, 'title' => 'First'],
         ]);
@@ -721,7 +765,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function findInIdentityMapSkipsCollectionWithChildren(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('comment', [
             ['id' => 1, 'text' => 'Hello', 'post_id' => 5],
         ]);
@@ -737,7 +783,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function persistUntrackedEntityWithMatchingPkUpdates(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('post', [
             ['id' => 1, 'title' => 'Original'],
         ]);
@@ -767,7 +815,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function persistReadOnlyEntityInsertWorks(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('read_only_author', []);
 
         $entity = $mapper->entityFactory->create(Stubs\ReadOnlyAuthor::class, name: 'Alice');
@@ -781,7 +831,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function persistReadOnlyViaCollectionPkUpdates(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('read_only_author', [
             ['id' => 1, 'name' => 'Original', 'bio' => null],
         ]);
@@ -814,7 +866,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function persistReadOnlyViaCollectionPkFlushUpdatesStorage(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('read_only_author', [
             ['id' => 1, 'name' => 'Original', 'bio' => null],
         ]);
@@ -835,7 +889,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function identityMapReplaceEvictsOldEntity(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('read_only_author', [
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
@@ -853,7 +909,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function identityMapReplaceFallsBackToInsertWhenNoPkMatch(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('read_only_author', []);
 
         // No identity map entries — should insert
@@ -870,7 +928,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function identityMapReplaceDetachesPreviouslyPendingEntity(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('post', [
             ['id' => 1, 'title' => 'Original'],
         ]);
@@ -897,7 +957,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function identityMapReplaceSkipsSameEntity(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('post', [
             ['id' => 1, 'title' => 'Test'],
         ]);
@@ -917,7 +979,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function readOnlyNestedHydrationWiresRelation(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\',
+        )));
         $mapper->seed('comment', [
             ['id' => 1, 'text' => 'Great post', 'post_id' => 5],
         ]);
@@ -939,7 +1003,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function readOnlyNestedHydrationThreeLevels(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\',
+        )));
         $mapper->seed('comment', [
             ['id' => 1, 'text' => 'Nice', 'post_id' => 5],
         ]);
@@ -966,7 +1032,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function readOnlyInsertWithRelationExtractsFk(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\',
+        )));
         $mapper->seed('post', []);
         $mapper->seed('author', []);
 
@@ -1000,7 +1068,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function readOnlyReplaceViaCollectionPkPreservesRelation(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\',
+        )));
         $mapper->seed('post', [
             ['id' => 1, 'title' => 'Original', 'text' => 'Body', 'author_id' => 10],
         ]);
@@ -1035,7 +1105,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function readOnlyReplaceWithNewRelation(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\',
+        )));
         $mapper->seed('post', [
             ['id' => 1, 'title' => 'Original', 'text' => 'Body', 'author_id' => 10],
         ]);
@@ -1070,7 +1142,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function partialEntityPersistAutoUpdatesViaIdentityMap(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\',
+        )));
         $mapper->seed('post', [
             ['id' => 1, 'title' => 'Original', 'text' => 'Body', 'author_id' => 10],
         ]);
@@ -1097,7 +1171,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function readOnlyMultipleEntitiesFetchAllTracksAll(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\',
+        )));
         $mapper->seed('author', [
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
             ['id' => 2, 'name' => 'Bob', 'bio' => null],
@@ -1125,7 +1201,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function identityMapReplaceSkipsSetWhenPkAlreadyInitialized(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\',
+        )));
         $mapper->seed('author', [
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
@@ -1145,7 +1223,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function persistReturnsEntity(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
 
         // Insert path
         $entity = new Stubs\Post();
@@ -1162,7 +1242,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function readOnlyDeleteEvictsFromIdentityMap(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\',
+        )));
         $mapper->seed('author', [
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
@@ -1184,7 +1266,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function persistPartialEntityOnPendingInsertMergesViaIdentityMap(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\',
+        )));
         $mapper->seed('author', []);
 
         $author = $mapper->entityFactory->create(Stubs\Immutable\Author::class, id: 1, name: 'Alice');
@@ -1203,7 +1287,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function persistPartialEntityOnTrackedUpdateMerges(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\',
+        )));
         $mapper->seed('author', [
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
@@ -1223,7 +1309,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function mutableMergeAppliesOverlayPropertiesToExisting(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('author', [
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
@@ -1250,7 +1338,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function readOnlyMergeNoDiffReturnsSameEntity(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\',
+        )));
         $mapper->seed('author', [
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
@@ -1269,7 +1359,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function identityMapLookupNormalizesNumericStringCondition(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('author', [
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
@@ -1284,7 +1376,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function identityMapLookupReturnsNullForNonScalarCondition(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('author', [
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
@@ -1299,7 +1393,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function mutableMergeTracksExistingWhenNotYetTracked(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
         $mapper->seed('author', [
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
@@ -1328,7 +1424,9 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function mergeWithIdentityMapNormalizesConditionFallback(): void
     {
-        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\',
+        )));
         $mapper->seed('author', [
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
