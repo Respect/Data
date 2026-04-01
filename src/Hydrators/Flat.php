@@ -17,7 +17,7 @@ use function count;
 use function is_array;
 
 /**
- * Decomposes a flat row into multiple entity instances using PK boundaries.
+ * Decomposes a flat row into multiple entity instances using identity boundaries.
  *
  * Subclasses define how column names are resolved from the raw data format.
  */
@@ -75,7 +75,7 @@ abstract class Flat extends Base
     /** Resolve the column name for a given reference (numeric index, namespaced key, etc.) */
     abstract protected function resolveColumnName(mixed $reference, mixed $raw): string;
 
-    /** Check if this column is the last one for the current entity (table boundary without PK) */
+    /** Check if this column is the last one for the current entity (boundary without identity) */
     protected function isEntityBoundary(mixed $col, mixed $raw): bool
     {
         return false;
@@ -95,16 +95,22 @@ abstract class Flat extends Base
 
         foreach ($entities as $entity) {
             $coll = $entities[$entity];
-            $entityName = $coll->resolveEntityName($entityFactory, $entity);
-            $defaultName = (string) $coll->name;
 
-            if ($entityName === $defaultName) {
+            $defaultClass = $entityFactory->resolveClass((string) $coll->name);
+            $entityClass = $this->resolveEntityClass($coll, $entityFactory, $entity);
+
+            if ($entityClass === $defaultClass) {
                 $resolved[$entity] = $coll;
 
                 continue;
             }
 
-            $resolved[$entityFactory->hydrate($entity, $entityName)] = $coll;
+            $typed = $entityFactory->create($entityClass);
+            foreach ($entityFactory->extractProperties($entity) as $name => $value) {
+                $entityFactory->set($typed, $name, $value);
+            }
+
+            $resolved[$typed] = $coll;
         }
 
         return $resolved;
@@ -127,7 +133,7 @@ abstract class Flat extends Base
                 continue;
             }
 
-            $entityInstance = $entityFactory->createByName($c->name);
+            $entityInstance = $entityFactory->create($entityFactory->resolveClass($c->name));
 
             if ($c instanceof Composite) {
                 $compositionCount = count($c->compositions);

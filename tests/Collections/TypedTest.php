@@ -40,18 +40,18 @@ class TypedTest extends TestCase
     }
 
     #[Test]
-    public function resolveEntityNameReturnsDiscriminatorValue(): void
+    public function resolveEntityClassReturnsDiscriminatorClass(): void
     {
+        $factory = new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\');
         $coll = Typed::issues('type');
-        $factory = new EntityFactory();
-        $this->assertEquals('Bug', $coll->resolveEntityName($factory, ['type' => 'Bug']));
+        $this->assertEquals('Respect\\Data\\Stubs\\Bug', $coll->resolveEntityClass($factory, ['type' => 'Bug']));
     }
 
     #[Test]
-    public function resolveEntityNameFallsBackToCollectionName(): void
+    public function resolveEntityClassFallsBackToCollectionName(): void
     {
-        $coll = Typed::issues('type');
-        $factory = new EntityFactory();
-        $this->assertEquals('issues', $coll->resolveEntityName($factory, []));
+        $factory = new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\');
+        $coll = Typed::issue('type');
+        $this->assertEquals('Respect\\Data\\Stubs\\Issue', $coll->resolveEntityClass($factory, []));
     }
 }

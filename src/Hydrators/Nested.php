@@ -45,8 +45,9 @@ final class Nested extends Base
         EntityFactory $entityFactory,
         SplObjectStorage $entities,
     ): void {
-        $entityName = $collection->resolveEntityName($entityFactory, $data);
-        $entity = $entityFactory->createByName($entityName);
+        $entity = $entityFactory->create(
+            $this->resolveEntityClass($collection, $entityFactory, $data),
+        );
 
         foreach ($data as $key => $value) {
             if (is_array($value)) {

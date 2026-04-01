@@ -64,12 +64,12 @@ final class InMemoryMapper extends AbstractMapper
             $op = $this->pending[$entity];
             $collection = $this->tracked[$entity];
             $tableName = (string) $collection->name;
-            $pk = $this->style->identifier($tableName);
+            $id = $this->style->identifier($tableName);
 
             match ($op) {
-                'insert' => $this->insertEntity($entity, $collection, $tableName, $pk),
-                'update' => $this->updateEntity($entity, $collection, $tableName, $pk),
-                'delete' => $this->deleteEntity($entity, $tableName, $pk),
+                'insert' => $this->insertEntity($entity, $collection, $tableName, $id),
+                'update' => $this->updateEntity($entity, $collection, $tableName, $id),
+                'delete' => $this->deleteEntity($entity, $tableName, $id),
                 default  => null,
             };
 
@@ -88,32 +88,32 @@ final class InMemoryMapper extends AbstractMapper
         return new Nested();
     }
 
-    private function insertEntity(object $entity, Collection $collection, string $tableName, string $pk): void
+    private function insertEntity(object $entity, Collection $collection, string $tableName, string $id): void
     {
         $row = $this->filterColumns(
             $this->entityFactory->extractColumns($entity),
             $collection,
         );
 
-        if (!isset($row[$pk])) {
+        if (!isset($row[$id])) {
             ++$this->lastInsertId;
-            $this->entityFactory->set($entity, $pk, $this->lastInsertId);
-            $row[$pk] = $this->lastInsertId;
+            $this->entityFactory->set($entity, $id, $this->lastInsertId);
+            $row[$id] = $this->lastInsertId;
         }
 
         $this->tables[$tableName][] = $row;
     }
 
-    private function updateEntity(object $entity, Collection $collection, string $tableName, string $pk): void
+    private function updateEntity(object $entity, Collection $collection, string $tableName, string $id): void
     {
-        $pkValue = $this->entityFactory->get($entity, $pk);
+        $idValue = $this->entityFactory->get($entity, $id);
         $row = $this->filterColumns(
             $this->entityFactory->extractColumns($entity),
             $collection,
         );
 
         foreach ($this->tables[$tableName] as $index => $existing) {
-            if (isset($existing[$pk]) && $existing[$pk] == $pkValue) {
+            if (isset($existing[$id]) && $existing[$id] == $idValue) {
                 $this->tables[$tableName][$index] = array_merge($existing, $row);
 
                 break;
@@ -121,13 +121,13 @@ final class InMemoryMapper extends AbstractMapper
         }
     }
 
-    private function deleteEntity(object $entity, string $tableName, string $pk): void
+    private function deleteEntity(object $entity, string $tableName, string $id): void
     {
-        $pkValue = $this->entityFactory->get($entity, $pk);
+        $idValue = $this->entityFactory->get($entity, $id);
         $rows = $this->tables[$tableName];
 
         foreach ($rows as $index => $existing) {
-            if (isset($existing[$pk]) && $existing[$pk] == $pkValue) {
+            if (isset($existing[$id]) && $existing[$id] == $idValue) {
                 unset($rows[$index]);
                 /** @var list<array<string, mixed>> $reindexed */
                 $reindexed = array_values($rows);
@@ -174,14 +174,14 @@ final class InMemoryMapper extends AbstractMapper
     private function attachChild(array &$parentRow, Collection $child): void
     {
         $childName = (string) $child->name;
-        $fkValue = $parentRow[$this->style->remoteIdentifier($childName)] ?? null;
+        $refValue = $parentRow[$this->style->remoteIdentifier($childName)] ?? null;
 
-        if ($fkValue === null) {
+        if ($refValue === null) {
             return;
         }
 
-        $pk = $this->style->identifier($childName);
-        $childRow = $this->findRowByPk($childName, $pk, $fkValue);
+        $id = $this->style->identifier($childName);
+        $childRow = $this->findRowById($childName, $id, $refValue);
 
         if ($childRow === null) {
             return;
@@ -209,20 +209,20 @@ final class InMemoryMapper extends AbstractMapper
             return $rows;
         }
 
-        $pk = $this->style->identifier($table);
-        $pkValue = is_array($condition) ? reset($condition) : $condition;
+        $id = $this->style->identifier($table);
+        $idValue = is_array($condition) ? reset($condition) : $condition;
 
         return array_values(array_filter(
             $rows,
-            static fn(array $row): bool => isset($row[$pk]) && $row[$pk] == $pkValue,
+            static fn(array $row): bool => isset($row[$id]) && $row[$id] == $idValue,
         ));
     }
 
     /** @return array<string, mixed>|null */
-    private function findRowByPk(string $table, string $pk, mixed $pkValue): array|null
+    private function findRowById(string $table, string $id, mixed $idValue): array|null
     {
         foreach ($this->tables[$table] ?? [] as $row) {
-            if (isset($row[$pk]) && $row[$pk] == $pkValue) {
+            if (isset($row[$id]) && $row[$id] == $idValue) {
                 return $row;
             }
         }

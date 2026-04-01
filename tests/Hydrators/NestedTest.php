@@ -59,7 +59,8 @@ class NestedTest extends TestCase
             'title' => 'Post Title',
             'author' => ['id' => 5, 'name' => 'Author'],
         ];
-        $collection = Collection::post()->author;
+        $collection = Collection::post();
+        $collection->stack(Collection::author());
 
         $result = $this->hydrator->hydrate($raw, $collection, $this->factory);
 
@@ -71,7 +72,8 @@ class NestedTest extends TestCase
     public function hydrateWithMissingNestedKeyReturnsPartial(): void
     {
         $raw = ['id' => 1, 'title' => 'Post Title'];
-        $collection = Collection::post()->author;
+        $collection = Collection::post();
+        $collection->stack(Collection::author());
 
         $result = $this->hydrator->hydrate($raw, $collection, $this->factory);
 
@@ -91,7 +93,10 @@ class NestedTest extends TestCase
                 'author' => ['id' => 100, 'name' => 'Author'],
             ],
         ];
-        $collection = Collection::comment()->post->author;
+        $collection = Collection::comment();
+        $post = Collection::post();
+        $post->stack(Collection::author());
+        $collection->stack($post);
 
         $result = $this->hydrator->hydrate($raw, $collection, $this->factory);
 
@@ -108,7 +113,9 @@ class NestedTest extends TestCase
             'author' => ['id' => 5, 'name' => 'Author'],
             'category' => ['id' => 3, 'label' => 'Tech'],
         ];
-        $collection = Collection::post(Collection::author(), Collection::category());
+        $authorColl = Collection::author();
+        $categoryColl = Collection::category();
+        $collection = Collection::post($authorColl, $categoryColl);
 
         $result = $this->hydrator->hydrate($raw, $collection, $this->factory);
 
@@ -133,7 +140,8 @@ class NestedTest extends TestCase
     {
         $raw = ['id' => 1];
         $child = new Collection();
-        $collection = Collection::post($child);
+        $collection = Collection::post();
+        $collection->addChild($child);
 
         $result = $this->hydrator->hydrate($raw, $collection, $this->factory);
 
@@ -145,7 +153,8 @@ class NestedTest extends TestCase
     public function hydrateScalarNestedValueIsIgnored(): void
     {
         $raw = ['id' => 1, 'author' => 'not-an-array'];
-        $collection = Collection::post()->author;
+        $collection = Collection::post();
+        $collection->stack(Collection::author());
 
         $result = $this->hydrator->hydrate($raw, $collection, $this->factory);
 

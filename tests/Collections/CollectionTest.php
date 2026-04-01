@@ -10,6 +10,8 @@ use PHPUnit\Framework\TestCase;
 use Respect\Data\AbstractMapper;
 use Respect\Data\EntityFactory;
 use Respect\Data\Hydrators\Nested;
+use Respect\Data\InMemoryMapper;
+use Respect\Data\Stubs;
 use Respect\Data\Stubs\Foo;
 use RuntimeException;
 
@@ -184,9 +186,10 @@ class CollectionTest extends TestCase
         $mapperMock->expects($this->once())
             ->method('persist')
             ->with($persisted, $collection)
-            ->willReturn(true);
+            ->willReturn($persisted);
         $collection->mapper = $mapperMock;
-        $collection->persist($persisted);
+        $result = $collection->persist($persisted);
+        $this->assertSame($persisted, $result);
     }
 
     #[Test]
@@ -333,18 +336,94 @@ class CollectionTest extends TestCase
     }
 
     #[Test]
-    public function resolveEntityNameReturnsCollectionName(): void
+    public function persistWithoutChangesReturnsSameEntity(): void
     {
-        $coll = Collection::author();
-        $factory = new EntityFactory();
-        $this->assertEquals('author', $coll->resolveEntityName($factory, new Foo()));
+        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper->seed('author', []);
+
+        $entity = $mapper->entityFactory->create(Stubs\Immutable\Author::class, name: 'Alice');
+        $result = $mapper->author->persist($entity);
+        $this->assertSame($entity, $result);
     }
 
     #[Test]
-    public function resolveEntityNameReturnsEmptyForNullName(): void
+    public function persistWithChangesReturnsModifiedCopy(): void
     {
-        $coll = new Collection();
-        $factory = new EntityFactory();
-        $this->assertEquals('', $coll->resolveEntityName($factory, new Foo()));
+        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper->seed('author', [
+            ['id' => 1, 'name' => 'Alice', 'bio' => null],
+        ]);
+
+        $fetched = $mapper->author[1]->fetch();
+
+        $result = $mapper->author[1]->persist($fetched, name: 'Bob');
+
+        $this->assertNotSame($fetched, $result);
+        $this->assertSame('Bob', $result->name);
+        $this->assertSame(1, $result->id);
+        $this->assertSame('Alice', $fetched->name);
+    }
+
+    #[Test]
+    public function persistWithChangesFlushesUpdate(): void
+    {
+        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper->seed('author', [
+            ['id' => 1, 'name' => 'Alice', 'bio' => null],
+        ]);
+
+        $fetched = $mapper->author[1]->fetch();
+        $mapper->author[1]->persist($fetched, name: 'Bob', bio: 'Writer');
+        $mapper->flush();
+
+        $mapper->clearIdentityMap();
+        $refetched = $mapper->author[1]->fetch();
+        $this->assertSame('Bob', $refetched->name);
+        $this->assertSame('Writer', $refetched->bio);
+    }
+
+    #[Test]
+    public function persistWithChangesOnGraphUpdatesRelation(): void
+    {
+        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper->seed('post', [
+            ['id' => 1, 'title' => 'Original', 'text' => 'Body', 'author_id' => 10],
+        ]);
+        $mapper->seed('author', [
+            ['id' => 10, 'name' => 'Alice', 'bio' => null],
+            ['id' => 20, 'name' => 'Bob', 'bio' => null],
+        ]);
+
+        $post = $mapper->post->author->fetch();
+        $bob = $mapper->author[20]->fetch();
+
+        $updated = $mapper->post->persist($post, title: 'Changed', author: $bob);
+        $mapper->flush();
+
+        $this->assertSame(1, $updated->id);
+
+        $mapper->clearIdentityMap();
+        $refetched = $mapper->post->author->fetch();
+        $this->assertSame('Changed', $refetched->title);
+        $this->assertSame('Bob', $refetched->author->name);
+    }
+
+    #[Test]
+    public function persistWithChangesNullValueApplied(): void
+    {
+        $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
+        $mapper->seed('author', [
+            ['id' => 1, 'name' => 'Alice', 'bio' => 'has bio'],
+        ]);
+
+        $fetched = $mapper->author[1]->fetch();
+        $this->assertSame('has bio', $fetched->bio);
+
+        $mapper->author[1]->persist($fetched, bio: null);
+        $mapper->flush();
+
+        $mapper->clearIdentityMap();
+        $refetched = $mapper->author[1]->fetch();
+        $this->assertNull($refetched->bio);
     }
 }

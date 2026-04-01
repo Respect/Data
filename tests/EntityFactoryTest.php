@@ -11,33 +11,35 @@ use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
 use stdClass;
 
+use function assert;
+
 #[CoversClass(EntityFactory::class)]
+#[CoversClass(ReadOnlyViolation::class)]
 class EntityFactoryTest extends TestCase
 {
     #[Test]
-    public function createByNameThrowsForUnknownClass(): void
+    public function resolveClassThrowsForUnknownClass(): void
     {
         $factory = new EntityFactory();
         $this->expectException(DomainException::class);
-        $factory->createByName('nonexistent_table');
+        $factory->resolveClass('nonexistent_table');
     }
 
     #[Test]
-    public function createByNameReturnsCorrectClassWhenFound(): void
+    public function resolveClassReturnsCorrectClassWhenFound(): void
     {
         $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
-        $entity = $factory->createByName('typed_entity');
-        $this->assertInstanceOf(Stubs\TypedEntity::class, $entity);
+        $class = $factory->resolveClass('typed_entity');
+        $this->assertSame(Stubs\TypedEntity::class, $class);
     }
 
     #[Test]
-    public function createByNameWithDisabledConstructorSkipsConstructor(): void
+    public function createWithResolvedClassSkipsConstructor(): void
     {
         $factory = new EntityFactory(
             entityNamespace: __NAMESPACE__ . '\\Stubs\\',
-            disableConstructor: true,
         );
-        $entity = $factory->createByName('typed_entity');
+        $entity = $factory->create($factory->resolveClass('typed_entity'));
         $this->assertInstanceOf(Stubs\TypedEntity::class, $entity);
         $this->assertNull($entity->value);
     }
@@ -46,7 +48,7 @@ class EntityFactoryTest extends TestCase
     public function setAndGetWorkOnTypedProperties(): void
     {
         $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
-        $entity = $factory->createByName('typed_entity');
+        $entity = $factory->create($factory->resolveClass('typed_entity'));
         $factory->set($entity, 'value', 'hello');
         $this->assertEquals('hello', $factory->get($entity, 'value'));
     }
@@ -72,7 +74,7 @@ class EntityFactoryTest extends TestCase
     public function extractPropertiesReturnsAllProperties(): void
     {
         $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
-        $entity = $factory->createByName('typed_entity');
+        $entity = $factory->create($factory->resolveClass('typed_entity'));
         $factory->set($entity, 'value', 'test');
         $props = $factory->extractProperties($entity);
         $this->assertArrayHasKey('value', $props);
@@ -83,7 +85,7 @@ class EntityFactoryTest extends TestCase
     public function extractPropertiesRespectsNotPersistableAttribute(): void
     {
         $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
-        $entity = $factory->createByName('entity_with_excluded');
+        $entity = $factory->create($factory->resolveClass('entity_with_excluded'));
         $factory->set($entity, 'name', 'visible');
         $props = $factory->extractProperties($entity);
         $this->assertArrayHasKey('name', $props);
@@ -91,26 +93,34 @@ class EntityFactoryTest extends TestCase
     }
 
     #[Test]
-    public function hydrateCreatesEntityWithSourceProperties(): void
+    public function createAndCopyPropertiesReproducesEntity(): void
     {
         $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
         $source = new Stubs\Author();
         $source->id = 1;
         $source->name = 'test';
-        $entity = $factory->hydrate($source, 'author');
+        $entity = $factory->create($factory->resolveClass('author'));
+        foreach ($factory->extractProperties($source) as $name => $value) {
+            $factory->set($entity, $name, $value);
+        }
+
         $this->assertEquals(1, $factory->get($entity, 'id'));
         $this->assertEquals('test', $factory->get($entity, 'name'));
     }
 
     #[Test]
-    public function hydrateSkipsUninitializedSourceProperties(): void
+    public function createAndCopySkipsUninitializedSourceProperties(): void
     {
         $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
         $source = new Stubs\Post();
         $source->id = 1;
         $source->title = 'Test';
-        // $source->author is uninitialized — should not be copied
-        $entity = $factory->hydrate($source, 'post');
+        // $source->author is uninitialized — extractProperties skips it
+        $entity = $factory->create($factory->resolveClass('post'));
+        foreach ($factory->extractProperties($source) as $name => $value) {
+            $factory->set($entity, $name, $value);
+        }
+
         $this->assertEquals(1, $factory->get($entity, 'id'));
         $this->assertEquals('Test', $factory->get($entity, 'title'));
         $this->assertNull($factory->get($entity, 'author'));
@@ -128,7 +138,7 @@ class EntityFactoryTest extends TestCase
     public function extractPropertiesSkipsStaticProperties(): void
     {
         $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
-        $entity = $factory->createByName('edge_case_entity');
+        $entity = $factory->create($factory->resolveClass('edge_case_entity'));
         $props = $factory->extractProperties($entity);
         $this->assertArrayNotHasKey('static', $props);
     }
@@ -137,7 +147,7 @@ class EntityFactoryTest extends TestCase
     public function extractPropertiesSkipsUninitializedProperties(): void
     {
         $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
-        $entity = $factory->createByName('edge_case_entity');
+        $entity = $factory->create($factory->resolveClass('edge_case_entity'));
         $props = $factory->extractProperties($entity);
         $this->assertArrayHasKey('initialized', $props);
         $this->assertArrayNotHasKey('uninitialized', $props);
@@ -147,7 +157,7 @@ class EntityFactoryTest extends TestCase
     public function extractPropertiesIncludesNonPublicProperties(): void
     {
         $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
-        $entity = $factory->createByName('edge_case_entity');
+        $entity = $factory->create($factory->resolveClass('edge_case_entity'));
         $props = $factory->extractProperties($entity);
         $this->assertEquals('prot_val', $props['protected']);
         $this->assertEquals('priv_val', $props['private']);
@@ -157,7 +167,7 @@ class EntityFactoryTest extends TestCase
     public function getReturnsNullForUninitializedTypedProperty(): void
     {
         $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
-        $entity = $factory->createByName('edge_case_entity');
+        $entity = $factory->create($factory->resolveClass('edge_case_entity'));
         $this->assertNull($factory->get($entity, 'uninitialized'));
     }
 
@@ -294,5 +304,236 @@ class EntityFactoryTest extends TestCase
         // lossy pass coerces '42' → 42 (int branch wins)
         $factory->set($entity, 'narrow_union', '42');
         $this->assertSame(42, $entity->narrowUnion);
+    }
+
+    #[Test]
+    public function isReadOnlyDetectsReadOnlyClass(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
+        $this->assertTrue($factory->isReadOnly($factory->create(Stubs\ReadOnlyAuthor::class, name: 'test')));
+        $this->assertFalse($factory->isReadOnly(new Stubs\Author()));
+    }
+
+    #[Test]
+    public function resolveClassAutoDetectsReadOnly(): void
+    {
+        $factory = new EntityFactory(
+            entityNamespace: __NAMESPACE__ . '\\Stubs\\',
+        );
+        $class = $factory->resolveClass('read_only_author');
+        $this->assertSame(Stubs\ReadOnlyAuthor::class, $class);
+        $entity = $factory->create($class);
+        $this->assertInstanceOf(Stubs\ReadOnlyAuthor::class, $entity);
+        $ref = new ReflectionProperty($entity, 'name');
+        $this->assertFalse($ref->isInitialized($entity));
+    }
+
+    #[Test]
+    public function setOnUninitializedReadOnlyPropertySucceeds(): void
+    {
+        $factory = new EntityFactory(
+            entityNamespace: __NAMESPACE__ . '\\Stubs\\',
+        );
+        $entity = $factory->create($factory->resolveClass('read_only_author'));
+        assert($entity instanceof Stubs\ReadOnlyAuthor);
+        $factory->set($entity, 'id', 42);
+        $factory->set($entity, 'name', 'Alice');
+        $this->assertSame(42, $entity->id);
+        $this->assertSame('Alice', $entity->name);
+    }
+
+    #[Test]
+    public function setOnInitializedReadOnlyPropertyThrowsReadOnlyViolation(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
+        $entity = new Stubs\ReadOnlyAuthor(id: 1, name: 'Alice');
+
+        $this->expectException(ReadOnlyViolation::class);
+        $this->expectExceptionMessage('Cannot modify readonly property');
+        $factory->set($entity, 'name', 'Bob');
+    }
+
+    #[Test]
+    public function extractPropertiesWorksOnReadOnlyEntity(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
+        $entity = new Stubs\ReadOnlyAuthor(id: 5, name: 'Alice', bio: 'bio text');
+
+        $props = $factory->extractProperties($entity);
+        $this->assertEquals(['id' => 5, 'name' => 'Alice', 'bio' => 'bio text'], $props);
+    }
+
+    #[Test]
+    public function extractColumnsResolvesReadOnlyRelationFk(): void
+    {
+        $factory = new EntityFactory(
+            entityNamespace: __NAMESPACE__ . '\\Stubs\\Immutable\\',
+        );
+
+        $author = new Stubs\Immutable\Author(id: 3, name: 'Alice');
+
+        $post = $factory->create($factory->resolveClass('post'));
+        $factory->set($post, 'id', 10);
+        $factory->set($post, 'title', 'Test');
+        $factory->set($post, 'author', $author);
+
+        $cols = $factory->extractColumns($post);
+        $this->assertEquals(3, $cols['author_id']);
+        $this->assertArrayNotHasKey('author', $cols);
+        $this->assertEquals(10, $cols['id']);
+        $this->assertEquals('Test', $cols['title']);
+    }
+
+    #[Test]
+    public function withChangesCreatesModifiedCopy(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
+        $entity = new Stubs\ReadOnlyAuthor(id: 1, name: 'Alice', bio: 'bio');
+
+        $copy = $factory->withChanges($entity, name: 'Bob');
+        assert($copy instanceof Stubs\ReadOnlyAuthor);
+
+        $this->assertSame(1, $copy->id);
+        $this->assertSame('Bob', $copy->name);
+        $this->assertSame('bio', $copy->bio);
+        $this->assertSame('Alice', $entity->name);
+    }
+
+    #[Test]
+    public function withChangesPreservesPkForIdentityMapLookup(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\Immutable\\');
+
+        $author = new Stubs\Immutable\Author(id: 5, name: 'Alice');
+
+        $post = new Stubs\Immutable\Post(id: 10, title: 'Hello', text: 'World', author: $author);
+
+        $bob = new Stubs\Immutable\Author(id: 6, name: 'Bob');
+
+        $copy = $factory->withChanges($post, title: 'Changed', author: $bob);
+        assert($copy instanceof Stubs\Immutable\Post);
+
+        $this->assertSame(10, $copy->id);
+        $this->assertSame('Changed', $copy->title);
+        $this->assertSame('World', $copy->text);
+        $this->assertInstanceOf(Stubs\Immutable\Author::class, $copy->author);
+        $this->assertSame('Bob', $copy->author->name);
+        $this->assertSame(6, $copy->author->id);
+    }
+
+    #[Test]
+    public function withChangesWorksOnMutableEntities(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
+        $author = new Stubs\Author();
+        $author->id = 1;
+        $author->name = 'Alice';
+        $author->bio = 'bio';
+
+        $copy = $factory->withChanges($author, name: 'Bob');
+        assert($copy instanceof Stubs\Author);
+        $this->assertSame(1, $copy->id);
+        $this->assertSame('Bob', $copy->name);
+        $this->assertSame('bio', $copy->bio);
+    }
+
+    #[Test]
+    public function withChangesThrowsOnUnknownProperty(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
+        $entity = new Stubs\ReadOnlyAuthor(id: 1, name: 'Alice');
+
+        $this->expectException(DomainException::class);
+        $this->expectExceptionMessage('Unknown properties');
+        $factory->withChanges($entity, nname: 'Bob');
+    }
+
+    #[Test]
+    public function withChangesAppliesNullValue(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
+        $entity = new Stubs\ReadOnlyAuthor(id: 1, name: 'Alice', bio: 'has bio');
+
+        $copy = $factory->withChanges($entity, bio: null);
+        assert($copy instanceof Stubs\ReadOnlyAuthor);
+        $this->assertNull($copy->bio);
+        $this->assertSame('Alice', $copy->name);
+        $this->assertSame(1, $copy->id);
+    }
+
+    #[Test]
+    public function withChangesPreservesUninitializedProperties(): void
+    {
+        $factory = new EntityFactory(
+            entityNamespace: __NAMESPACE__ . '\\Stubs\\',
+        );
+
+        $entity = $factory->create($factory->resolveClass('read_only_author'));
+        $factory->set($entity, 'name', 'Alice');
+        // $id and $bio are uninitialized
+
+        $copy = $factory->withChanges($entity, name: 'Bob');
+        assert($copy instanceof Stubs\ReadOnlyAuthor);
+        $this->assertSame('Bob', $copy->name);
+        $this->assertFalse((new ReflectionProperty($copy, 'id'))->isInitialized($copy));
+        $this->assertFalse((new ReflectionProperty($copy, 'bio'))->isInitialized($copy));
+    }
+
+    #[Test]
+    public function withChangesWithEmptyChangesReturnsCopy(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
+        $entity = new Stubs\ReadOnlyAuthor(id: 1, name: 'Alice', bio: 'bio');
+
+        $copy = $factory->withChanges($entity);
+        assert($copy instanceof Stubs\ReadOnlyAuthor);
+        $this->assertNotSame($entity, $copy);
+        $this->assertSame(1, $copy->id);
+        $this->assertSame('Alice', $copy->name);
+        $this->assertSame('bio', $copy->bio);
+    }
+
+    #[Test]
+    public function createAndCopyWorksOnReadOnlyEntity(): void
+    {
+        $factory = new EntityFactory(
+            entityNamespace: __NAMESPACE__ . '\\Stubs\\',
+        );
+
+        $source = $factory->create($factory->resolveClass('read_only_author'));
+        assert($source instanceof Stubs\ReadOnlyAuthor);
+        $factory->set($source, 'id', 1);
+        $factory->set($source, 'name', 'Source');
+
+        $entity = $factory->create($factory->resolveClass('read_only_author'));
+        foreach ($factory->extractProperties($source) as $name => $value) {
+            $factory->set($entity, $name, $value);
+        }
+
+        assert($entity instanceof Stubs\ReadOnlyAuthor);
+        $this->assertSame(1, $entity->id);
+        $this->assertSame('Source', $entity->name);
+    }
+
+    #[Test]
+    public function withChangesCoercesTypes(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
+        $entity = new Stubs\ReadOnlyAuthor(id: 1, name: 'Alice');
+
+        $copy = $factory->withChanges($entity, name: 42);
+        assert($copy instanceof Stubs\ReadOnlyAuthor);
+        $this->assertSame('42', $copy->name);
+    }
+
+    #[Test]
+    public function withChangesThrowsOnInvalidValue(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
+        $entity = new Stubs\ReadOnlyAuthor(id: 1, name: 'Alice');
+
+        $this->expectException(DomainException::class);
+        $this->expectExceptionMessage('Invalid value');
+        $factory->withChanges($entity, name: null);
     }
 }
