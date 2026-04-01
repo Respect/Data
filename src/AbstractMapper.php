@@ -10,8 +10,8 @@ use SplObjectStorage;
 
 use function array_flip;
 use function array_intersect_key;
-use function assert;
 use function count;
+use function ctype_digit;
 use function is_int;
 use function is_scalar;
 use function is_string;
@@ -96,8 +96,9 @@ abstract class AbstractMapper
             return $object;
         }
 
-        if ($onCollection->name !== null && $this->tryReplaceFromIdentityMap($object, $onCollection)) {
-            return $object;
+        $merged = $this->tryMergeWithIdentityMap($object, $onCollection);
+        if ($merged !== null) {
+            return $merged;
         }
 
         $this->pending[$object] = 'insert';
@@ -202,31 +203,30 @@ abstract class AbstractMapper
             return null;
         }
 
-        $condition = $collection->condition;
-        if (!is_int($condition) && !is_string($condition)) {
+        $condition = $this->normalizeIdValue($collection->condition);
+        if ($condition === null) {
             return null;
         }
 
         return $this->identityMap[$collection->name][$condition] ?? null;
     }
 
-    private function tryReplaceFromIdentityMap(object $entity, Collection $coll): bool
+    private function tryMergeWithIdentityMap(object $entity, Collection $coll): object|null
     {
-        assert($coll->name !== null);
-        $entityId = $this->entityIdValue($entity, $coll->name);
-        $idValue = $entityId;
-
-        if ($idValue === null && is_scalar($coll->condition)) {
-            $idValue = $coll->condition;
+        if ($coll->name === null) {
+            return null;
         }
 
-        if ($idValue === null || (!is_int($idValue) && !is_string($idValue))) {
-            return false;
+        $entityId = $this->entityIdValue($entity, $coll->name);
+        $idValue = $entityId ?? $this->normalizeIdValue($coll->condition);
+
+        if ($idValue === null) {
+            return null;
         }
 
         $existing = $this->identityMap[$coll->name][$idValue] ?? null;
         if ($existing === null || $existing === $entity) {
-            return false;
+            return null;
         }
 
         if ($entityId === null) {
@@ -234,21 +234,53 @@ abstract class AbstractMapper
             $this->entityFactory->set($entity, $idName, $idValue);
         }
 
-        $this->tracked->offsetUnset($existing);
-        $this->pending->offsetUnset($existing);
-        $this->evictFromIdentityMap($existing, $coll);
-        $this->markTracked($entity, $coll);
-        $this->registerInIdentityMap($entity, $coll);
-        $this->pending[$entity] = 'update';
+        if ($this->entityFactory->isReadOnly($existing)) {
+            $merged = $this->entityFactory->mergeEntities($existing, $entity);
 
-        return true;
+            if ($merged !== $existing) {
+                $this->tracked->offsetUnset($existing);
+                $this->pending->offsetUnset($existing);
+                $this->evictFromIdentityMap($existing, $coll);
+                $this->markTracked($merged, $coll);
+                $this->registerInIdentityMap($merged, $coll);
+            }
+
+            $this->pending[$merged] = 'update';
+
+            return $merged;
+        }
+
+        foreach ($this->entityFactory->extractProperties($entity) as $prop => $value) {
+            $this->entityFactory->set($existing, $prop, $value);
+        }
+
+        if (!$this->isTracked($existing)) {
+            $this->markTracked($existing, $coll);
+        }
+
+        $this->pending[$existing] = 'update';
+
+        return $existing;
     }
 
     private function entityIdValue(object $entity, string $collName): int|string|null
     {
-        $idValue = $this->entityFactory->get($entity, $this->style->identifier($collName));
+        return $this->normalizeIdValue(
+            $this->entityFactory->get($entity, $this->style->identifier($collName)),
+        );
+    }
 
-        return is_int($idValue) || is_string($idValue) ? $idValue : null;
+    private function normalizeIdValue(mixed $value): int|string|null
+    {
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (is_string($value)) {
+            return ctype_digit($value) ? (int) $value : $value;
+        }
+
+        return null;
     }
 
     public function __get(string $name): Collection
