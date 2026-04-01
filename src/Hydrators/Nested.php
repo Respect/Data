@@ -59,8 +59,8 @@ final class Nested extends Base
 
         $entities[$entity] = $collection;
 
-        if ($collection->next !== null) {
-            $this->hydrateChild($data, $collection->next, $entityFactory, $entities);
+        if ($collection->connectsTo !== null) {
+            $this->hydrateChild($data, $collection->connectsTo, $entityFactory, $entities);
         }
 
         foreach ($collection->children as $child) {

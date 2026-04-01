@@ -21,7 +21,7 @@ class TypedTest extends TestCase
         $children2 = Typed::baz('b')->bat();
         $coll = Collection::foo($children1, $children2)->bar();
         $this->assertInstanceOf(Collection::class, $coll);
-        $this->assertInstanceOf(Collection::class, $coll->next);
+        $this->assertInstanceOf(Collection::class, $coll->connectsTo);
         $this->assertInstanceOf(Typed::class, $children1);
         $this->assertInstanceOf(Typed::class, $children2);
         $this->assertTrue($coll->hasChildren);

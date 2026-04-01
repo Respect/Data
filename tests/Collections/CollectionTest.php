@@ -85,8 +85,8 @@ class CollectionTest extends TestCase
         $coll->someTest;
         $this->assertEquals(
             'someTest',
-            $coll->next?->name,
-            'First time should change next item',
+            $coll->connectsTo?->name,
+            'First time should change connectsTo item',
         );
     }
 
@@ -97,14 +97,14 @@ class CollectionTest extends TestCase
         $coll->someTest;
         $this->assertEquals(
             'someTest',
-            $coll->next?->name,
-            'First time should change next item',
+            $coll->connectsTo?->name,
+            'First time should change connectsTo item',
         );
         $coll->anotherTest;
         $this->assertEquals(
             'someTest',
-            $coll->next?->name,
-            'The next item on a chain should never be changed after first time',
+            $coll->connectsTo?->name,
+            'The connectsTo item on a chain should never be changed after first time',
         );
     }
 
@@ -112,8 +112,8 @@ class CollectionTest extends TestCase
     public function settingConditionViaDynamicOffsetShouldUseLastNode(): void
     {
         $foo = Collection::foo()->bar->baz[42];
-        $bar = $foo->next;
-        $baz = $bar->next;
+        $bar = $foo->connectsTo;
+        $baz = $bar->connectsTo;
         $this->assertEmpty($foo->condition);
         $this->assertEmpty($bar->condition);
         $this->assertEquals(42, $baz->condition);
@@ -128,9 +128,9 @@ class CollectionTest extends TestCase
             Collection::children(),
             Collection::here(),
         );
-        $next = $coll->next;
-        $this->assertNotNull($next);
-        $this->assertEquals(3, count($next->children));
+        $connected = $coll->connectsTo;
+        $this->assertNotNull($connected);
+        $this->assertEquals(3, count($connected->children));
     }
 
     #[Test]
@@ -149,14 +149,14 @@ class CollectionTest extends TestCase
     public function childrenShouldMakeHasMoreTrue(): void
     {
         $coll = Collection::foo(Collection::thisIsAChildren());
-        $this->assertTrue($coll->more);
+        $this->assertTrue($coll->hasMore);
     }
 
     #[Test]
     public function chainingShouldMakeHasMoreTrue(): void
     {
         $coll = Collection::foo()->barChain;
-        $this->assertTrue($coll->more);
+        $this->assertTrue($coll->hasMore);
     }
 
     #[Test]
@@ -188,7 +188,7 @@ class CollectionTest extends TestCase
             ->method('persist')
             ->with($persisted, $collection)
             ->willReturn($persisted);
-        $collection->mapper = $mapperMock;
+        $collection->bindMapper($mapperMock);
         $result = $collection->persist($persisted);
         $this->assertSame($persisted, $result);
     }
@@ -203,7 +203,7 @@ class CollectionTest extends TestCase
             ->method('remove')
             ->with($removed, $collection)
             ->willReturn(true);
-        $collection->mapper = $mapperMock;
+        $collection->bindMapper($mapperMock);
         $collection->remove($removed);
     }
 
@@ -217,7 +217,7 @@ class CollectionTest extends TestCase
             ->method('fetch')
             ->with($collection)
             ->willReturn($result);
-        $collection->mapper = $mapperMock;
+        $collection->bindMapper($mapperMock);
         $collection->fetch();
     }
 
@@ -232,7 +232,7 @@ class CollectionTest extends TestCase
             ->method('fetch')
             ->with($collection, $extra)
             ->willReturn($result);
-        $collection->mapper = $mapperMock;
+        $collection->bindMapper($mapperMock);
         $collection->fetch($extra);
     }
 
@@ -245,7 +245,7 @@ class CollectionTest extends TestCase
             ->method('fetchAll')
             ->with($collection)
             ->willReturn([]);
-        $collection->mapper = $mapperMock;
+        $collection->bindMapper($mapperMock);
         $collection->fetchAll();
     }
 
@@ -259,7 +259,7 @@ class CollectionTest extends TestCase
             ->method('fetchAll')
             ->with($collection, $extra)
             ->willReturn([]);
-        $collection->mapper = $mapperMock;
+        $collection->bindMapper($mapperMock);
         $collection->fetchAll($extra);
     }
 
@@ -308,10 +308,10 @@ class CollectionTest extends TestCase
     }
 
     #[Test]
-    public function getNextShouldReturnNullWhenNoNext(): void
+    public function getConnectsToShouldReturnNullWhenNoConnectsTo(): void
     {
         $coll = new Collection('foo');
-        $this->assertNull($coll->next);
+        $this->assertNull($coll->connectsTo);
     }
 
     #[Test]
@@ -323,9 +323,9 @@ class CollectionTest extends TestCase
         $mapperMock->method('__get')->with('bar')->willReturn($registered);
 
         $coll = new Collection('foo');
-        $coll->mapper = $mapperMock;
+        $coll->bindMapper($mapperMock);
         $result = $coll->bar;
-        $this->assertEquals('bar', $result->next?->name);
+        $this->assertEquals('bar', $result->connectsTo?->name);
     }
 
     #[Test]
@@ -337,7 +337,7 @@ class CollectionTest extends TestCase
     }
 
     #[Test]
-    public function persistWithoutChangesReturnsSameEntity(): void
+    public function persistReturnsSameEntity(): void
     {
         $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
         $mapper->seed('author', []);
@@ -348,7 +348,7 @@ class CollectionTest extends TestCase
     }
 
     #[Test]
-    public function persistWithChangesReturnsModifiedCopy(): void
+    public function persistPartialEntityMergesViaIdentityMap(): void
     {
         $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
         $mapper->seed('author', [
@@ -356,25 +356,28 @@ class CollectionTest extends TestCase
         ]);
 
         $fetched = $mapper->author[1]->fetch();
+        $this->assertSame('Alice', $fetched->name);
 
-        $result = $mapper->author[1]->persist($fetched, name: 'Bob');
+        $partial = $mapper->entityFactory->create(Stubs\Immutable\Author::class, id: 1, name: 'Bob');
+        $result = $mapper->author->persist($partial);
 
         $this->assertNotSame($fetched, $result);
         $this->assertSame('Bob', $result->name);
         $this->assertSame(1, $result->id);
-        $this->assertSame('Alice', $fetched->name);
     }
 
     #[Test]
-    public function persistWithChangesFlushesUpdate(): void
+    public function persistPartialEntityFlushesUpdate(): void
     {
         $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
         $mapper->seed('author', [
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
 
-        $fetched = $mapper->author[1]->fetch();
-        $mapper->author[1]->persist($fetched, name: 'Bob', bio: 'Writer');
+        $mapper->author[1]->fetch();
+
+        $partial = $mapper->entityFactory->create(Stubs\Immutable\Author::class, id: 1, name: 'Bob', bio: 'Writer');
+        $mapper->author->persist($partial);
         $mapper->flush();
 
         $mapper->clearIdentityMap();
@@ -384,7 +387,7 @@ class CollectionTest extends TestCase
     }
 
     #[Test]
-    public function persistWithChangesOnGraphUpdatesRelation(): void
+    public function persistPartialEntityOnGraphUpdatesRelation(): void
     {
         $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
         $mapper->seed('post', [
@@ -395,13 +398,14 @@ class CollectionTest extends TestCase
             ['id' => 20, 'name' => 'Bob', 'bio' => null],
         ]);
 
-        $post = $mapper->post->author->fetch();
+        $mapper->post->author->fetch();
         $bob = $mapper->author[20]->fetch();
 
-        $updated = $mapper->post->persist($post, title: 'Changed', author: $bob);
+        $updated = $mapper->entityFactory->create(Stubs\Immutable\Post::class, id: 1, title: 'Changed', author: $bob);
+        $result = $mapper->post->persist($updated);
         $mapper->flush();
 
-        $this->assertSame(1, $updated->id);
+        $this->assertSame(1, $result->id);
 
         $mapper->clearIdentityMap();
         $refetched = $mapper->post->author->fetch();
@@ -410,7 +414,7 @@ class CollectionTest extends TestCase
     }
 
     #[Test]
-    public function persistWithChangesNullValueApplied(): void
+    public function persistPartialEntityNullValueApplied(): void
     {
         $mapper = new InMemoryMapper(new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\'));
         $mapper->seed('author', [
@@ -420,7 +424,8 @@ class CollectionTest extends TestCase
         $fetched = $mapper->author[1]->fetch();
         $this->assertSame('has bio', $fetched->bio);
 
-        $mapper->author[1]->persist($fetched, bio: null);
+        $partial = $mapper->entityFactory->create(Stubs\Immutable\Author::class, id: 1, name: 'Alice', bio: null);
+        $mapper->author->persist($partial);
         $mapper->flush();
 
         $mapper->clearIdentityMap();

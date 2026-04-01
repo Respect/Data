@@ -161,8 +161,8 @@ final class InMemoryMapper extends AbstractMapper
     /** @param array<string, mixed> $parentRow */
     private function attachRelated(array &$parentRow, Collection $collection): void
     {
-        if ($collection->next !== null) {
-            $this->attachChild($parentRow, $collection->next);
+        if ($collection->connectsTo !== null) {
+            $this->attachChild($parentRow, $collection->connectsTo);
         }
 
         foreach ($collection->children as $child) {
@@ -187,7 +187,7 @@ final class InMemoryMapper extends AbstractMapper
             return;
         }
 
-        if ($child->more) {
+        if ($child->hasMore) {
             $this->attachRelated($childRow, $child);
         }
 
