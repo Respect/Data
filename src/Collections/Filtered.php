@@ -8,7 +8,7 @@ use function array_values;
 
 final class Filtered extends Collection
 {
-    /** Fetch only the entity identifier (primary key, document ID, etc.) */
+    /** Fetch only the entity identifier */
     public const string IDENTIFIER_ONLY = '*';
 
     // phpcs:ignore PSR2.Classes.PropertyDeclaration

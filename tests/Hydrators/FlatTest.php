@@ -28,10 +28,11 @@ class FlatTest extends TestCase
     public function hydrateReturnsFalseForEmpty(): void
     {
         $hydrator = $this->hydrator(['id']);
+        $coll = Collection::author();
 
-        $this->assertFalse($hydrator->hydrate(null, Collection::author(), $this->factory));
-        $this->assertFalse($hydrator->hydrate([], Collection::author(), $this->factory));
-        $this->assertFalse($hydrator->hydrate(false, Collection::author(), $this->factory));
+        $this->assertFalse($hydrator->hydrate(null, $coll, $this->factory));
+        $this->assertFalse($hydrator->hydrate([], $coll, $this->factory));
+        $this->assertFalse($hydrator->hydrate(false, $coll, $this->factory));
     }
 
     #[Test]
@@ -63,7 +64,8 @@ class FlatTest extends TestCase
     public function hydrateMultipleEntitiesWithPkBoundary(): void
     {
         $hydrator = $this->hydrator(['id', 'name', 'author_id', 'id', 'title']);
-        $collection = Collection::author()->post;
+        $collection = Collection::author();
+        $collection->stack(Collection::post());
 
         $result = $hydrator->hydrate([1, 'Author', 1, 10, 'Post Title'], $collection, $this->factory);
 
@@ -85,7 +87,8 @@ class FlatTest extends TestCase
     public function hydrateSkipsWiringForNullPkChild(): void
     {
         $hydrator = $this->hydrator(['id', 'text', 'post_id', 'id', 'title']);
-        $collection = Collection::comment()->post;
+        $collection = Collection::comment();
+        $collection->stack(Collection::post());
 
         $result = $hydrator->hydrate([1, 'Hello', 5, null, null], $collection, $this->factory);
 
@@ -101,6 +104,7 @@ class FlatTest extends TestCase
     {
         $hydrator = $this->hydrator(['id', 'title']);
         $filtered = Filtered::post();
+        // No filters set — Filtered without filters is skipped
         $collection = Collection::author();
         $collection->stack($filtered);
 
@@ -127,11 +131,10 @@ class FlatTest extends TestCase
     #[Test]
     public function hydrateResolvesTypedEntities(): void
     {
-        $factory = new EntityFactory(entityNamespace: 'Respect\\Data\\Stubs\\');
         $hydrator = $this->hydrator(['id', 'type', 'title']);
         $collection = Typed::issue('type');
 
-        $result = $hydrator->hydrate([1, 'Bug', 'Bug Report'], $collection, $factory);
+        $result = $hydrator->hydrate([1, 'Bug', 'Bug Report'], $collection, $this->factory);
 
         $this->assertNotFalse($result);
         $result->rewind();

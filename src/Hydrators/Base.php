@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Respect\Data\Hydrators;
 
 use Respect\Data\Collections\Collection;
+use Respect\Data\Collections\Typed;
 use Respect\Data\EntityFactory;
 use Respect\Data\Hydrator;
 use SplObjectStorage;
@@ -39,13 +40,30 @@ abstract class Base implements Hydrator
                     continue;
                 }
 
-                $pk = $entityFactory->get($other, $style->identifier($otherColl->name));
-                if ($pk === null) {
+                $id = $entityFactory->get($other, $style->identifier($otherColl->name));
+                if ($id === null) {
                     continue;
                 }
 
                 $entityFactory->set($entity, $relationName, $other);
             }
         }
+    }
+
+    /**
+     * @param object|array<mixed, mixed> $row
+     *
+     * @return class-string
+     */
+    protected function resolveEntityClass(
+        Collection $collection,
+        EntityFactory $entityFactory,
+        object|array $row,
+    ): string {
+        if ($collection instanceof Typed) {
+            return $collection->resolveEntityClass($entityFactory, $row);
+        }
+
+        return $entityFactory->resolveClass((string) $collection->name);
     }
 }

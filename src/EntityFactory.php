@@ -10,7 +10,10 @@ use ReflectionNamedType;
 use ReflectionProperty;
 use ReflectionUnionType;
 
+use function array_key_exists;
+use function array_keys;
 use function class_exists;
+use function implode;
 use function is_array;
 use function is_bool;
 use function is_float;
@@ -29,15 +32,25 @@ class EntityFactory
     /** @var array<string, array<string, ReflectionProperty>> */
     private array $propertyCache = [];
 
+    /** @var array<string, class-string> */
+    private array $resolveCache = [];
+
+    /** @var array<string, array<string, true>> */
+    private array $relationCache = [];
+
     public function __construct(
         public readonly Styles\Stylable $style = new Styles\Standard(),
         private readonly string $entityNamespace = '\\',
-        private readonly bool $disableConstructor = false,
     ) {
     }
 
-    public function createByName(string $name): object
+    /** @return class-string */
+    public function resolveClass(string $name): string
     {
+        if (isset($this->resolveCache[$name])) {
+            return $this->resolveCache[$name];
+        }
+
         $entityName = $this->style->styledName($name);
         $entityClass = $this->entityNamespace . $entityName;
 
@@ -45,13 +58,7 @@ class EntityFactory
             throw new DomainException('Entity class ' . $entityClass . ' not found for ' . $name);
         }
 
-        $ref = $this->reflectClass($entityClass);
-
-        if (!$this->disableConstructor) {
-            return $ref->newInstanceArgs();
-        }
-
-        return $ref->newInstanceWithoutConstructor();
+        return $this->resolveCache[$name] = $entityClass;
     }
 
     public function set(object $entity, string $prop, mixed $value): void
@@ -69,6 +76,12 @@ class EntityFactory
             return;
         }
 
+        if ($mirror->isReadOnly() && $mirror->isInitialized($entity)) {
+            throw new ReadOnlyViolation(
+                'Cannot modify readonly property ' . $entity::class . '::$' . $mirror->getName(),
+            );
+        }
+
         $mirror->setValue($entity, $coerced);
     }
 
@@ -84,8 +97,67 @@ class EntityFactory
         return $mirror->getValue($entity);
     }
 
+    public function isReadOnly(object $entity): bool
+    {
+        return $this->reflectClass($entity::class)->isReadOnly();
+    }
+
     /**
-     * Extract persistable columns, resolving entity objects to their FK representations.
+     * @param class-string<T> $class
+     *
+     * @return T
+     *
+     * @template T of object
+     */
+    public function create(string $class, mixed ...$properties): object
+    {
+        /** @phpstan-var T $entity */
+        $entity = $this->reflectClass($class)->newInstanceWithoutConstructor();
+
+        foreach ($properties as $prop => $value) {
+            $this->set($entity, (string) $prop, $value);
+        }
+
+        return $entity;
+    }
+
+    public function withChanges(object $entity, mixed ...$changes): object
+    {
+        $clone = $this->reflectClass($entity::class)->newInstanceWithoutConstructor();
+        $styledChanges = [];
+        foreach ($changes as $prop => $value) {
+            $styledChanges[$this->style->styledProperty((string) $prop)] = $value;
+        }
+
+        foreach ($this->reflectProperties($entity::class) as $name => $prop) {
+            if (array_key_exists($name, $styledChanges)) {
+                $value = $styledChanges[$name];
+                $coerced = $this->coerce($prop, $value);
+
+                if ($coerced === null && !($prop->getType()?->allowsNull() ?? false)) {
+                    throw new DomainException(
+                        'Invalid value for ' . $entity::class . '::$' . $name,
+                    );
+                }
+
+                $prop->setValue($clone, $coerced);
+                unset($styledChanges[$name]);
+            } elseif ($prop->isInitialized($entity)) {
+                $prop->setValue($clone, $prop->getValue($entity));
+            }
+        }
+
+        if ($styledChanges) {
+            throw new DomainException(
+                'Unknown properties for ' . $entity::class . ': ' . implode(', ', array_keys($styledChanges)),
+            );
+        }
+
+        return $clone;
+    }
+
+    /**
+     * Extract persistable columns, resolving entity objects to their reference representations.
      *
      * @return array<string, mixed>
      */
@@ -99,10 +171,10 @@ class EntityFactory
                 continue;
             }
 
-            $fk = $this->style->remoteIdentifier($key);
+            $ref = $this->style->remoteIdentifier($key);
 
             if (is_object($value)) {
-                $cols[$fk] = $this->get($value, $this->style->identifier($key));
+                $cols[$ref] = $this->get($value, $this->style->identifier($key));
             }
 
             unset($cols[$key]);
@@ -127,24 +199,13 @@ class EntityFactory
         return $props;
     }
 
-    public function hydrate(object $source, string $entityName): object
-    {
-        $entity = $this->createByName($entityName);
-
-        foreach ($this->reflectProperties($source::class) as $name => $prop) {
-            if (!$prop->isInitialized($source)) {
-                continue;
-            }
-
-            $this->set($entity, $name, $prop->getValue($source));
-        }
-
-        return $entity;
-    }
-
     /** @return array<string, true> */
     private function detectRelationProperties(string $class): array
     {
+        if (isset($this->relationCache[$class])) {
+            return $this->relationCache[$class];
+        }
+
         $relations = [];
 
         foreach ($this->reflectProperties($class) as $name => $prop) {
@@ -158,7 +219,7 @@ class EntityFactory
             }
         }
 
-        return $relations;
+        return $this->relationCache[$class] = $relations;
     }
 
     /** @return ReflectionClass<object> */

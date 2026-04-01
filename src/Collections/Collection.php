@@ -6,7 +6,6 @@ namespace Respect\Data\Collections;
 
 use ArrayAccess;
 use Respect\Data\AbstractMapper;
-use Respect\Data\EntityFactory;
 use Respect\Data\Hydrator;
 use RuntimeException;
 
@@ -51,9 +50,24 @@ class Collection implements ArrayAccess
         $this->children[] = $clone;
     }
 
-    public function persist(object $object): bool
+    public function persist(object $object, mixed ...$changes): object
     {
-        return $this->resolveMapper()->persist($object, $this);
+        $mapper = $this->resolveMapper();
+
+        if ($changes) {
+            $original = $object;
+            $object = $mapper->entityFactory->withChanges($original, ...$changes);
+
+            if ($mapper->isTracked($original)) {
+                $mapper->replaceTracked($original, $object, $this);
+
+                return $object;
+            }
+        }
+
+        $mapper->persist($object, $this);
+
+        return $object;
     }
 
     public function remove(object $object): bool
@@ -69,12 +83,6 @@ class Collection implements ArrayAccess
     public function fetchAll(mixed $extra = null): mixed
     {
         return $this->resolveMapper()->fetchAll($this, $extra);
-    }
-
-    /** @param object|array<string, mixed> $row */
-    public function resolveEntityName(EntityFactory $factory, object|array $row): string
-    {
-        return $this->name ?? '';
     }
 
     public function offsetExists(mixed $offset): bool
