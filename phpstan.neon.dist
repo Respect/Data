@@ -4,12 +4,11 @@ parameters:
     - src/
     - tests/
   ignoreErrors:
-    - message: '/Call to an undefined (static )?method Respect\\Data\\(AbstractMapper|InMemoryMapper|Collections\\(Collection|Filtered|Composite|Typed))::\w+\(\)\./'
-    - message: '/Access to an undefined property Respect\\Data\\(AbstractMapper|InMemoryMapper|Collections\\Collection)::\$\w+\./'
+    - message: '/Call to an undefined (static )?method Respect\\Data\\(AbstractMapper|InMemoryMapper|Collections\\(Collection|Composite|Typed))::\w+\(\)\./'
     - message: '/Unsafe usage of new static\(\)\./'
-    -
-      message: '/Expression .+ on a separate line does not do anything\./'
-      path: tests/
     -
       message: '/Property .+ is never read, only written\./'
       path: tests/Stubs/
+    -
+      message: '/(Cannot access property|Parameter #1 .+ expects object|Access to an undefined property object)/'
+      path: tests/

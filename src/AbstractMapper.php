@@ -5,11 +5,8 @@ declare(strict_types=1);
 namespace Respect\Data;
 
 use Respect\Data\Collections\Collection;
-use Respect\Data\Collections\Filtered;
 use SplObjectStorage;
 
-use function array_flip;
-use function array_intersect_key;
 use function count;
 use function ctype_digit;
 use function is_int;
@@ -82,13 +79,6 @@ abstract class AbstractMapper
 
     public function persist(object $object, Collection $onCollection): object
     {
-        $connectsTo = $onCollection->connectsTo;
-        if ($onCollection instanceof Filtered && $connectsTo !== null) {
-            $this->persist($object, $connectsTo);
-
-            return $object;
-        }
-
         if ($this->isTracked($object)) {
             $currentOp = $this->pending[$object] ?? null;
             if ($currentOp !== 'insert') {
@@ -128,29 +118,7 @@ abstract class AbstractMapper
 
     public function registerCollection(string $alias, Collection $collection): void
     {
-        $collection->bindMapper($this);
         $this->collections[$alias] = $collection;
-    }
-
-    /**
-     * @param array<string, mixed> $columns
-     *
-     * @return array<string, mixed>
-     */
-    protected function filterColumns(array $columns, Collection $collection): array
-    {
-        if (
-            !$collection instanceof Filtered
-            || !$collection->filters
-            || $collection->identifierOnly
-            || $collection->name === null
-        ) {
-            return $columns;
-        }
-
-        $id = $this->style->identifier($collection->name);
-
-        return array_intersect_key($columns, array_flip([...$collection->filters, $id]));
     }
 
     protected function registerInIdentityMap(object $entity, Collection $coll): void
@@ -183,11 +151,11 @@ abstract class AbstractMapper
 
     protected function findInIdentityMap(Collection $collection): object|null
     {
-        if ($collection->name === null || !is_scalar($collection->condition) || $collection->hasMore) {
+        if ($collection->name === null || !is_scalar($collection->filter) || $collection->hasChildren) {
             return null;
         }
 
-        $condition = $this->normalizeIdValue($collection->condition);
+        $condition = $this->normalizeIdValue($collection->filter);
         if ($condition === null) {
             return null;
         }
@@ -202,7 +170,7 @@ abstract class AbstractMapper
         }
 
         $entityId = $this->entityIdValue($entity, $coll->name);
-        $idValue = $entityId ?? $this->normalizeIdValue($coll->condition);
+        $idValue = $entityId ?? $this->normalizeIdValue($coll->filter);
 
         if ($idValue === null) {
             return null;
@@ -269,36 +237,22 @@ abstract class AbstractMapper
         return null;
     }
 
-    public function __get(string $name): Collection
-    {
-        if (isset($this->collections[$name])) {
-            return $this->collections[$name];
-        }
-
-        $coll = new Collection($name);
-
-        return $coll->bindMapper($this);
-    }
-
     public function __isset(string $alias): bool
     {
         return isset($this->collections[$alias]);
     }
 
-    public function __set(string $alias, Collection $collection): void
-    {
-        $this->registerCollection($alias, $collection);
-    }
-
-    /** @param list<Collection|array<scalar, mixed>|scalar|null> $arguments */
+    /** @param list<mixed> $arguments */
     public function __call(string $name, array $arguments): Collection
     {
         if (isset($this->collections[$name])) {
-            $collection = clone $this->collections[$name];
+            if (empty($arguments)) {
+                return clone $this->collections[$name];
+            }
 
-            return $collection->bindMapper($this)->with(...$arguments);
+            return $this->collections[$name]->derive(...$arguments); // @phpstan-ignore argument.type
         }
 
-        return Collection::__callstatic($name, $arguments)->bindMapper($this);
+        return new Collection($name, ...$arguments); // @phpstan-ignore argument.type
     }
 }

@@ -9,7 +9,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionObject;
 use Respect\Data\Collections\Collection;
-use Respect\Data\Collections\Filtered;
+use Respect\Data\Collections\Composite;
 use Respect\Data\Hydrators\Nested;
 use Respect\Data\Styles\CakePHP;
 use Respect\Data\Styles\Standard;
@@ -48,36 +48,45 @@ class AbstractMapperTest extends TestCase
         $this->mapper->registerCollection('my_alias', $coll);
 
         $this->assertTrue(isset($this->mapper->my_alias));
-        $this->assertEquals($coll, $this->mapper->my_alias);
+        $clone = $this->mapper->my_alias();
+        $this->assertEquals($coll->name, $clone->name);
     }
 
     #[Test]
-    public function magicSetterShouldAddCollectionToPool(): void
+    public function callingRegisteredCollectionWithArgsDerives(): void
     {
-        $coll = Collection::foo();
-        $this->mapper->my_alias = $coll;
+        $coll = Composite::post(['comment' => ['text']]);
+        $this->mapper->registerCollection('postComment', $coll);
 
-        $this->assertTrue(isset($this->mapper->my_alias));
+        $derived = $this->mapper->postComment(filter: 5);
 
-        $this->assertEquals($coll, $this->mapper->my_alias);
+        $this->assertInstanceOf(Composite::class, $derived);
+        $this->assertEquals('post', $derived->name);
+        $this->assertEquals(['comment' => ['text']], $derived->compositions);
+        $this->assertEquals(5, $derived->filter);
+    }
+
+    #[Test]
+    public function callingRegisteredCollectionWithoutArgsClones(): void
+    {
+        $coll = Collection::post();
+        $this->mapper->registerCollection('post', $coll);
+
+        $clone = $this->mapper->post();
+
+        $this->assertNotSame($coll, $clone);
+        $this->assertEquals('post', $clone->name);
     }
 
     #[Test]
     public function magicCallShouldBypassToCollection(): void
     {
-        $collection = $this->mapper->author()->post()->comment();
+        $collection = $this->mapper->author([$this->mapper->post([$this->mapper->comment()])]);
         $this->assertEquals('author', $collection->name);
-        $this->assertEquals('post', $collection->connectsTo?->name);
-        $this->assertEquals('comment', $collection->connectsTo?->connectsTo?->name);
-    }
-
-    #[Test]
-    public function magicGetterShouldBypassToCollection(): void
-    {
-        $collection = $this->mapper->author->post->comment;
-        $this->assertEquals('author', $collection->name);
-        $this->assertEquals('post', $collection->connectsTo?->name);
-        $this->assertEquals('comment', $collection->connectsTo?->connectsTo?->name);
+        $this->assertCount(1, $collection->with);
+        $this->assertEquals('post', $collection->with[0]->name);
+        $this->assertCount(1, $collection->with[0]->with);
+        $this->assertEquals('comment', $collection->with[0]->with[0]->name);
     }
 
     #[Test]
@@ -203,14 +212,6 @@ class AbstractMapperTest extends TestCase
     }
 
     #[Test]
-    public function magicGetShouldReturnNewCollectionWhenNotRegistered(): void
-    {
-        $coll = $this->mapper->author;
-        $this->assertInstanceOf(Collection::class, $coll);
-        $this->assertEquals('author', $coll->name);
-    }
-
-    #[Test]
     public function hydrationWiresRelatedEntity(): void
     {
         $mapper = new InMemoryMapper(new Nested(new EntityFactory(
@@ -223,7 +224,7 @@ class AbstractMapperTest extends TestCase
             ['id' => 5, 'title' => 'Post'],
         ]);
 
-        $comment = $mapper->comment->post->fetch();
+        $comment = $mapper->fetch($mapper->comment([$mapper->post()]));
         $this->assertIsObject($comment);
 
         // Related entity wired via collection tree
@@ -247,16 +248,16 @@ class AbstractMapperTest extends TestCase
         ]);
 
         // Fetch with relationship — hydrates $comment->post
-        $comment = $mapper->comment->post->fetch();
+        $comment = $mapper->fetch($mapper->comment([$mapper->post()]));
         $this->assertIsObject($mapper->entityFactory->get($comment, 'post'));
 
         // Modify and persist
         $mapper->entityFactory->set($comment, 'text', 'Updated');
-        $mapper->comment->persist($comment);
+        $mapper->persist($comment, $mapper->comment());
         $mapper->flush();
 
         // Re-fetch without relationship
-        $updated = $mapper->comment[1]->fetch();
+        $updated = $mapper->fetch($mapper->comment(filter: 1));
         $this->assertEquals('Updated', $mapper->entityFactory->get($updated, 'text'));
     }
 
@@ -273,7 +274,7 @@ class AbstractMapperTest extends TestCase
             ['id' => 5, 'title' => 'Post'],
         ]);
 
-        $comment = $mapper->comment->post->fetch();
+        $comment = $mapper->fetch($mapper->comment([$mapper->post()]));
         $this->assertIsObject($comment);
         // No post with id=999 exists, so relation stays null
         $this->assertNull($mapper->entityFactory->get($comment, 'post'));
@@ -292,7 +293,7 @@ class AbstractMapperTest extends TestCase
             ['id' => '5', 'title' => 'Post'],
         ]);
 
-        $comment = $mapper->comment->post->fetch();
+        $comment = $mapper->fetch($mapper->comment([$mapper->post()]));
         $this->assertIsObject($comment);
         $post = $mapper->entityFactory->get($comment, 'post');
         $this->assertIsObject($post);
@@ -300,47 +301,7 @@ class AbstractMapperTest extends TestCase
     }
 
     #[Test]
-    public function callingRegisteredCollectionClonesAndAppliesCondition(): void
-    {
-        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
-            entityNamespace: 'Respect\\Data\\Stubs\\',
-        )));
-        $mapper->seed('post', [
-            ['id' => 1, 'title' => 'Hello'],
-            ['id' => 2, 'title' => 'World'],
-        ]);
-
-        $coll = Filtered::posts('title');
-        $mapper->postTitles = $coll;
-
-        $conditioned = $mapper->postTitles(['id' => 2]);
-
-        $this->assertInstanceOf(Filtered::class, $conditioned);
-        $this->assertEquals('posts', $conditioned->name);
-        $this->assertEquals(['title'], $conditioned->filters);
-        $this->assertEquals(['id' => 2], $conditioned->condition);
-        $this->assertEquals([], $mapper->postTitles->condition, 'Original collection should be unchanged');
-    }
-
-    #[Test]
-    public function callingRegisteredCollectionWithoutConditionReturnsClone(): void
-    {
-        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
-            entityNamespace: 'Respect\\Data\\Stubs\\',
-        )));
-        $coll = Filtered::posts('title');
-        $mapper->postTitles = $coll;
-
-        $clone = $mapper->postTitles();
-
-        $this->assertInstanceOf(Filtered::class, $clone);
-        $this->assertNotSame($mapper->postTitles, $clone);
-        $this->assertEquals('posts', $clone->name);
-        $this->assertEquals(['title'], $clone->filters);
-    }
-
-    #[Test]
-    public function callingRegisteredChainedCollectionDoesNotMutateTemplate(): void
+    public function callingRegisteredCollectionReturnsImmutableClone(): void
     {
         $mapper = new InMemoryMapper(new Nested(new EntityFactory(
             entityNamespace: 'Respect\\Data\\Stubs\\',
@@ -349,39 +310,17 @@ class AbstractMapperTest extends TestCase
         $mapper->seed('comment', []);
 
         $coll = Collection::posts();
-        $mapper->commentedPosts = $coll->comment();
+        $mapper->registerCollection('commentedPosts', $coll->derive(with: [Collection::comment()]));
 
         $clone = $mapper->commentedPosts();
-        $clone->author; // stacks 'author' onto the clone's chain
 
-        $original = $mapper->commentedPosts;
-        $this->assertNull(
-            $original->connectsTo?->connectsTo,
-            'Stacking on a clone should not mutate the registered collection',
-        );
+        // Clone has the child from the registered collection
+        $this->assertCount(1, $clone->with);
+        $this->assertEquals('comment', $clone->with[0]->name);
     }
 
     #[Test]
-    public function filteredPersistDelegatesToParentCollection(): void
-    {
-        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
-            entityNamespace: 'Respect\\Data\\Stubs\\',
-        )));
-        $mapper->seed('post', []);
-        $mapper->seed('author', []);
-        $mapper->authorsWithPosts = Filtered::post()->author();
-
-        $author = new Stubs\Author();
-        $author->name = 'Test';
-        $mapper->authorsWithPosts->persist($author);
-        $mapper->flush();
-
-        $fetched = $mapper->author->fetch();
-        $this->assertEquals('Test', $fetched->name);
-    }
-
-    #[Test]
-    public function filteredWithoutConnectsToFallsBackToNormalPersist(): void
+    public function directPersistWithoutRegisteredCollection(): void
     {
         $mapper = new InMemoryMapper(new Nested(new EntityFactory(
             entityNamespace: 'Respect\\Data\\Stubs\\',
@@ -390,130 +329,11 @@ class AbstractMapperTest extends TestCase
 
         $post = new Stubs\Post();
         $post->title = 'Direct';
-        $mapper->post->persist($post);
+        $mapper->persist($post, $mapper->post());
         $mapper->flush();
 
-        $fetched = $mapper->post->fetch();
+        $fetched = $mapper->fetch($mapper->post());
         $this->assertEquals('Direct', $fetched->title);
-    }
-
-    #[Test]
-    public function filteredUpdatePersistsOnlyFilteredColumns(): void
-    {
-        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
-            entityNamespace: 'Respect\\Data\\Stubs\\',
-        )));
-        $mapper->seed('post', [
-            ['id' => 1, 'title' => 'Original', 'text' => 'Body'],
-        ]);
-
-        $postTitles = Filtered::post('title');
-        $mapper->postTitles = $postTitles;
-        $post = $mapper->postTitles()->fetch();
-        $this->assertIsObject($post);
-
-        $mapper->entityFactory->set($post, 'title', 'Changed');
-        $mapper->postTitles()->persist($post);
-        $mapper->flush();
-
-        $fetched = $mapper->post->fetch();
-        $this->assertEquals('Changed', $mapper->entityFactory->get($fetched, 'title'));
-        $this->assertEquals('Body', $mapper->entityFactory->get($fetched, 'text'));
-    }
-
-    #[Test]
-    public function filteredInsertPersistsOnlyFilteredColumns(): void
-    {
-        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
-            entityNamespace: 'Respect\\Data\\Stubs\\',
-        )));
-        $mapper->seed('post', []);
-
-        $postTitles = Filtered::post('title');
-        $mapper->postTitles = $postTitles;
-        $post = new Stubs\Post();
-        $post->id = 1;
-        $post->title = 'Partial';
-        $post->text = 'Should not persist';
-        $mapper->postTitles()->persist($post);
-        $mapper->flush();
-
-        $fetched = $mapper->post->fetch();
-        $this->assertEquals('Partial', $mapper->entityFactory->get($fetched, 'title'));
-        $this->assertNull($mapper->entityFactory->get($fetched, 'text'));
-    }
-
-    #[Test]
-    public function filterColumnsPassesThroughForPlainCollection(): void
-    {
-        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
-            entityNamespace: 'Respect\\Data\\Stubs\\',
-        )));
-        $mapper->seed('post', [
-            ['id' => 1, 'title' => 'Original', 'text' => 'Body'],
-        ]);
-
-        $post = $mapper->post->fetch();
-        $this->assertIsObject($post);
-
-        $mapper->entityFactory->set($post, 'title', 'Changed');
-        $mapper->entityFactory->set($post, 'text', 'New Body');
-        $mapper->post->persist($post);
-        $mapper->flush();
-
-        $fetched = $mapper->post->fetch();
-        $this->assertEquals('Changed', $mapper->entityFactory->get($fetched, 'title'));
-        $this->assertEquals('New Body', $mapper->entityFactory->get($fetched, 'text'));
-    }
-
-    #[Test]
-    public function filterColumnsPassesThroughForEmptyFilters(): void
-    {
-        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
-            entityNamespace: 'Respect\\Data\\Stubs\\',
-        )));
-        $mapper->seed('post', [
-            ['id' => 1, 'title' => 'Original', 'text' => 'Body'],
-        ]);
-
-        $allPosts = Filtered::post();
-        $mapper->allPosts = $allPosts;
-        $post = $mapper->allPosts()->fetch();
-        $this->assertIsObject($post);
-
-        $mapper->entityFactory->set($post, 'title', 'Changed');
-        $mapper->entityFactory->set($post, 'text', 'New Body');
-        $mapper->allPosts()->persist($post);
-        $mapper->flush();
-
-        $fetched = $mapper->post->fetch();
-        $this->assertEquals('Changed', $mapper->entityFactory->get($fetched, 'title'));
-        $this->assertEquals('New Body', $mapper->entityFactory->get($fetched, 'text'));
-    }
-
-    #[Test]
-    public function filterColumnsPassesThroughForIdentifierOnly(): void
-    {
-        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
-            entityNamespace: 'Respect\\Data\\Stubs\\',
-        )));
-        $mapper->seed('post', [
-            ['id' => 1, 'title' => 'Original', 'text' => 'Body'],
-        ]);
-
-        $postIds = Filtered::post(Filtered::IDENTIFIER_ONLY);
-        $mapper->postIds = $postIds;
-        $post = $mapper->postIds()->fetch();
-        $this->assertIsObject($post);
-
-        $mapper->entityFactory->set($post, 'title', 'Changed');
-        $mapper->entityFactory->set($post, 'text', 'New Body');
-        $mapper->postIds()->persist($post);
-        $mapper->flush();
-
-        $fetched = $mapper->post->fetch();
-        $this->assertEquals('Changed', $mapper->entityFactory->get($fetched, 'title'));
-        $this->assertEquals('New Body', $mapper->entityFactory->get($fetched, 'text'));
     }
 
     #[Test]
@@ -529,10 +349,10 @@ class AbstractMapperTest extends TestCase
 
         $this->assertSame(0, $mapper->identityMapCount());
 
-        $mapper->post[1]->fetch();
+        $mapper->fetch($mapper->post(filter: 1));
         $this->assertSame(1, $mapper->identityMapCount());
 
-        $mapper->post[2]->fetch();
+        $mapper->fetch($mapper->post(filter: 2));
         $this->assertSame(2, $mapper->identityMapCount());
     }
 
@@ -546,8 +366,8 @@ class AbstractMapperTest extends TestCase
             ['id' => 1, 'title' => 'First'],
         ]);
 
-        $first = $mapper->post[1]->fetch();
-        $second = $mapper->post[1]->fetch();
+        $first = $mapper->fetch($mapper->post(filter: 1));
+        $second = $mapper->fetch($mapper->post(filter: 1));
 
         $this->assertSame($first, $second);
     }
@@ -563,7 +383,7 @@ class AbstractMapperTest extends TestCase
             ['id' => 2, 'title' => 'Second'],
         ]);
 
-        $mapper->post->fetchAll();
+        $mapper->fetchAll($mapper->post());
         $this->assertSame(2, $mapper->identityMapCount());
     }
 
@@ -577,7 +397,7 @@ class AbstractMapperTest extends TestCase
 
         $entity = new Stubs\Post();
         $entity->title = 'New Post';
-        $mapper->post->persist($entity);
+        $mapper->persist($entity, $mapper->post());
         $mapper->flush();
 
         $this->assertSame(1, $mapper->identityMapCount());
@@ -593,10 +413,10 @@ class AbstractMapperTest extends TestCase
             ['id' => 1, 'title' => 'To Delete'],
         ]);
 
-        $entity = $mapper->post[1]->fetch();
+        $entity = $mapper->fetch($mapper->post(filter: 1));
         $this->assertSame(1, $mapper->identityMapCount());
 
-        $mapper->post->remove($entity);
+        $mapper->remove($entity, $mapper->post());
         $mapper->flush();
 
         $this->assertSame(0, $mapper->identityMapCount());
@@ -612,7 +432,7 @@ class AbstractMapperTest extends TestCase
             ['id' => 1, 'title' => 'First'],
         ]);
 
-        $mapper->post[1]->fetch();
+        $mapper->fetch($mapper->post(filter: 1));
         $this->assertSame(1, $mapper->identityMapCount());
 
         $mapper->clearIdentityMap();
@@ -629,7 +449,7 @@ class AbstractMapperTest extends TestCase
             ['id' => 1, 'title' => 'First'],
         ]);
 
-        $mapper->post[1]->fetch();
+        $mapper->fetch($mapper->post(filter: 1));
         $this->assertSame(1, $mapper->identityMapCount());
 
         $mapper->reset();
@@ -649,24 +469,24 @@ class AbstractMapperTest extends TestCase
         $ref = new ReflectionObject($mapper);
         $pendingProp = $ref->getProperty('pending');
 
-        // persist new entity → 'insert'
+        // persist new entity -> 'insert'
         $newEntity = new Stubs\Post();
         $newEntity->title = 'New';
-        $mapper->post->persist($newEntity);
+        $mapper->persist($newEntity, $mapper->post());
 
         /** @var SplObjectStorage<object, string> $pending */
         $pending = $pendingProp->getValue($mapper);
         $this->assertSame('insert', $pending[$newEntity]);
 
-        // persist existing entity → 'update'
-        $existing = $mapper->post[1]->fetch();
-        $mapper->post->persist($existing);
+        // persist existing entity -> 'update'
+        $existing = $mapper->fetch($mapper->post(filter: 1));
+        $mapper->persist($existing, $mapper->post());
         /** @var SplObjectStorage<object, string> $pending */
         $pending = $pendingProp->getValue($mapper);
         $this->assertSame('update', $pending[$existing]);
 
-        // remove entity → 'delete'
-        $mapper->post->remove($existing);
+        // remove entity -> 'delete'
+        $mapper->remove($existing, $mapper->post());
         /** @var SplObjectStorage<object, string> $pending */
         $pending = $pendingProp->getValue($mapper);
         $this->assertSame('delete', $pending[$existing]);
@@ -684,7 +504,7 @@ class AbstractMapperTest extends TestCase
 
         $this->assertSame(0, $mapper->trackedCount());
 
-        $mapper->post[1]->fetch();
+        $mapper->fetch($mapper->post(filter: 1));
         $this->assertSame(1, $mapper->trackedCount());
     }
 
@@ -716,7 +536,7 @@ class AbstractMapperTest extends TestCase
         // Entity with no 'id' set
         $entity = new Stubs\Post();
         $entity->title = 'No PK';
-        $mapper->post->persist($entity);
+        $mapper->persist($entity, $mapper->post());
 
         // Before flush, entity has no PK — identity map should not contain it yet
         // (identity map registration happens during flush, after PK is assigned)
@@ -733,14 +553,55 @@ class AbstractMapperTest extends TestCase
             ['id' => 1, 'title' => 'Test'],
         ]);
 
-        $entity = $mapper->post[1]->fetch();
+        $entity = $mapper->fetch($mapper->post(filter: 1));
         $this->assertSame(1, $mapper->identityMapCount());
 
         // Remove via a different collection — flush uses the tracked one (name='post')
-        $mapper->post->remove($entity);
+        $mapper->remove($entity, $mapper->post());
         $mapper->flush();
 
         $this->assertSame(0, $mapper->identityMapCount());
+    }
+
+    #[Test]
+    public function evictSkipsNullCollectionName(): void
+    {
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
+
+        // Track a new entity directly against a null-name collection
+        $entity = new Stubs\Foo();
+        $entity->id = 1;
+        $nullColl = new Collection();
+        $mapper->markTracked($entity, $nullColl);
+        $mapper->remove($entity, $nullColl);
+        $mapper->flush();
+
+        // Evict should be a no-op (null name), identity map stays empty
+        $this->assertSame(0, $mapper->identityMapCount());
+    }
+
+    #[Test]
+    public function evictSkipsEntityWithNoPkValue(): void
+    {
+        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
+            entityNamespace: 'Respect\\Data\\Stubs\\',
+        )));
+        $mapper->seed('post', [
+            ['id' => 1, 'title' => 'Test'],
+        ]);
+
+        $mapper->fetch($mapper->post(filter: 1));
+        $this->assertSame(1, $mapper->identityMapCount());
+
+        // Entity with no PK — evict should be a no-op
+        $entity = new Stubs\Post();
+        $entity->title = 'No PK';
+        $mapper->remove($entity, $mapper->post());
+        $mapper->flush();
+
+        $this->assertSame(1, $mapper->identityMapCount());
     }
 
     #[Test]
@@ -754,11 +615,11 @@ class AbstractMapperTest extends TestCase
         ]);
 
         // Populate identity map
-        $mapper->post[1]->fetch();
+        $mapper->fetch($mapper->post(filter: 1));
         $this->assertSame(1, $mapper->identityMapCount());
 
         // fetchAll uses array/null condition — should always hit the backend
-        $all = $mapper->post->fetchAll();
+        $all = $mapper->fetchAll($mapper->post());
         $this->assertNotEmpty($all);
     }
 
@@ -776,7 +637,7 @@ class AbstractMapperTest extends TestCase
         ]);
 
         // Fetch with relationship (has children) — should bypass identity map
-        $comment = $mapper->comment->post->fetch();
+        $comment = $mapper->fetch($mapper->comment([$mapper->post()]));
         $this->assertIsObject($comment);
     }
 
@@ -791,7 +652,7 @@ class AbstractMapperTest extends TestCase
         ]);
 
         // Populate identity map
-        $fetched = $mapper->post[1]->fetch();
+        $fetched = $mapper->fetch($mapper->post(filter: 1));
         $this->assertSame('Original', $fetched->title);
 
         // Create a NEW mutable entity with matching PK
@@ -799,7 +660,7 @@ class AbstractMapperTest extends TestCase
         $replacement->id = 1;
         $replacement->title = 'Updated';
 
-        $mapper->post->persist($replacement);
+        $mapper->persist($replacement, $mapper->post());
 
         $ref = new ReflectionObject($mapper);
         $pendingProp = $ref->getProperty('pending');
@@ -821,7 +682,7 @@ class AbstractMapperTest extends TestCase
         $mapper->seed('read_only_author', []);
 
         $entity = $mapper->entityFactory->create(Stubs\ReadOnlyAuthor::class, name: 'Alice');
-        $mapper->read_only_author->persist($entity);
+        $mapper->persist($entity, $mapper->read_only_author());
         $mapper->flush();
 
         // PK should have been assigned (first assignment on uninitialized readonly $id)
@@ -839,12 +700,12 @@ class AbstractMapperTest extends TestCase
         ]);
 
         // Populate identity map
-        $fetched = $mapper->read_only_author[1]->fetch();
+        $fetched = $mapper->fetch($mapper->read_only_author(filter: 1));
         $this->assertSame('Original', $fetched->name);
 
         // Create new readonly entity (no PK) and persist via collection[pk]
         $updated = $mapper->entityFactory->create(Stubs\ReadOnlyAuthor::class, name: 'Updated', bio: 'new bio');
-        $merged = $mapper->read_only_author[1]->persist($updated);
+        $merged = $mapper->persist($updated, $mapper->read_only_author(filter: 1));
 
         // Merged entity should combine both: PK from fetched, changes from updated
         $this->assertSame(1, $merged->id);
@@ -873,15 +734,15 @@ class AbstractMapperTest extends TestCase
             ['id' => 1, 'name' => 'Original', 'bio' => null],
         ]);
 
-        $mapper->read_only_author[1]->fetch();
+        $mapper->fetch($mapper->read_only_author(filter: 1));
 
         $updated = $mapper->entityFactory->create(Stubs\ReadOnlyAuthor::class, name: 'Updated', bio: 'new bio');
-        $mapper->read_only_author[1]->persist($updated);
+        $mapper->persist($updated, $mapper->read_only_author(filter: 1));
         $mapper->flush();
 
         // Clear identity map and re-fetch to verify DB was updated
         $mapper->clearIdentityMap();
-        $refetched = $mapper->read_only_author[1]->fetch();
+        $refetched = $mapper->fetch($mapper->read_only_author(filter: 1));
         $this->assertSame('Updated', $refetched->name);
         $this->assertSame('new bio', $refetched->bio);
     }
@@ -896,11 +757,11 @@ class AbstractMapperTest extends TestCase
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
 
-        $mapper->read_only_author[1]->fetch();
+        $mapper->fetch($mapper->read_only_author(filter: 1));
         $this->assertSame(1, $mapper->identityMapCount());
 
         $updated = $mapper->entityFactory->create(Stubs\ReadOnlyAuthor::class, name: 'Bob');
-        $mapper->read_only_author[1]->persist($updated);
+        $mapper->persist($updated, $mapper->read_only_author(filter: 1));
 
         // Identity map count stays 1 (swapped, not added)
         $this->assertSame(1, $mapper->identityMapCount());
@@ -916,7 +777,7 @@ class AbstractMapperTest extends TestCase
 
         // No identity map entries — should insert
         $entity = $mapper->entityFactory->create(Stubs\ReadOnlyAuthor::class, name: 'New');
-        $mapper->read_only_author->persist($entity);
+        $mapper->persist($entity, $mapper->read_only_author());
 
         $ref = new ReflectionObject($mapper);
         $pendingProp = $ref->getProperty('pending');
@@ -935,22 +796,22 @@ class AbstractMapperTest extends TestCase
             ['id' => 1, 'title' => 'Original'],
         ]);
 
-        $fetched = $mapper->post[1]->fetch();
+        $fetched = $mapper->fetch($mapper->post(filter: 1));
 
         // Mark the fetched entity as pending 'update'
-        $mapper->post->persist($fetched);
+        $mapper->persist($fetched, $mapper->post());
 
         // Now replace with a new entity — old must be detached from pending too
         $replacement = new Stubs\Post();
         $replacement->id = 1;
         $replacement->title = 'Replaced';
-        $mapper->post->persist($replacement);
+        $mapper->persist($replacement, $mapper->post());
 
         // flush should not crash (old entity no longer in pending)
         $mapper->flush();
 
         $mapper->clearIdentityMap();
-        $refetched = $mapper->post[1]->fetch();
+        $refetched = $mapper->fetch($mapper->post(filter: 1));
         $this->assertSame('Replaced', $refetched->title);
     }
 
@@ -964,10 +825,10 @@ class AbstractMapperTest extends TestCase
             ['id' => 1, 'title' => 'Test'],
         ]);
 
-        $fetched = $mapper->post[1]->fetch();
+        $fetched = $mapper->fetch($mapper->post(filter: 1));
 
         // Persist the same entity again — should take the isTracked() path, not replace
-        $mapper->post->persist($fetched);
+        $mapper->persist($fetched, $mapper->post());
 
         $ref = new ReflectionObject($mapper);
         $pendingProp = $ref->getProperty('pending');
@@ -989,7 +850,7 @@ class AbstractMapperTest extends TestCase
             ['id' => 5, 'title' => 'Hello', 'text' => 'World'],
         ]);
 
-        $comment = $mapper->comment->post->fetch();
+        $comment = $mapper->fetch($mapper->comment([$mapper->post()]));
 
         $this->assertInstanceOf(Stubs\Immutable\Comment::class, $comment);
         $this->assertSame(1, $comment->id);
@@ -1016,7 +877,7 @@ class AbstractMapperTest extends TestCase
             ['id' => 3, 'name' => 'Alice', 'bio' => 'Writer'],
         ]);
 
-        $comment = $mapper->comment->post->author->fetch();
+        $comment = $mapper->fetch($mapper->comment([$mapper->post([$mapper->author()])]));
 
         $this->assertInstanceOf(Stubs\Immutable\Comment::class, $comment);
         $this->assertSame(1, $comment->id);
@@ -1047,20 +908,20 @@ class AbstractMapperTest extends TestCase
         );
 
         // Insert author first so it gets a PK
-        $mapper->author->persist($author);
+        $mapper->persist($author, $mapper->author());
         $mapper->flush();
 
         $this->assertSame(1001, $author->id);
 
-        // Insert post — extractColumns should resolve $author → author_id FK
-        $mapper->post->persist($post);
+        // Insert post — extractColumns should resolve $author -> author_id FK
+        $mapper->persist($post, $mapper->post());
         $mapper->flush();
 
         $this->assertSame(1002, $post->id);
 
         // Re-fetch the post and verify FK was stored
         $mapper->clearIdentityMap();
-        $fetchedPost = $mapper->post->author->fetch();
+        $fetchedPost = $mapper->fetch($mapper->post([$mapper->author()]));
         $this->assertSame('Hello', $fetchedPost->title);
         $this->assertSame('Bob', $fetchedPost->author->name);
     }
@@ -1079,7 +940,7 @@ class AbstractMapperTest extends TestCase
         ]);
 
         // Fetch the full graph
-        $fetched = $mapper->post->author->fetch();
+        $fetched = $mapper->fetch($mapper->post([$mapper->author()]));
         $this->assertSame('Original', $fetched->title);
         $this->assertSame('Alice', $fetched->author->name);
 
@@ -1090,12 +951,12 @@ class AbstractMapperTest extends TestCase
             text: 'New Body',
             author: $fetched->author,
         );
-        $mapper->post[1]->persist($updated);
+        $mapper->persist($updated, $mapper->post(filter: 1));
         $mapper->flush();
 
         // Re-fetch and verify both post columns AND FK were updated correctly
         $mapper->clearIdentityMap();
-        $refetched = $mapper->post->author->fetch();
+        $refetched = $mapper->fetch($mapper->post([$mapper->author()]));
         $this->assertSame('Updated', $refetched->title);
         $this->assertSame('New Body', $refetched->text);
         $this->assertSame('Alice', $refetched->author->name);
@@ -1116,11 +977,11 @@ class AbstractMapperTest extends TestCase
             ['id' => 20, 'name' => 'Bob', 'bio' => 'Writer'],
         ]);
 
-        $fetched = $mapper->post->author->fetch();
+        $fetched = $mapper->fetch($mapper->post([$mapper->author()]));
         $this->assertSame('Alice', $fetched->author->name);
 
         // Fetch the other author
-        $bob = $mapper->author[20]->fetch();
+        $bob = $mapper->fetch($mapper->author(filter: 20));
 
         // Replace post with a new author FK
         $updated = $mapper->entityFactory->create(
@@ -1129,11 +990,11 @@ class AbstractMapperTest extends TestCase
             text: 'Text',
             author: $bob,
         );
-        $mapper->post[1]->persist($updated);
+        $mapper->persist($updated, $mapper->post(filter: 1));
         $mapper->flush();
 
         $mapper->clearIdentityMap();
-        $refetched = $mapper->post->author->fetch();
+        $refetched = $mapper->fetch($mapper->post([$mapper->author()]));
         $this->assertSame('Reassigned', $refetched->title);
         $this->assertSame('Bob', $refetched->author->name);
         $this->assertSame(20, $refetched->author->id);
@@ -1153,16 +1014,16 @@ class AbstractMapperTest extends TestCase
             ['id' => 20, 'name' => 'Bob', 'bio' => null],
         ]);
 
-        $mapper->post->author->fetch();
-        $bob = $mapper->author[20]->fetch();
+        $mapper->fetch($mapper->post([$mapper->author()]));
+        $bob = $mapper->fetch($mapper->author(filter: 20));
 
-        // Partial entity with same PK → persist auto-detects update via identity map
+        // Partial entity with same PK -> persist auto-detects update via identity map
         $updated = $mapper->entityFactory->create(Stubs\Immutable\Post::class, id: 1, title: 'Changed', author: $bob);
-        $mapper->post->persist($updated);
+        $mapper->persist($updated, $mapper->post());
         $mapper->flush();
 
         $mapper->clearIdentityMap();
-        $refetched = $mapper->post->author->fetch();
+        $refetched = $mapper->fetch($mapper->post([$mapper->author()]));
         $this->assertSame('Changed', $refetched->title);
         $this->assertSame('Body', $refetched->text);
         $this->assertSame('Bob', $refetched->author->name);
@@ -1180,7 +1041,7 @@ class AbstractMapperTest extends TestCase
             ['id' => 3, 'name' => 'Carol', 'bio' => null],
         ]);
 
-        $authors = $mapper->author->fetchAll();
+        $authors = $mapper->fetchAll($mapper->author());
         $this->assertCount(3, $authors);
 
         // All entities should be tracked and in identity map
@@ -1189,7 +1050,7 @@ class AbstractMapperTest extends TestCase
 
         // Replace one by identity map lookup
         $updated = $mapper->entityFactory->create(Stubs\Immutable\Author::class, name: 'Alice Updated');
-        $merged = $mapper->author[1]->persist($updated);
+        $merged = $mapper->persist($updated, $mapper->author(filter: 1));
 
         // Original Alice should be evicted, merged entity takes its place
         $this->assertSame(3, $mapper->trackedCount());
@@ -1208,12 +1069,12 @@ class AbstractMapperTest extends TestCase
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
 
-        $mapper->author[1]->fetch();
+        $mapper->fetch($mapper->author(filter: 1));
 
         $updated = new Stubs\Immutable\Author(id: 1, name: 'Bob');
 
         // persist via collection[1] — PK already set, merge produces new entity
-        $merged = $mapper->author[1]->persist($updated);
+        $merged = $mapper->persist($updated, $mapper->author(filter: 1));
 
         $this->assertSame(1, $merged->id);
         $this->assertSame('Bob', $merged->name);
@@ -1230,12 +1091,12 @@ class AbstractMapperTest extends TestCase
         // Insert path
         $entity = new Stubs\Post();
         $entity->title = 'Test';
-        $result = $mapper->post->persist($entity);
+        $result = $mapper->persist($entity, $mapper->post());
         $this->assertSame($entity, $result);
 
         // Update path (tracked entity)
         $mapper->flush();
-        $result = $mapper->post->persist($entity);
+        $result = $mapper->persist($entity, $mapper->post());
         $this->assertSame($entity, $result);
     }
 
@@ -1249,17 +1110,17 @@ class AbstractMapperTest extends TestCase
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
 
-        $fetched = $mapper->author[1]->fetch();
+        $fetched = $mapper->fetch($mapper->author(filter: 1));
         $this->assertSame(1, $mapper->identityMapCount());
 
-        $mapper->author->remove($fetched);
+        $mapper->remove($fetched, $mapper->author());
         $mapper->flush();
 
         $this->assertSame(0, $mapper->identityMapCount());
 
         // Re-fetch returns false (no data)
         $mapper->clearIdentityMap();
-        $refetched = $mapper->author[1]->fetch();
+        $refetched = $mapper->fetch($mapper->author(filter: 1));
         $this->assertFalse($refetched);
     }
 
@@ -1272,14 +1133,14 @@ class AbstractMapperTest extends TestCase
         $mapper->seed('author', []);
 
         $author = $mapper->entityFactory->create(Stubs\Immutable\Author::class, id: 1, name: 'Alice');
-        $mapper->author->persist($author);
+        $mapper->persist($author, $mapper->author());
 
         // Partial entity with same PK merges via identity map, does not duplicate
         $updated = $mapper->entityFactory->create(Stubs\Immutable\Author::class, id: 1, name: 'Bob');
-        $mapper->author->persist($updated);
+        $mapper->persist($updated, $mapper->author());
         $mapper->flush();
 
-        $all = $mapper->author->fetchAll();
+        $all = $mapper->fetchAll($mapper->author());
         $this->assertCount(1, $all);
         $this->assertSame('Bob', $all[0]->name);
     }
@@ -1294,15 +1155,15 @@ class AbstractMapperTest extends TestCase
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
 
-        $mapper->author[1]->fetch();
+        $mapper->fetch($mapper->author(filter: 1));
 
         // Partial entity with same PK auto-detects update via identity map
         $partial = $mapper->entityFactory->create(Stubs\Immutable\Author::class, id: 1, name: 'Bob');
-        $mapper->author->persist($partial);
+        $mapper->persist($partial, $mapper->author());
         $mapper->flush();
 
         $mapper->clearIdentityMap();
-        $refetched = $mapper->author[1]->fetch();
+        $refetched = $mapper->fetch($mapper->author(filter: 1));
         $this->assertSame('Bob', $refetched->name);
     }
 
@@ -1316,7 +1177,7 @@ class AbstractMapperTest extends TestCase
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
 
-        $fetched = $mapper->author[1]->fetch();
+        $fetched = $mapper->fetch($mapper->author(filter: 1));
         $this->assertSame('Alice', $fetched->name);
 
         // Persist a different mutable entity with same PK
@@ -1325,7 +1186,7 @@ class AbstractMapperTest extends TestCase
         $overlay->name = 'Bob';
         $overlay->bio = 'new bio';
 
-        $result = $mapper->author->persist($overlay);
+        $result = $mapper->persist($overlay, $mapper->author());
 
         // Existing entity is mutated in place and returned
         $this->assertSame($fetched, $result);
@@ -1345,11 +1206,11 @@ class AbstractMapperTest extends TestCase
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
 
-        $fetched = $mapper->author[1]->fetch();
+        $fetched = $mapper->fetch($mapper->author(filter: 1));
 
         // Persist readonly entity with identical properties
         $same = new Stubs\Immutable\Author(id: 1, name: 'Alice');
-        $result = $mapper->author[1]->persist($same);
+        $result = $mapper->persist($same, $mapper->author(filter: 1));
 
         // No clone needed — same entity returned
         $this->assertSame($fetched, $result);
@@ -1366,10 +1227,10 @@ class AbstractMapperTest extends TestCase
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
 
-        $fetched = $mapper->author[1]->fetch();
+        $fetched = $mapper->fetch($mapper->author(filter: 1));
 
         // Lookup with string "1" should hit the identity map
-        $fromString = $mapper->author['1']->fetch();
+        $fromString = $mapper->fetch($mapper->author(filter: '1'));
         $this->assertSame($fetched, $fromString);
     }
 
@@ -1383,10 +1244,10 @@ class AbstractMapperTest extends TestCase
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
 
-        $mapper->author[1]->fetch();
+        $mapper->fetch($mapper->author(filter: 1));
 
         // Float condition should not match identity map
-        $result = $mapper->author[1.5]->fetch();
+        $result = $mapper->fetch($mapper->author(filter: 1.5));
         $this->assertNotSame(true, $result === null);
     }
 
@@ -1401,7 +1262,7 @@ class AbstractMapperTest extends TestCase
         ]);
 
         // Put entity in identity map via fetch, then untrack it manually
-        $fetched = $mapper->author[1]->fetch();
+        $fetched = $mapper->fetch($mapper->author(filter: 1));
         $ref = new ReflectionObject($mapper);
         $trackedProp = $ref->getProperty('tracked');
         /** @var SplObjectStorage<object, mixed> $tracked */
@@ -1414,7 +1275,7 @@ class AbstractMapperTest extends TestCase
         $overlay->id = 1;
         $overlay->name = 'Bob';
 
-        $result = $mapper->author->persist($overlay);
+        $result = $mapper->persist($overlay, $mapper->author());
 
         $this->assertSame($fetched, $result);
         $this->assertTrue($mapper->isTracked($fetched));
@@ -1431,11 +1292,11 @@ class AbstractMapperTest extends TestCase
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
 
-        $fetched = $mapper->author[1]->fetch();
+        $fetched = $mapper->fetch($mapper->author(filter: 1));
 
         // Persist readonly entity without PK, via string condition "1"
         $overlay = $mapper->entityFactory->create(Stubs\Immutable\Author::class, name: 'Updated');
-        $merged = $mapper->author['1']->persist($overlay);
+        $merged = $mapper->persist($overlay, $mapper->author(filter: '1'));
 
         // Should have matched identity map via normalized condition
         $this->assertNotSame($fetched, $merged);

@@ -17,16 +17,29 @@ class CompositeTest extends TestCase
     public function collectionCanBeCreatedStaticallyWithChildren(): void
     {
         $children1 = Composite::bar(['foo' => ['bar']]);
-        $children2 = Composite::baz(['bat' => ['bar']])->bat();
-        $coll = Collection::foo($children1, $children2)->bar();
+        $children2 = Composite::baz(['bat' => ['bar']]);
+        $coll = Collection::foo([$children1, $children2]);
         $this->assertInstanceOf(Collection::class, $coll);
-        $this->assertInstanceOf(Collection::class, $coll->connectsTo);
         $this->assertInstanceOf(Composite::class, $children1);
         $this->assertInstanceOf(Composite::class, $children2);
         $this->assertTrue($coll->hasChildren);
-        $this->assertEquals(2, count($coll->children));
+        $this->assertEquals(2, count($coll->with));
         $this->assertEquals(['foo' => ['bar']], $children1->compositions);
         $this->assertEquals(['bat' => ['bar']], $children2->compositions);
+    }
+
+    #[Test]
+    public function derivePreservesCompositions(): void
+    {
+        $original = Composite::post(['comment' => ['text']]);
+        $derived = $original->derive(with: [Collection::author()], filter: 5);
+
+        $this->assertInstanceOf(Composite::class, $derived);
+        $this->assertEquals('post', $derived->name);
+        $this->assertEquals(['comment' => ['text']], $derived->compositions);
+        $this->assertCount(1, $derived->with);
+        $this->assertEquals('author', $derived->with[0]->name);
+        $this->assertEquals(5, $derived->filter);
     }
 
     #[Test]

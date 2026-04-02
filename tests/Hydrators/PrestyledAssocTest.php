@@ -10,7 +10,6 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Respect\Data\Collections\Collection;
 use Respect\Data\Collections\Composite;
-use Respect\Data\Collections\Filtered;
 use Respect\Data\Collections\Typed;
 use Respect\Data\EntityFactory;
 use Respect\Data\Stubs\Author;
@@ -61,7 +60,7 @@ class PrestyledAssocTest extends TestCase
     public function hydrateMultipleEntitiesFromJoinedRow(): void
     {
         $hydrator = new PrestyledAssoc($this->factory);
-        $collection = Collection::author()->post;
+        $collection = Collection::author([Collection::post()]);
 
         $result = $hydrator->hydrateAll(
             [
@@ -92,7 +91,7 @@ class PrestyledAssocTest extends TestCase
     public function hydrateWiresRelationships(): void
     {
         $hydrator = new PrestyledAssoc($this->factory);
-        $collection = Collection::post()->author;
+        $collection = Collection::post([Collection::author()]);
 
         $result = $hydrator->hydrateAll(
             [
@@ -117,7 +116,7 @@ class PrestyledAssocTest extends TestCase
     public function hydrateReturnsRootRegardlessOfColumnOrder(): void
     {
         $hydrator = new PrestyledAssoc($this->factory);
-        $collection = Collection::post()->author;
+        $collection = Collection::post([Collection::author()]);
 
         // Author columns appear before post columns
         $result = $hydrator->hydrate(
@@ -153,27 +152,10 @@ class PrestyledAssocTest extends TestCase
     }
 
     #[Test]
-    public function hydrateSkipsUnfilteredFilteredCollections(): void
-    {
-        $hydrator = new PrestyledAssoc($this->factory);
-        $filtered = Filtered::post();
-        $collection = Collection::author();
-        $collection->stack($filtered);
-
-        $result = $hydrator->hydrateAll(
-            ['author__id' => 1, 'author__name' => 'Alice'],
-            $collection,
-        );
-
-        $this->assertNotFalse($result);
-        $this->assertCount(1, $result);
-    }
-
-    #[Test]
     public function hydrateCompositeEntity(): void
     {
         $hydrator = new PrestyledAssoc($this->factory);
-        $composite = Composite::author(['profile' => ['bio']])->post;
+        $composite = Composite::author(['profile' => ['bio']], [Collection::post()]);
 
         $result = $hydrator->hydrateAll(
             [

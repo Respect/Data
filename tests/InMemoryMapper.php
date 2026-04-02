@@ -34,7 +34,7 @@ final class InMemoryMapper extends AbstractMapper
             }
         }
 
-        $row = $this->findRow((string) $collection->name, $collection->condition);
+        $row = $this->findRow((string) $collection->name, $collection->filter);
 
         return $row !== null ? $this->hydrateRow($row, $collection) : false;
     }
@@ -42,7 +42,7 @@ final class InMemoryMapper extends AbstractMapper
     /** @return array<int, mixed> */
     public function fetchAll(Collection $collection, mixed $extra = null): array
     {
-        $rows = $this->findRows((string) $collection->name, $collection->condition);
+        $rows = $this->findRows((string) $collection->name, $collection->filter);
         $result = [];
 
         foreach ($rows as $row) {
@@ -84,10 +84,7 @@ final class InMemoryMapper extends AbstractMapper
 
     private function insertEntity(object $entity, Collection $collection, string $tableName, string $id): void
     {
-        $row = $this->filterColumns(
-            $this->entityFactory->extractColumns($entity),
-            $collection,
-        );
+        $row = $this->entityFactory->extractColumns($entity);
 
         if (!isset($row[$id])) {
             ++$this->lastInsertId;
@@ -101,10 +98,7 @@ final class InMemoryMapper extends AbstractMapper
     private function updateEntity(object $entity, Collection $collection, string $tableName, string $id): void
     {
         $idValue = $this->entityFactory->get($entity, $id);
-        $row = $this->filterColumns(
-            $this->entityFactory->extractColumns($entity),
-            $collection,
-        );
+        $row = $this->entityFactory->extractColumns($entity);
 
         foreach ($this->tables[$tableName] as $index => $existing) {
             if (isset($existing[$id]) && $existing[$id] == $idValue) {
@@ -155,11 +149,7 @@ final class InMemoryMapper extends AbstractMapper
     /** @param array<string, mixed> $parentRow */
     private function attachRelated(array &$parentRow, Collection $collection): void
     {
-        if ($collection->connectsTo !== null) {
-            $this->attachChild($parentRow, $collection->connectsTo);
-        }
-
-        foreach ($collection->children as $child) {
+        foreach ($collection->with as $child) {
             $this->attachChild($parentRow, $child);
         }
     }
@@ -181,7 +171,7 @@ final class InMemoryMapper extends AbstractMapper
             return;
         }
 
-        if ($child->hasMore) {
+        if ($child->hasChildren) {
             $this->attachRelated($childRow, $child);
         }
 

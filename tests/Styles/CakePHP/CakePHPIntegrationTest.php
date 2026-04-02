@@ -48,17 +48,17 @@ class CakePHPIntegrationTest extends TestCase
     public function testFetchingEntityTyped(): void
     {
         $mapper = $this->mapper;
-        $comment = $mapper->comments[8]->fetch();
+        $comment = $mapper->fetch($mapper->comments(filter: 8));
         $this->assertInstanceOf(Comment::class, $comment);
     }
 
     public function testFetchingAllEntityTyped(): void
     {
         $mapper = $this->mapper;
-        $comment = $mapper->comments->fetchAll();
+        $comment = $mapper->fetchAll($mapper->comments());
         $this->assertInstanceOf(Comment::class, $comment[1]);
 
-        $categories = $mapper->post_categories->categories->fetch();
+        $categories = $mapper->fetch($mapper->post_categories([$mapper->categories()]));
         $this->assertInstanceOf(PostCategory::class, $categories);
         $this->assertInstanceOf(Category::class, $categories->category);
     }
@@ -66,7 +66,7 @@ class CakePHPIntegrationTest extends TestCase
     public function testFetchingAllEntityTypedNested(): void
     {
         $mapper = $this->mapper;
-        $comment = $mapper->comments->posts->authors->fetchAll();
+        $comment = $mapper->fetchAll($mapper->comments([$mapper->posts([$mapper->authors()])]));
         $this->assertInstanceOf(Comment::class, $comment[0]);
         $this->assertInstanceOf(Post::class, $comment[0]->post);
         $this->assertInstanceOf(Author::class, $comment[0]->post->author);
@@ -75,13 +75,13 @@ class CakePHPIntegrationTest extends TestCase
     public function testPersistingEntityTyped(): void
     {
         $mapper = $this->mapper;
-        $comment = $mapper->comments[8]->fetch();
+        $comment = $mapper->fetch($mapper->comments(filter: 8));
         $this->assertInstanceOf(Comment::class, $comment);
         $comment->text = 'HeyHey';
-        $mapper->comments->persist($comment);
+        $mapper->persist($comment, $mapper->comments());
         $mapper->flush();
 
-        $updated = $mapper->comments[8]->fetch();
+        $updated = $mapper->fetch($mapper->comments(filter: 8));
         $this->assertInstanceOf(Comment::class, $updated);
         $this->assertEquals('HeyHey', $updated->text);
     }
@@ -91,11 +91,11 @@ class CakePHPIntegrationTest extends TestCase
         $mapper = $this->mapper;
         $comment = new Comment();
         $comment->text = 'HeyHey';
-        $mapper->comments->persist($comment);
+        $mapper->persist($comment, $mapper->comments());
         $mapper->flush();
 
         $this->assertGreaterThan(0, $comment->id);
-        $allComments = $mapper->comments->fetchAll();
+        $allComments = $mapper->fetchAll($mapper->comments());
         $this->assertCount(3, $allComments);
     }
 }

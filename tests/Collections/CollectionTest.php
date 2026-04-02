@@ -7,19 +7,14 @@ namespace Respect\Data\Collections;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Respect\Data\AbstractMapper;
-use Respect\Data\CollectionNotBound;
 use Respect\Data\EntityFactory;
 use Respect\Data\Hydrators\Nested;
 use Respect\Data\InMemoryMapper;
 use Respect\Data\Stubs;
-use Respect\Data\Stubs\Foo;
 
 use function count;
-use function reset;
 
 #[CoversClass(Collection::class)]
-#[CoversClass(CollectionNotBound::class)]
 class CollectionTest extends TestCase
 {
     #[Test]
@@ -34,270 +29,62 @@ class CollectionTest extends TestCase
     {
         $children1 = Collection::bar();
         $children2 = Collection::baz();
-        $coll = Collection::foo($children1, $children2);
+        $coll = Collection::foo([$children1, $children2]);
         $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll);
         $this->assertTrue($coll->hasChildren);
-        $this->assertEquals(2, count($coll->children));
+        $this->assertEquals(2, count($coll->with));
     }
 
     #[Test]
-    public function collectionCanBeCreatedStaticallyWithCondition(): void
+    public function collectionCanBeCreatedStaticallyWithFilter(): void
     {
-        $coll = Collection::fooBar(42);
+        $coll = Collection::fooBar(filter: 42);
         $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll);
-        $this->assertEquals(42, $coll->condition);
-    }
-
-    #[Test]
-    public function multipleConditionsOnStaticCreationLeavesTheLast(): void
-    {
-        $coll = Collection::fooBar(42, 'Other dominant condition!!!');
-        $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll);
-        $this->assertEquals(
-            'Other dominant condition!!!',
-            $coll->condition,
-        );
+        $this->assertEquals(42, $coll->filter);
     }
 
     #[Test]
     public function objectConstructorShouldSetObjectAttributes(): void
     {
         $coll = new Collection('some_irrelevant_name');
-        $this->assertEquals(
-            [],
-            $coll->condition,
-            'Default condition should be an empty array',
+        $this->assertNull(
+            $coll->filter,
+            'Default filter should be null',
         );
         $this->assertEquals('some_irrelevant_name', $coll->name);
     }
 
     #[Test]
-    public function objectConstructorWithConditionShouldSetIt(): void
+    public function objectConstructorWithFilterShouldSetIt(): void
     {
-        $coll = new Collection('some_irrelevant_name', 123);
-        $this->assertEquals(123, $coll->condition);
+        $coll = new Collection('some_irrelevant_name', filter: 123);
+        $this->assertEquals(123, $coll->filter);
     }
 
     #[Test]
-    public function dynamicGetterShouldStackCollection(): void
+    public function constructorCompositionShouldSetChildrenAndParent(): void
     {
-        $coll = new Collection('hi');
-        $coll->someTest;
-        $this->assertEquals(
-            'someTest',
-            $coll->connectsTo?->name,
-            'First time should change connectsTo item',
-        );
+        $child = new Collection('bar_child');
+        $coll = new Collection('foo_collection', [$child]);
+        $children = $coll->with;
+        $this->assertCount(1, $children);
+        $this->assertInstanceOf(Collection::class, $children[0]);
+        $this->assertEquals(false, $children[0]->required);
+        $this->assertEquals($coll->name, $children[0]->parent?->name);
     }
 
     #[Test]
-    public function dynamicGetterShouldChainCollection(): void
+    public function childrenShouldMakeHasChildrenTrue(): void
     {
-        $coll = new Collection('hi');
-        $coll->someTest;
-        $this->assertEquals(
-            'someTest',
-            $coll->connectsTo?->name,
-            'First time should change connectsTo item',
-        );
-        $coll->anotherTest;
-        $this->assertEquals(
-            'someTest',
-            $coll->connectsTo?->name,
-            'The connectsTo item on a chain should never be changed after first time',
-        );
+        $coll = Collection::foo([Collection::thisIsAChildren()]);
+        $this->assertTrue($coll->hasChildren);
     }
 
     #[Test]
-    public function settingConditionViaDynamicOffsetShouldUseLastNode(): void
+    public function noChildrenShouldMakeHasChildrenFalse(): void
     {
-        $foo = Collection::foo()->bar->baz[42];
-        $bar = $foo->connectsTo;
-        $baz = $bar->connectsTo;
-        $this->assertEmpty($foo->condition);
-        $this->assertEmpty($bar->condition);
-        $this->assertEquals(42, $baz->condition);
-    }
-
-    #[Test]
-    public function dynamicMethodCallShouldAcceptChildren(): void
-    {
-        $coll = new Collection('some_name');
-        $coll->fooBar(
-            Collection::some(),
-            Collection::children(),
-            Collection::here(),
-        );
-        $connected = $coll->connectsTo;
-        $this->assertNotNull($connected);
-        $this->assertEquals(3, count($connected->children));
-    }
-
-    #[Test]
-    public function addChildShouldSetChildrenObjectProperties(): void
-    {
-        $coll = new Collection('foo_collection');
-        $coll->addChild(new Collection('bar_child'));
-        $children = $coll->children;
-        $child = reset($children);
-        $this->assertInstanceOf(Collection::class, $child);
-        $this->assertEquals(false, $child->required);
-        $this->assertEquals($coll->name, $child->parent?->name);
-    }
-
-    #[Test]
-    public function childrenShouldMakeHasMoreTrue(): void
-    {
-        $coll = Collection::foo(Collection::thisIsAChildren());
-        $this->assertTrue($coll->hasMore);
-    }
-
-    #[Test]
-    public function chainingShouldMakeHasMoreTrue(): void
-    {
-        $coll = Collection::foo()->barChain;
-        $this->assertTrue($coll->hasMore);
-    }
-
-    #[Test]
-    public function arrayOffsetSetShouldNotDoAnything(): void
-    {
-        $touched = Collection::foo()->bar;
-        $touched['magic'] = 'FOOOO';
-        $untouched = Collection::foo()->bar;
-        $this->assertEquals($untouched, $touched);
-    }
-
-    #[Test]
-    public function arrayOffsetUnsetShouldNotDoAnything(): void
-    {
-        $touched = Collection::foo()->bar;
-        unset($touched['magic']);
-        unset($touched['bar']);
-        $untouched = Collection::foo()->bar;
-        $this->assertEquals($untouched, $touched);
-    }
-
-    #[Test]
-    public function persistShouldPersistOnAttachedMapper(): void
-    {
-        $persisted = new Foo();
-        $collection = new Collection('name_whatever');
-        $mapperMock = $this->createMock(AbstractMapper::class);
-        $mapperMock->expects($this->once())
-            ->method('persist')
-            ->with($persisted, $collection)
-            ->willReturn($persisted);
-        $collection->bindMapper($mapperMock);
-        $result = $collection->persist($persisted);
-        $this->assertSame($persisted, $result);
-    }
-
-    #[Test]
-    public function removeShouldPersistOnAttachedMapper(): void
-    {
-        $removed = new Foo();
-        $collection = new Collection('name_whatever');
-        $mapperMock = $this->createMock(AbstractMapper::class);
-        $mapperMock->expects($this->once())
-            ->method('remove')
-            ->with($removed, $collection)
-            ->willReturn(true);
-        $collection->bindMapper($mapperMock);
-        $collection->remove($removed);
-    }
-
-    #[Test]
-    public function fetchShouldPersistOnAttachedMapper(): void
-    {
-        $result = 'result stub';
-        $collection = new Collection('name_whatever');
-        $mapperMock = $this->createMock(AbstractMapper::class);
-        $mapperMock->expects($this->once())
-            ->method('fetch')
-            ->with($collection)
-            ->willReturn($result);
-        $collection->bindMapper($mapperMock);
-        $collection->fetch();
-    }
-
-    #[Test]
-    public function fetchShouldPersistOnAttachedMapperWithExtraParam(): void
-    {
-        $result = 'result stub';
-        $extra = 'extra stub';
-        $collection = new Collection('name_whatever');
-        $mapperMock = $this->createMock(AbstractMapper::class);
-        $mapperMock->expects($this->once())
-            ->method('fetch')
-            ->with($collection, $extra)
-            ->willReturn($result);
-        $collection->bindMapper($mapperMock);
-        $collection->fetch($extra);
-    }
-
-    #[Test]
-    public function fetchAllShouldPersistOnAttachedMapper(): void
-    {
-        $collection = new Collection('name_whatever');
-        $mapperMock = $this->createMock(AbstractMapper::class);
-        $mapperMock->expects($this->once())
-            ->method('fetchAll')
-            ->with($collection)
-            ->willReturn([]);
-        $collection->bindMapper($mapperMock);
-        $collection->fetchAll();
-    }
-
-    #[Test]
-    public function fetchAllShouldPersistOnAttachedMapperWithExtraParam(): void
-    {
-        $extra = 'extra stub';
-        $collection = new Collection('name_whatever');
-        $mapperMock = $this->createMock(AbstractMapper::class);
-        $mapperMock->expects($this->once())
-            ->method('fetchAll')
-            ->with($collection, $extra)
-            ->willReturn([]);
-        $collection->bindMapper($mapperMock);
-        $collection->fetchAll($extra);
-    }
-
-    #[Test]
-    public function arrayOffsetExistsShouldNotDoAnything(): void
-    {
-        $touched = Collection::foo()->bar;
-        $this->assertFalse(isset($touched['magic']));
-        $untouched = Collection::foo()->bar;
-        $this->assertEquals($untouched, $touched);
-    }
-
-    #[Test]
-    public function persistOnCollectionShouldExceptionIfMapperDontExist(): void
-    {
-        $this->expectException(CollectionNotBound::class);
-        Collection::foo()->persist(new Foo());
-    }
-
-    #[Test]
-    public function removeOnCollectionShouldExceptionIfMapperDontExist(): void
-    {
-        $this->expectException(CollectionNotBound::class);
-        Collection::foo()->remove(new Foo());
-    }
-
-    #[Test]
-    public function fetchOnCollectionShouldExceptionIfMapperDontExist(): void
-    {
-        $this->expectException(CollectionNotBound::class);
-        Collection::foo()->fetch();
-    }
-
-    #[Test]
-    public function fetchAllOnCollectionShouldExceptionIfMapperDontExist(): void
-    {
-        $this->expectException(CollectionNotBound::class);
-        Collection::foo()->fetchAll();
+        $coll = Collection::foo();
+        $this->assertFalse($coll->hasChildren);
     }
 
     #[Test]
@@ -308,24 +95,46 @@ class CollectionTest extends TestCase
     }
 
     #[Test]
-    public function getConnectsToShouldReturnNullWhenNoConnectsTo(): void
+    public function deriveCreatesNewCollectionWithMergedWith(): void
     {
-        $coll = new Collection('foo');
-        $this->assertNull($coll->connectsTo);
+        $original = Collection::foo([Collection::bar()]);
+        $derived = $original->derive(with: [Collection::baz()]);
+
+        $this->assertNotSame($original, $derived);
+        $this->assertEquals('foo', $derived->name);
+        $this->assertCount(2, $derived->with);
+        $this->assertEquals('bar', $derived->with[0]->name);
+        $this->assertEquals('baz', $derived->with[1]->name);
+        $this->assertCount(1, $original->with, 'Original should be unchanged');
     }
 
     #[Test]
-    public function magicGetShouldUseRegisteredCollectionFromMapper(): void
+    public function derivePreservesFilterAndOverridesWhenProvided(): void
     {
-        $registered = Collection::bar();
-        $mapperMock = $this->createMock(AbstractMapper::class);
-        $mapperMock->method('__isset')->with('bar')->willReturn(true);
-        $mapperMock->method('__get')->with('bar')->willReturn($registered);
+        $original = new Collection('foo', filter: 42, required: true);
 
-        $coll = new Collection('foo');
-        $coll->bindMapper($mapperMock);
-        $result = $coll->bar;
-        $this->assertEquals('bar', $result->connectsTo?->name);
+        $sameFilter = $original->derive();
+        $this->assertEquals(42, $sameFilter->filter);
+        $this->assertTrue($sameFilter->required);
+
+        $newFilter = $original->derive(filter: 99, required: false);
+        $this->assertEquals(99, $newFilter->filter);
+        $this->assertFalse($newFilter->required);
+    }
+
+    #[Test]
+    public function cloneDeepClonesChildrenAndClearsParent(): void
+    {
+        $parent = Collection::foo([Collection::bar([Collection::baz()])]);
+        $clone = clone $parent;
+
+        $this->assertNull($clone->parent);
+        $this->assertNotSame($parent->with[0], $clone->with[0]);
+        $this->assertEquals('bar', $clone->with[0]->name);
+        $this->assertSame($clone, $clone->with[0]->parent);
+
+        $this->assertNotSame($parent->with[0]->with[0], $clone->with[0]->with[0]);
+        $this->assertEquals('baz', $clone->with[0]->with[0]->name);
     }
 
     #[Test]
@@ -337,7 +146,7 @@ class CollectionTest extends TestCase
         $mapper->seed('author', []);
 
         $entity = $mapper->entityFactory->create(Stubs\Immutable\Author::class, name: 'Alice');
-        $result = $mapper->author->persist($entity);
+        $result = $mapper->persist($entity, $mapper->author());
         $this->assertSame($entity, $result);
     }
 
@@ -351,11 +160,11 @@ class CollectionTest extends TestCase
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
 
-        $fetched = $mapper->author[1]->fetch();
+        $fetched = $mapper->fetch($mapper->author(filter: 1));
         $this->assertSame('Alice', $fetched->name);
 
         $partial = $mapper->entityFactory->create(Stubs\Immutable\Author::class, id: 1, name: 'Bob');
-        $result = $mapper->author->persist($partial);
+        $result = $mapper->persist($partial, $mapper->author());
 
         $this->assertNotSame($fetched, $result);
         $this->assertSame('Bob', $result->name);
@@ -372,14 +181,14 @@ class CollectionTest extends TestCase
             ['id' => 1, 'name' => 'Alice', 'bio' => null],
         ]);
 
-        $mapper->author[1]->fetch();
+        $mapper->fetch($mapper->author(filter: 1));
 
         $partial = $mapper->entityFactory->create(Stubs\Immutable\Author::class, id: 1, name: 'Bob', bio: 'Writer');
-        $mapper->author->persist($partial);
+        $mapper->persist($partial, $mapper->author());
         $mapper->flush();
 
         $mapper->clearIdentityMap();
-        $refetched = $mapper->author[1]->fetch();
+        $refetched = $mapper->fetch($mapper->author(filter: 1));
         $this->assertSame('Bob', $refetched->name);
         $this->assertSame('Writer', $refetched->bio);
     }
@@ -398,17 +207,17 @@ class CollectionTest extends TestCase
             ['id' => 20, 'name' => 'Bob', 'bio' => null],
         ]);
 
-        $mapper->post->author->fetch();
-        $bob = $mapper->author[20]->fetch();
+        $mapper->fetch($mapper->post([$mapper->author()]));
+        $bob = $mapper->fetch($mapper->author(filter: 20));
 
         $updated = $mapper->entityFactory->create(Stubs\Immutable\Post::class, id: 1, title: 'Changed', author: $bob);
-        $result = $mapper->post->persist($updated);
+        $result = $mapper->persist($updated, $mapper->post());
         $mapper->flush();
 
         $this->assertSame(1, $result->id);
 
         $mapper->clearIdentityMap();
-        $refetched = $mapper->post->author->fetch();
+        $refetched = $mapper->fetch($mapper->post([$mapper->author()]));
         $this->assertSame('Changed', $refetched->title);
         $this->assertSame('Bob', $refetched->author->name);
     }
@@ -423,15 +232,15 @@ class CollectionTest extends TestCase
             ['id' => 1, 'name' => 'Alice', 'bio' => 'has bio'],
         ]);
 
-        $fetched = $mapper->author[1]->fetch();
+        $fetched = $mapper->fetch($mapper->author(filter: 1));
         $this->assertSame('has bio', $fetched->bio);
 
         $partial = $mapper->entityFactory->create(Stubs\Immutable\Author::class, id: 1, name: 'Alice', bio: null);
-        $mapper->author->persist($partial);
+        $mapper->persist($partial, $mapper->author());
         $mapper->flush();
 
         $mapper->clearIdentityMap();
-        $refetched = $mapper->author[1]->fetch();
+        $refetched = $mapper->fetch($mapper->author(filter: 1));
         $this->assertNull($refetched->bio);
     }
 }
