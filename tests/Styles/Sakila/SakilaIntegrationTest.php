@@ -48,17 +48,17 @@ class SakilaIntegrationTest extends TestCase
     public function testFetchingEntityTyped(): void
     {
         $mapper = $this->mapper;
-        $comment = $mapper->comment[8]->fetch();
+        $comment = $mapper->fetch($mapper->comment(filter: 8));
         $this->assertInstanceOf(Comment::class, $comment);
     }
 
     public function testFetchingAllEntityTyped(): void
     {
         $mapper = $this->mapper;
-        $comment = $mapper->comment->fetchAll();
+        $comment = $mapper->fetchAll($mapper->comment());
         $this->assertInstanceOf(Comment::class, $comment[1]);
 
-        $categories = $mapper->post_category->category->fetch();
+        $categories = $mapper->fetch($mapper->post_category([$mapper->category()]));
         $this->assertInstanceOf(PostCategory::class, $categories);
         $this->assertInstanceOf(Category::class, $categories->category);
     }
@@ -66,7 +66,7 @@ class SakilaIntegrationTest extends TestCase
     public function testFetchingAllEntityTypedNested(): void
     {
         $mapper = $this->mapper;
-        $comment = $mapper->comment->post->author->fetchAll();
+        $comment = $mapper->fetchAll($mapper->comment([$mapper->post([$mapper->author()])]));
         $this->assertInstanceOf(Comment::class, $comment[0]);
         $this->assertInstanceOf(Post::class, $comment[0]->post);
         $this->assertInstanceOf(Author::class, $comment[0]->post->author);
@@ -75,13 +75,13 @@ class SakilaIntegrationTest extends TestCase
     public function testPersistingEntityTyped(): void
     {
         $mapper = $this->mapper;
-        $comment = $mapper->comment[8]->fetch();
+        $comment = $mapper->fetch($mapper->comment(filter: 8));
         $this->assertInstanceOf(Comment::class, $comment);
         $comment->text = 'HeyHey';
-        $mapper->comment->persist($comment);
+        $mapper->persist($comment, $mapper->comment());
         $mapper->flush();
 
-        $updated = $mapper->comment[8]->fetch();
+        $updated = $mapper->fetch($mapper->comment(filter: 8));
         $this->assertInstanceOf(Comment::class, $updated);
         $this->assertEquals('HeyHey', $updated->text);
     }
@@ -91,11 +91,11 @@ class SakilaIntegrationTest extends TestCase
         $mapper = $this->mapper;
         $comment = new Comment();
         $comment->text = 'HeyHey';
-        $mapper->comment->persist($comment);
+        $mapper->persist($comment, $mapper->comment());
         $mapper->flush();
 
         $this->assertGreaterThan(0, $comment->commentId);
-        $allComments = $mapper->comment->fetchAll();
+        $allComments = $mapper->fetchAll($mapper->comment());
         $this->assertCount(3, $allComments);
     }
 }

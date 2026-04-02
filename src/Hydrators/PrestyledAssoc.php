@@ -8,7 +8,6 @@ use DomainException;
 use Respect\Data\CollectionIterator;
 use Respect\Data\Collections\Collection;
 use Respect\Data\Collections\Composite;
-use Respect\Data\Collections\Filtered;
 use SplObjectStorage;
 
 use function array_keys;
@@ -84,7 +83,7 @@ final class PrestyledAssoc extends Base
 
         $this->collMap = [];
         foreach (CollectionIterator::recursive($collection) as $spec => $c) {
-            if ($c->name === null || ($c instanceof Filtered && !$c->filters)) {
+            if ($c->name === null) {
                 continue;
             }
 

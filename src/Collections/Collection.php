@@ -4,142 +4,80 @@ declare(strict_types=1);
 
 namespace Respect\Data\Collections;
 
-use ArrayAccess;
-use Respect\Data\AbstractMapper;
-use Respect\Data\CollectionNotBound;
-
-/** @implements ArrayAccess<string, Collection> */
-class Collection implements ArrayAccess
+class Collection
 {
-    public private(set) bool $required = true;
-
-    public private(set) AbstractMapper|null $mapper = null;
-
     public private(set) Collection|null $parent = null;
 
-    public private(set) Collection|null $connectsTo = null;
+    /** @var list<Collection> */
+    public private(set) array $with;
 
-    private Collection|null $last = null;
+    public bool $hasChildren { get => !empty($this->with); }
 
-    /** @var Collection[] */
-    public private(set) array $children = [];
-
-    public bool $hasChildren { get => !empty($this->children); }
-
-    public bool $hasMore { get => $this->hasChildren || $this->connectsTo !== null; }
-
-    /** @var array<scalar, mixed>|scalar|null */
-    public private(set) array|int|float|string|bool|null $condition = [];
-
-    /** @param (Collection|array<scalar, mixed>|scalar|null) ...$args */
+    /**
+     * @param list<Collection> $with
+     * @param array<scalar, mixed>|scalar|null $filter
+     */
     public function __construct(
-        public private(set) string|null $name = null,
-        self|array|int|float|string|bool|null ...$args,
+        public readonly string|null $name = null,
+        array $with = [],
+        public readonly array|int|float|string|bool|null $filter = null,
+        public readonly bool $required = false,
     ) {
-        $this->with(...$args);
+        $this->with = $this->adoptChildren($with);
     }
 
-    public function addChild(Collection $child): void
-    {
-        $clone = clone $child;
-        $clone->required = false;
-        $clone->parent = $this;
-        $this->children[] = $clone;
+    /**
+     * @param list<Collection> $with
+     * @param array<scalar, mixed>|scalar|null $filter
+     */
+    public function derive(
+        array $with = [],
+        array|int|float|string|bool|null $filter = null,
+        bool|null $required = null,
+    ): static {
+        return new static(
+            $this->name,
+            ...$this->deriveArgs(
+                with: $with,
+                filter: $filter,
+                required: $required,
+            ),
+        );
     }
 
-    public function persist(object $object): object
-    {
-        return $this->resolveMapper()->persist($object, $this);
+    /**
+     * @param list<Collection> $with
+     * @param array<scalar, mixed>|scalar|null $filter
+     *
+     * @return array{with: list<Collection>, filter: array|int|float|string|bool|null, required: bool}
+     */
+    protected function deriveArgs( // @phpstan-ignore missingType.iterableValue
+        array $with = [],
+        array|int|float|string|bool|null $filter = null,
+        bool|null $required = null,
+    ): array {
+        return [
+            'with' => [...$this->with, ...$with],
+            'filter' => $filter ?? $this->filter,
+            'required' => $required ?? $this->required,
+        ];
     }
 
-    public function remove(object $object): bool
+    /**
+     * @param list<Collection> $children
+     *
+     * @return list<Collection>
+     */
+    private function adoptChildren(array $children): array
     {
-        return $this->resolveMapper()->remove($object, $this);
-    }
-
-    public function fetch(mixed $extra = null): mixed
-    {
-        return $this->resolveMapper()->fetch($this, $extra);
-    }
-
-    public function fetchAll(mixed $extra = null): mixed
-    {
-        return $this->resolveMapper()->fetchAll($this, $extra);
-    }
-
-    public function offsetExists(mixed $offset): bool
-    {
-        return false;
-    }
-
-    public function offsetGet(mixed $condition): mixed
-    {
-        $tail = $this->last ?? $this;
-        $tail->condition = $condition;
-
-        return $this;
-    }
-
-    public function offsetSet(mixed $offset, mixed $value): void
-    {
-        // no-op
-    }
-
-    public function offsetUnset(mixed $offset): void
-    {
-        // no-op
-    }
-
-    /** @internal Used by AbstractMapper to bind this collection */
-    public function bindMapper(AbstractMapper $mapper): static
-    {
-        $this->mapper = $mapper;
-
-        return $this;
-    }
-
-    public function stack(Collection $collection): static
-    {
-        $tail = $this->last ?? $this;
-        $tail->setConnectsTo($collection);
-        $this->last = $collection->last ?? $collection;
-
-        return $this;
-    }
-
-    /** @param self|array<scalar, mixed>|scalar|null ...$arguments */
-    public function with(self|array|int|float|string|bool|null ...$arguments): static
-    {
-        foreach ($arguments as $arg) {
-            $arg instanceof Collection ? $this->addChild($arg) : $this->condition = $arg;
+        $adopted = [];
+        foreach ($children as $child) {
+            $c = clone $child;
+            $c->parent = $this;
+            $adopted[] = $c;
         }
 
-        return $this;
-    }
-
-    private function findMapper(): AbstractMapper|null
-    {
-        $node = $this;
-        while ($node !== null) {
-            if ($node->mapper !== null) {
-                return $node->mapper;
-            }
-
-            $node = $node->parent;
-        }
-
-        return null;
-    }
-
-    private function resolveMapper(): AbstractMapper
-    {
-        return $this->findMapper() ?? throw new CollectionNotBound($this->name);
-    }
-
-    private function setConnectsTo(Collection $collection): void
-    {
-        $collection->parent = $this;
-        $this->connectsTo = $collection;
+        return $adopted;
     }
 
     /** @param array<int, mixed> $arguments */
@@ -148,56 +86,9 @@ class Collection implements ArrayAccess
         return new static($name, ...$arguments);
     }
 
-    public function __get(string $name): static
-    {
-        $mapper = $this->findMapper();
-        if ($mapper !== null && isset($mapper->$name)) {
-            return $this->stack(clone $mapper->__get($name));
-        }
-
-        return $this->stack(new self($name));
-    }
-
-    /** @param list<self|array<scalar, mixed>|scalar|null> $children */
-    public function __call(string $name, array $children): static
-    {
-        if (!isset($this->name)) {
-            $this->name = $name;
-
-            return $this->with(...$children);
-        }
-
-        return $this->stack((new Collection())->__call($name, $children));
-    }
-
     public function __clone(): void
     {
-        if ($this->connectsTo !== null) {
-            $this->connectsTo = clone $this->connectsTo;
-            $this->connectsTo->parent = $this;
-        }
-
-        $clonedChildren = [];
-
-        foreach ($this->children as $child) {
-            $cloned = clone $child;
-            $cloned->parent = $this;
-            $clonedChildren[] = $cloned;
-        }
-
-        $this->children = $clonedChildren;
+        $this->with = $this->adoptChildren($this->with);
         $this->parent = null;
-
-        if ($this->last === null) {
-            return;
-        }
-
-        $node = $this;
-
-        while ($node->connectsTo !== null) {
-            $node = $node->connectsTo;
-        }
-
-        $this->last = $node !== $this ? $node : null;
     }
 }

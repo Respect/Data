@@ -51,15 +51,7 @@ class CollectionIteratorTest extends TestCase
     #[Test]
     public function hasChildrenUseCollectionChildren(): void
     {
-        $coll = Collection::foo(Collection::bar());
-        $iterator = new CollectionIterator($coll);
-        $this->assertTrue($iterator->hasChildren());
-    }
-
-    #[Test]
-    public function hasChildrenUseCollectionNext(): void
-    {
-        $coll = Collection::foo()->bar;
+        $coll = Collection::foo([Collection::bar()]);
         $iterator = new CollectionIterator($coll);
         $this->assertTrue($iterator->hasChildren());
     }
@@ -73,27 +65,23 @@ class CollectionIteratorTest extends TestCase
     }
 
     #[Test]
-    public function getChildrenUseCollectionChildren(): void
+    public function getChildrenUseCollectionWith(): void
     {
-        $coll = Collection::foo()->with(Collection::bar(), Collection::baz());
-        [$fooChild, $barChild] = $coll->children;
+        $coll = Collection::foo([Collection::bar(), Collection::baz()]);
         $items = iterator_to_array(CollectionIterator::recursive($coll));
-        $this->assertContains($fooChild, $items);
-        $this->assertContains($barChild, $items);
+        $names = [];
+        foreach ($items as $item) {
+            $names[] = $item->name;
+        }
+
+        $this->assertContains('bar', $names);
+        $this->assertContains('baz', $names);
     }
 
     #[Test]
-    public function getChildrenUseCollectionNext(): void
+    public function recursiveTraversalShouldVisitNestedChildren(): void
     {
-        $coll = Collection::foo()->bar;
-        $iterator = new CollectionIterator($coll);
-        $this->assertTrue($iterator->hasChildren());
-    }
-
-    #[Test]
-    public function recursiveTraversalShouldVisitNextChain(): void
-    {
-        $coll = Collection::foo()->bar->baz;
+        $coll = Collection::foo([Collection::bar([Collection::baz()])]);
         $items = iterator_to_array(CollectionIterator::recursive($coll));
         $this->assertCount(3, $items);
     }

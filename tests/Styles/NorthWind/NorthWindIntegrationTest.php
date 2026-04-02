@@ -48,17 +48,17 @@ class NorthWindIntegrationTest extends TestCase
     public function testFetchingEntityTyped(): void
     {
         $mapper = $this->mapper;
-        $comment = $mapper->Comments[8]->fetch();
+        $comment = $mapper->fetch($mapper->Comments(filter: 8));
         $this->assertInstanceOf(Comments::class, $comment);
     }
 
     public function testFetchingAllEntityTyped(): void
     {
         $mapper = $this->mapper;
-        $comment = $mapper->Comments->fetchAll();
+        $comment = $mapper->fetchAll($mapper->Comments());
         $this->assertInstanceOf(Comments::class, $comment[1]);
 
-        $categories = $mapper->PostCategories->Categories->fetch();
+        $categories = $mapper->fetch($mapper->PostCategories([$mapper->Categories()]));
         $this->assertInstanceOf(PostCategories::class, $categories);
         $this->assertInstanceOf(Categories::class, $categories->Category);
     }
@@ -66,7 +66,7 @@ class NorthWindIntegrationTest extends TestCase
     public function testFetchingAllEntityTypedNested(): void
     {
         $mapper = $this->mapper;
-        $comment = $mapper->Comments->Posts->Authors->fetchAll();
+        $comment = $mapper->fetchAll($mapper->Comments([$mapper->Posts([$mapper->Authors()])]));
         $this->assertInstanceOf(Comments::class, $comment[0]);
         $this->assertInstanceOf(Posts::class, $comment[0]->Post);
         $this->assertInstanceOf(Authors::class, $comment[0]->Post->Author);
@@ -75,13 +75,13 @@ class NorthWindIntegrationTest extends TestCase
     public function testPersistingEntityTyped(): void
     {
         $mapper = $this->mapper;
-        $comment = $mapper->Comments[8]->fetch();
+        $comment = $mapper->fetch($mapper->Comments(filter: 8));
         $this->assertInstanceOf(Comments::class, $comment);
         $comment->Text = 'HeyHey';
-        $mapper->Comments->persist($comment);
+        $mapper->persist($comment, $mapper->Comments());
         $mapper->flush();
 
-        $updated = $mapper->Comments[8]->fetch();
+        $updated = $mapper->fetch($mapper->Comments(filter: 8));
         $this->assertInstanceOf(Comments::class, $updated);
         $this->assertEquals('HeyHey', $updated->Text);
     }
@@ -91,11 +91,11 @@ class NorthWindIntegrationTest extends TestCase
         $mapper = $this->mapper;
         $comment = new Comments();
         $comment->Text = 'HeyHey';
-        $mapper->Comments->persist($comment);
+        $mapper->persist($comment, $mapper->Comments());
         $mapper->flush();
 
         $this->assertGreaterThan(0, $comment->CommentID);
-        $allComments = $mapper->Comments->fetchAll();
+        $allComments = $mapper->fetchAll($mapper->Comments());
         $this->assertCount(3, $allComments);
     }
 }

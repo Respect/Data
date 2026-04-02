@@ -51,19 +51,13 @@ final class CollectionIterator extends RecursiveArrayIterator
 
     public function hasChildren(): bool
     {
-        return $this->current()->hasMore;
+        return $this->current()->hasChildren;
     }
 
     public function getChildren(): RecursiveArrayIterator
     {
-        $c = $this->current();
-        $pool = $c->hasChildren ? $c->children : [];
-        if ($c->connectsTo !== null) {
-            $pool[] = $c->connectsTo;
-        }
-
         return new static(
-            array_filter($pool, static fn(Collection $c): bool => $c->name !== null),
+            array_filter($this->current()->with, static fn(Collection $c): bool => $c->name !== null),
             $this->namesCounts,
         );
     }
