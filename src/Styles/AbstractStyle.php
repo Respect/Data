@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Respect\Data\Styles;
 
-use function preg_match;
 use function preg_quote;
 use function preg_replace;
 use function preg_replace_callback;
@@ -26,35 +25,5 @@ abstract class AbstractStyle implements Stylable
             static fn($m) => strtoupper($m[1]),
             $name,
         );
-    }
-
-    protected function pluralToSingular(string $name): string
-    {
-        $replacements = [
-            '/^(.+)ies$/' => '$1y',
-            '/^(.+)s$/' => '$1',
-        ];
-        foreach ($replacements as $key => $value) {
-            if (preg_match($key, $name)) {
-                return (string) preg_replace($key, $value, $name);
-            }
-        }
-
-        return $name;
-    }
-
-    protected function singularToPlural(string $name): string
-    {
-        $replacements = [
-            '/^(.+)y$/' => '$1ies',
-            '/^(.+)([^s])$/' => '$1$2s',
-        ];
-        foreach ($replacements as $key => $value) {
-            if (preg_match($key, $name)) {
-                return (string) preg_replace($key, $value, $name);
-            }
-        }
-
-        return $name;
     }
 }

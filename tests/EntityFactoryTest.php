@@ -129,7 +129,7 @@ class EntityFactoryTest extends TestCase
     #[Test]
     public function getStyleReturnsConfiguredStyle(): void
     {
-        $style = new Styles\CakePHP();
+        $style = new Styles\Plural();
         $factory = new EntityFactory(style: $style);
         $this->assertSame($style, $factory->style);
     }

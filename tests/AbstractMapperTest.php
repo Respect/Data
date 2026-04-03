@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 use ReflectionObject;
 use Respect\Data\Collections\Collection;
 use Respect\Data\Hydrators\Nested;
-use Respect\Data\Styles\CakePHP;
+use Respect\Data\Styles\Plural;
 use Respect\Data\Styles\Standard;
 use SplObjectStorage;
 
@@ -92,7 +92,7 @@ class AbstractMapperTest extends TestCase
     #[Test]
     public function styleShouldComeFromEntityFactory(): void
     {
-        $style = new CakePHP();
+        $style = new Plural();
         $mapper = new class (new Nested(new EntityFactory(style: $style))) extends AbstractMapper {
             public function flush(): void
             {
