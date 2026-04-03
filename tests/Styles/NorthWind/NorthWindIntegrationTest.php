@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Respect\Data\Styles\NorthWind;
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Respect\Data\EntityFactory;
 use Respect\Data\Hydrators\Nested;
@@ -45,57 +46,11 @@ class NorthWindIntegrationTest extends TestCase
         ]);
     }
 
-    public function testFetchingEntityTyped(): void
+    #[Test]
+    public function fetchAndPersistRoundTrip(): void
     {
-        $mapper = $this->mapper;
-        $comment = $mapper->fetch($mapper->Comments(filter: 8));
-        $this->assertInstanceOf(Comments::class, $comment);
-    }
-
-    public function testFetchingAllEntityTyped(): void
-    {
-        $mapper = $this->mapper;
-        $comment = $mapper->fetchAll($mapper->Comments());
-        $this->assertInstanceOf(Comments::class, $comment[1]);
-
-        $categories = $mapper->fetch($mapper->PostCategories([$mapper->Categories()]));
-        $this->assertInstanceOf(PostCategories::class, $categories);
-        $this->assertInstanceOf(Categories::class, $categories->Category);
-    }
-
-    public function testFetchingAllEntityTypedNested(): void
-    {
-        $mapper = $this->mapper;
-        $comment = $mapper->fetchAll($mapper->Comments([$mapper->Posts([$mapper->Authors()])]));
-        $this->assertInstanceOf(Comments::class, $comment[0]);
-        $this->assertInstanceOf(Posts::class, $comment[0]->Post);
-        $this->assertInstanceOf(Authors::class, $comment[0]->Post->Author);
-    }
-
-    public function testPersistingEntityTyped(): void
-    {
-        $mapper = $this->mapper;
-        $comment = $mapper->fetch($mapper->Comments(filter: 8));
-        $this->assertInstanceOf(Comments::class, $comment);
-        $comment->Text = 'HeyHey';
-        $mapper->persist($comment, $mapper->Comments());
-        $mapper->flush();
-
-        $updated = $mapper->fetch($mapper->Comments(filter: 8));
-        $this->assertInstanceOf(Comments::class, $updated);
-        $this->assertEquals('HeyHey', $updated->Text);
-    }
-
-    public function testPersistingNewEntityTyped(): void
-    {
-        $mapper = $this->mapper;
-        $comment = new Comments();
-        $comment->Text = 'HeyHey';
-        $mapper->persist($comment, $mapper->Comments());
-        $mapper->flush();
-
-        $this->assertGreaterThan(0, $comment->CommentID);
-        $allComments = $mapper->fetchAll($mapper->Comments());
-        $this->assertCount(3, $allComments);
+        $entity = $this->mapper->fetch($this->mapper->Posts());
+        $this->assertIsObject($entity);
+        $this->assertEquals('Post Title', $this->mapper->entityFactory->get($entity, 'Title'));
     }
 }

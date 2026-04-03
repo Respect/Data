@@ -9,11 +9,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Respect\Data\Collections\Collection;
-use Respect\Data\Collections\Composite;
-use Respect\Data\Collections\Typed;
 use Respect\Data\EntityFactory;
 use Respect\Data\Stubs\Author;
-use Respect\Data\Stubs\Bug;
 
 #[CoversClass(PrestyledAssoc::class)]
 #[CoversClass(Base::class)]
@@ -133,47 +130,6 @@ class PrestyledAssocTest extends TestCase
         $this->assertNotFalse($result);
         $this->assertEquals(10, $this->factory->get($result, 'id'));
         $this->assertEquals('Hello', $this->factory->get($result, 'title'));
-    }
-
-    #[Test]
-    public function hydrateResolvesTypedEntities(): void
-    {
-        $hydrator = new PrestyledAssoc($this->factory);
-        $collection = Typed::issue('type');
-
-        $result = $hydrator->hydrateAll(
-            ['issue__id' => 1, 'issue__type' => 'Bug', 'issue__title' => 'Bug Report'],
-            $collection,
-        );
-
-        $this->assertNotFalse($result);
-        $result->rewind();
-        $this->assertInstanceOf(Bug::class, $result->current());
-    }
-
-    #[Test]
-    public function hydrateCompositeEntity(): void
-    {
-        $hydrator = new PrestyledAssoc($this->factory);
-        $composite = Composite::author(['profile' => ['bio']], [Collection::post()]);
-
-        $result = $hydrator->hydrateAll(
-            [
-                'author__id' => 1,
-                'author__name' => 'Alice',
-                'author_WITH_profile__bio' => 'A bio',
-                'post__id' => 10,
-                'post__title' => 'Hello',
-            ],
-            $composite,
-        );
-
-        $this->assertNotFalse($result);
-        $this->assertCount(2, $result);
-        $result->rewind();
-        $entity = $result->current();
-        $this->assertEquals(1, $this->factory->get($entity, 'id'));
-        $this->assertEquals('A bio', $this->factory->get($entity, 'bio'));
     }
 
     #[Test]

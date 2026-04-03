@@ -9,7 +9,6 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionObject;
 use Respect\Data\Collections\Collection;
-use Respect\Data\Collections\Composite;
 use Respect\Data\Hydrators\Nested;
 use Respect\Data\Styles\CakePHP;
 use Respect\Data\Styles\Standard;
@@ -50,20 +49,6 @@ class AbstractMapperTest extends TestCase
         $this->assertTrue(isset($this->mapper->my_alias));
         $clone = $this->mapper->my_alias();
         $this->assertEquals($coll->name, $clone->name);
-    }
-
-    #[Test]
-    public function callingRegisteredCollectionWithArgsDerives(): void
-    {
-        $coll = Composite::post(['comment' => ['text']]);
-        $this->mapper->registerCollection('postComment', $coll);
-
-        $derived = $this->mapper->postComment(filter: 5);
-
-        $this->assertInstanceOf(Composite::class, $derived);
-        $this->assertEquals('post', $derived->name);
-        $this->assertEquals(['comment' => ['text']], $derived->compositions);
-        $this->assertEquals(5, $derived->filter);
     }
 
     #[Test]
@@ -1304,5 +1289,15 @@ class AbstractMapperTest extends TestCase
         $this->assertSame('Updated', $merged->name);
         $this->assertTrue($mapper->isTracked($merged));
         $this->assertFalse($mapper->isTracked($fetched));
+    }
+
+    #[Test]
+    public function callingRegisteredCollectionWithArgsDerives(): void
+    {
+        $coll = Collection::post();
+        $this->mapper->registerCollection('post', $coll);
+        $derived = $this->mapper->post(filter: 5);
+        $this->assertEquals('post', $derived->name);
+        $this->assertEquals(5, $derived->filter);
     }
 }

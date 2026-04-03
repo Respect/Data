@@ -43,7 +43,7 @@ final class Nested extends Base
         SplObjectStorage $entities,
     ): void {
         $entity = $this->entityFactory->create(
-            $this->resolveEntityClass($collection, $data),
+            $this->entityFactory->resolveClass((string) $collection->name),
         );
 
         foreach ($data as $key => $value) {

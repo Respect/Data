@@ -192,7 +192,7 @@ class EntityFactory
         $props = [];
 
         foreach ($this->reflectProperties($entity::class) as $name => $prop) {
-            if (!$prop->isInitialized($entity) || $prop->getAttributes(NotPersistable::class)) {
+            if ($prop->isVirtual() || !$prop->isInitialized($entity) || $prop->getAttributes(NotPersistable::class)) {
                 continue;
             }
 
@@ -218,7 +218,7 @@ class EntityFactory
         $fields = [];
 
         foreach ($this->reflectProperties($class) as $name => $prop) {
-            if ($prop->getAttributes(NotPersistable::class) || isset($relations[$name])) {
+            if ($prop->isVirtual() || $prop->getAttributes(NotPersistable::class) || isset($relations[$name])) {
                 continue;
             }
 

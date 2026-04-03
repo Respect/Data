@@ -10,7 +10,6 @@ use function array_filter;
 use function array_merge;
 use function array_values;
 use function is_array;
-use function reset;
 
 final class InMemoryMapper extends AbstractMapper
 {
@@ -111,6 +110,10 @@ final class InMemoryMapper extends AbstractMapper
 
     private function deleteEntity(object $entity, string $tableName, string $id): void
     {
+        if (!isset($this->tables[$tableName])) {
+            return;
+        }
+
         $idValue = $this->entityFactory->get($entity, $id);
         $rows = $this->tables[$tableName];
 
@@ -193,13 +196,34 @@ final class InMemoryMapper extends AbstractMapper
             return $rows;
         }
 
+        if (is_array($condition)) {
+            return array_values(array_filter(
+                $rows,
+                static fn(array $row): bool => self::matchesCondition($row, $condition),
+            ));
+        }
+
         $id = $this->style->identifier($table);
-        $idValue = is_array($condition) ? reset($condition) : $condition;
 
         return array_values(array_filter(
             $rows,
-            static fn(array $row): bool => isset($row[$id]) && $row[$id] == $idValue,
+            static fn(array $row): bool => isset($row[$id]) && $row[$id] == $condition,
         ));
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @param array<mixed, mixed> $condition
+     */
+    private static function matchesCondition(array $row, array $condition): bool
+    {
+        foreach ($condition as $column => $value) {
+            if (!isset($row[$column]) || $row[$column] != $value) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /** @return array<string, mixed>|null */
