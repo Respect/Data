@@ -74,18 +74,6 @@ class AbstractStyleTest extends TestCase
         };
     }
 
-    /** @return array<array{string, string}> */
-    public static function singularPluralProvider(): array
-    {
-        return [
-            ['post', 'posts'],
-            ['comment', 'comments'],
-            ['category', 'categories'],
-            ['tag', 'tags'],
-            ['entity', 'entities'],
-        ];
-    }
-
     /** @return array<array{string, string, string}> */
     public static function camelCaseToSeparatorProvider(): array
     {
@@ -94,16 +82,6 @@ class AbstractStyleTest extends TestCase
             [' ', 'AlexandreGaigalas', 'Alexandre Gaigalas'],
             ['_', 'AugustoPascutti', 'Augusto_Pascutti'],
         ];
-    }
-
-    #[DataProvider('singularPluralProvider')]
-    public function testPluralToSingularAndViceVersa(string $singular, string $plural): void
-    {
-        $pluralToSingular = new ReflectionMethod($this->style, 'pluralToSingular');
-        $this->assertEquals($singular, $pluralToSingular->invoke($this->style, $plural));
-
-        $singularToPlural = new ReflectionMethod($this->style, 'singularToPlural');
-        $this->assertEquals($plural, $singularToPlural->invoke($this->style, $singular));
     }
 
     #[DataProvider('camelCaseToSeparatorProvider')]
@@ -123,17 +101,5 @@ class AbstractStyleTest extends TestCase
             $camelCase,
             $separatorToCamelCaseMethod->invoke($this->style, $separated, $separator),
         );
-    }
-
-    public function testPluralToSingularReturnsUnchangedWhenNoMatch(): void
-    {
-        $method = new ReflectionMethod($this->style, 'pluralToSingular');
-        $this->assertEquals('fox', $method->invoke($this->style, 'fox'));
-    }
-
-    public function testSingularToPluralReturnsUnchangedWhenNoMatch(): void
-    {
-        $method = new ReflectionMethod($this->style, 'singularToPlural');
-        $this->assertEquals('news', $method->invoke($this->style, 'news'));
     }
 }

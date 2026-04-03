@@ -7,6 +7,8 @@ namespace Respect\Data\Styles;
 use function array_map;
 use function explode;
 use function implode;
+use function preg_match;
+use function preg_replace;
 use function strtolower;
 use function substr;
 use function ucfirst;
@@ -51,5 +53,35 @@ final class Plural extends Standard
     public function composed(string $left, string $right): string
     {
         return $this->singularToPlural($left) . '_' . $this->singularToPlural($right);
+    }
+
+    private function pluralToSingular(string $name): string
+    {
+        $replacements = [
+            '/^(.+)ies$/' => '$1y',
+            '/^(.+)s$/' => '$1',
+        ];
+        foreach ($replacements as $key => $value) {
+            if (preg_match($key, $name)) {
+                return (string) preg_replace($key, $value, $name);
+            }
+        }
+
+        return $name;
+    }
+
+    private function singularToPlural(string $name): string
+    {
+        $replacements = [
+            '/^(.+)y$/' => '$1ies',
+            '/^(.+)([^s])$/' => '$1$2s',
+        ];
+        foreach ($replacements as $key => $value) {
+            if (preg_match($key, $name)) {
+                return (string) preg_replace($key, $value, $name);
+            }
+        }
+
+        return $name;
     }
 }
