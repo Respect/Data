@@ -6,7 +6,6 @@ namespace Respect\Data\Hydrators;
 
 use DomainException;
 use Respect\Data\Collections\Collection;
-use Respect\Data\Collections\Typed;
 use Respect\Data\EntityFactory;
 use Respect\Data\Hydrator;
 use SplObjectStorage;
@@ -74,21 +73,5 @@ abstract class Base implements Hydrator
                 $this->entityFactory->set($entity, $relationName, $other);
             }
         }
-    }
-
-    /**
-     * @param object|array<mixed, mixed> $row
-     *
-     * @return class-string
-     */
-    protected function resolveEntityClass(
-        Collection $collection,
-        object|array $row,
-    ): string {
-        if ($collection instanceof Typed) {
-            return $collection->resolveEntityClass($this->entityFactory, $row);
-        }
-
-        return $this->entityFactory->resolveClass((string) $collection->name);
     }
 }

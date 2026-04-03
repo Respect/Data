@@ -7,10 +7,8 @@ namespace Respect\Data\Hydrators;
 use DomainException;
 use Respect\Data\CollectionIterator;
 use Respect\Data\Collections\Collection;
-use Respect\Data\Collections\Composite;
 use SplObjectStorage;
 
-use function array_keys;
 use function explode;
 use function is_array;
 
@@ -52,11 +50,15 @@ final class PrestyledAssoc extends Base
         $instances = [];
 
         foreach ($grouped as $prefix => $props) {
-            $basePrefix = $this->resolveCompositionBase($prefix, $collMap);
+            if (!isset($collMap[$prefix])) {
+                throw new DomainException('Unknown column prefix "' . $prefix . '" in hydration row');
+            }
+
+            $basePrefix = $prefix;
 
             if (!isset($instances[$basePrefix])) {
                 $coll = $collMap[$basePrefix];
-                $class = $this->resolveEntityClass($coll, $props);
+                $class = $this->entityFactory->resolveClass((string) $coll->name);
                 $instances[$basePrefix] = $this->entityFactory->create($class);
                 $entities[$instances[$basePrefix]] = $coll;
             }
@@ -83,45 +85,11 @@ final class PrestyledAssoc extends Base
 
         $this->collMap = [];
         foreach (CollectionIterator::recursive($collection) as $spec => $c) {
-            if ($c->name === null) {
-                continue;
-            }
-
             $this->collMap[$spec] = $c;
         }
 
         $this->cachedCollection = $collection;
 
         return $this->collMap;
-    }
-
-    /**
-     * Resolve a composition prefix back to its base entity specifier.
-     *
-     * Composition columns use prefixes like "post_WITH_comment" (see Composite::COMPOSITION_MARKER).
-     * This returns "post" so properties are merged into the parent entity.
-     *
-     * @param array<string, Collection> $collMap
-     */
-    private function resolveCompositionBase(string $prefix, array $collMap): string
-    {
-        if (isset($collMap[$prefix])) {
-            return $prefix;
-        }
-
-        // Look for a base specifier where this prefix is a composition alias
-        foreach ($collMap as $spec => $coll) {
-            if (!$coll instanceof Composite) {
-                continue;
-            }
-
-            foreach (array_keys($coll->compositions) as $compName) {
-                if ($prefix === $spec . Composite::COMPOSITION_MARKER . $compName) {
-                    return $spec;
-                }
-            }
-        }
-
-        throw new DomainException('Unknown column prefix "' . $prefix . '" in hydration row');
     }
 }

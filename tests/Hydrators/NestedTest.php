@@ -8,7 +8,6 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Respect\Data\Collections\Collection;
-use Respect\Data\Collections\Typed;
 use Respect\Data\EntityFactory;
 
 #[CoversClass(Nested::class)]
@@ -122,18 +121,6 @@ class NestedTest extends TestCase
     }
 
     #[Test]
-    public function hydrateWithTypedCollection(): void
-    {
-        $raw = ['id' => 1, 'title' => 'Issue', 'type' => 'Bug'];
-        $collection = Typed::issue('type');
-
-        $result = $this->hydrator->hydrateAll($raw, $collection);
-
-        $this->assertNotFalse($result);
-        $this->assertCount(1, $result);
-    }
-
-    #[Test]
     public function hydrateChildWithNullNameIsSkipped(): void
     {
         $raw = ['id' => 1];
@@ -173,6 +160,25 @@ class NestedTest extends TestCase
         $this->assertNotFalse($result);
         $this->assertEquals(1, $this->factory->get($result, 'id'));
         $this->assertEquals('Alice', $this->factory->get($result, 'name'));
+    }
+
+    #[Test]
+    public function wireRelationshipsSkipsChildWithNullId(): void
+    {
+        $raw = [
+            'id' => 1,
+            'title' => 'Post',
+            'author' => ['name' => 'No ID'],
+        ];
+        $collection = Collection::post([Collection::author()]);
+
+        $result = $this->hydrator->hydrateAll($raw, $collection);
+
+        $this->assertNotFalse($result);
+        $result->rewind();
+        $post = $result->current();
+        // Author has no id → wiring is skipped
+        $this->assertNull($this->factory->get($post, 'author'));
     }
 
     #[Test]

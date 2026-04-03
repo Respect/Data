@@ -503,4 +503,17 @@ class EntityFactoryTest extends TestCase
         $factory->set($entity, 'name', 'Alice', styled: true);
         $this->assertSame('Alice', $factory->get($entity, 'name'));
     }
+
+    #[Test]
+    public function setThrowsOnUntypedProperty(): void
+    {
+        $factory = new EntityFactory(entityNamespace: __NAMESPACE__ . '\\Stubs\\');
+        $entity = new class {
+ // @phpstan-ignore missingType.property
+            public $untyped; // phpcs:ignore SlevomatCodingStandard.TypeHints.PropertyTypeHint
+        };
+        $this->expectException(DomainException::class);
+        $this->expectExceptionMessage('must have a type declaration');
+        $factory->set($entity, 'untyped', 'value');
+    }
 }

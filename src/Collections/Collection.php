@@ -37,30 +37,10 @@ class Collection
     ): static {
         return new static(
             $this->name,
-            ...$this->deriveArgs(
-                with: $with,
-                filter: $filter,
-                required: $required,
-            ),
+            with: [...$this->with, ...$with],
+            filter: $filter ?? $this->filter,
+            required: $required ?? $this->required,
         );
-    }
-
-    /**
-     * @param list<Collection> $with
-     * @param array<scalar, mixed>|scalar|null $filter
-     *
-     * @return array{with: list<Collection>, filter: array|int|float|string|bool|null, required: bool}
-     */
-    protected function deriveArgs( // @phpstan-ignore missingType.iterableValue
-        array $with = [],
-        array|int|float|string|bool|null $filter = null,
-        bool|null $required = null,
-    ): array {
-        return [
-            'with' => [...$this->with, ...$with],
-            'filter' => $filter ?? $this->filter,
-            'required' => $required ?? $this->required,
-        ];
     }
 
     /**

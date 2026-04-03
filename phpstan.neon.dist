@@ -4,7 +4,7 @@ parameters:
     - src/
     - tests/
   ignoreErrors:
-    - message: '/Call to an undefined (static )?method Respect\\Data\\(AbstractMapper|InMemoryMapper|Collections\\(Collection|Composite|Typed))::\w+\(\)\./'
+    - message: '/Call to an undefined (static )?method Respect\\Data\\(AbstractMapper|InMemoryMapper|Collections\\Collection)::\w+\(\)\./'
     - message: '/Unsafe usage of new static\(\)\./'
     -
       message: '/Property .+ is never read, only written\./'
