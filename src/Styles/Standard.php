@@ -17,11 +17,6 @@ class Standard extends AbstractStyle
         return $this->separatorToCamelCase($name, '_');
     }
 
-    public function realName(string $name): string
-    {
-        return strtolower($this->camelCaseToSeparator($name, '_'));
-    }
-
     public function realProperty(string $name): string
     {
         return strtolower($this->camelCaseToSeparator($name, '_'));
@@ -52,18 +47,8 @@ class Standard extends AbstractStyle
         return strlen($name) - 3 === strripos($name, '_id');
     }
 
-    public function remoteFromIdentifier(string $name): string|null
-    {
-        return $this->isRemoteIdentifier($name) ? substr($name, 0, -3) : null;
-    }
-
     public function relationProperty(string $field): string|null
     {
         return $this->isRemoteIdentifier($field) ? substr($field, 0, -3) : null;
-    }
-
-    public function isRelationProperty(string $name): bool
-    {
-        return !$this->isRemoteIdentifier($name) && $this->isRemoteIdentifier($name . '_id');
     }
 }

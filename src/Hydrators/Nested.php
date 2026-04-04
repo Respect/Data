@@ -4,27 +4,27 @@ declare(strict_types=1);
 
 namespace Respect\Data\Hydrators;
 
-use Respect\Data\Collections\Collection;
+use Respect\Data\Scope;
 use SplObjectStorage;
 
 use function is_array;
 
-/** Hydrates entities from a nested associative array keyed by collection name */
+/** Hydrates entities from a nested associative array keyed by scope name */
 final class Nested extends Base
 {
-    /** @return SplObjectStorage<object, Collection>|false */
+    /** @return SplObjectStorage<object, Scope>|false */
     public function hydrateAll(
         mixed $raw,
-        Collection $collection,
+        Scope $scope,
     ): SplObjectStorage|false {
         if (!is_array($raw)) {
             return false;
         }
 
-        /** @var SplObjectStorage<object, Collection> $entities */
+        /** @var SplObjectStorage<object, Scope> $entities */
         $entities = new SplObjectStorage();
 
-        $this->hydrateNode($raw, $collection, $entities);
+        $this->hydrateNode($raw, $scope, $entities);
 
         if ($entities->count() > 1) {
             $this->wireRelationships($entities);
@@ -35,15 +35,15 @@ final class Nested extends Base
 
     /**
      * @param array<mixed, mixed> $data
-     * @param SplObjectStorage<object, Collection> $entities
+     * @param SplObjectStorage<object, Scope> $entities
      */
     private function hydrateNode(
         array $data,
-        Collection $collection,
+        Scope $scope,
         SplObjectStorage $entities,
     ): void {
         $entity = $this->entityFactory->create(
-            $this->entityFactory->resolveClass((string) $collection->name),
+            $this->entityFactory->resolveClass((string) $scope->name),
         );
 
         foreach ($data as $key => $value) {
@@ -54,24 +54,24 @@ final class Nested extends Base
             $this->entityFactory->set($entity, $key, $value);
         }
 
-        $entities[$entity] = $collection;
+        $entities[$entity] = $scope;
 
-        foreach ($collection->with as $child) {
+        foreach ($scope->with as $child) {
             $this->hydrateChild($data, $child, $entities);
         }
     }
 
     /**
      * @param array<string, mixed> $parentData
-     * @param SplObjectStorage<object, Collection> $entities
+     * @param SplObjectStorage<object, Scope> $entities
      */
     private function hydrateChild(
         array $parentData,
-        Collection $child,
+        Scope $child,
         SplObjectStorage $entities,
     ): void {
         $key = $child->name;
-        if ($key === null || !isset($parentData[$key]) || !is_array($parentData[$key])) {
+        if (!isset($parentData[$key]) || !is_array($parentData[$key])) {
             return;
         }
 

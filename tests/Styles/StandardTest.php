@@ -67,7 +67,6 @@ class StandardTest extends TestCase
     public function testTableAndEntitiesMethods(string $table, string $entity): void
     {
         $this->assertEquals($entity, $this->style->styledName($table));
-        $this->assertEquals($table, $this->style->realName($entity));
         $this->assertEquals('id', $this->style->identifier($table));
     }
 
@@ -77,7 +76,6 @@ class StandardTest extends TestCase
         $this->assertEquals($name, $this->style->styledProperty($name));
         $this->assertEquals($name, $this->style->realProperty($name));
         $this->assertFalse($this->style->isRemoteIdentifier($name));
-        $this->assertNull($this->style->remoteFromIdentifier($name));
     }
 
     #[DataProvider('manyToManyTableProvider')]
@@ -90,7 +88,6 @@ class StandardTest extends TestCase
     public function testForeign(string $table, string $foreign): void
     {
         $this->assertTrue($this->style->isRemoteIdentifier($foreign));
-        $this->assertEquals($table, $this->style->remoteFromIdentifier($foreign));
         $this->assertEquals($foreign, $this->style->remoteIdentifier($table));
     }
 
@@ -99,18 +96,5 @@ class StandardTest extends TestCase
     {
         $this->assertEquals($table, $this->style->relationProperty($foreign));
         $this->assertNull($this->style->relationProperty($table));
-    }
-
-    #[DataProvider('foreignProvider')]
-    public function testIsRelationProperty(string $table, string $foreign): void
-    {
-        $this->assertTrue($this->style->isRelationProperty($table));
-        $this->assertFalse($this->style->isRelationProperty($foreign));
-    }
-
-    #[DataProvider('foreignProvider')]
-    public function testForeignKeyIsNotRelationProperty(string $table, string $foreign): void
-    {
-        $this->assertFalse($this->style->isRelationProperty($foreign));
     }
 }

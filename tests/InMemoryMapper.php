@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Respect\Data;
 
-use Respect\Data\Collections\Collection;
-
 use function array_filter;
 use function array_merge;
 use function array_values;
@@ -24,28 +22,28 @@ final class InMemoryMapper extends AbstractMapper
         $this->tables[$table] = $rows;
     }
 
-    public function fetch(Collection $collection, mixed $extra = null): mixed
+    public function fetch(Scope $scope, mixed $extra = null): mixed
     {
         if ($extra === null) {
-            $cached = $this->findInIdentityMap($collection);
+            $cached = $this->findInIdentityMap($scope);
             if ($cached !== null) {
                 return $cached;
             }
         }
 
-        $row = $this->findRow((string) $collection->name, $collection->filter);
+        $row = $this->findRow((string) $scope->name, $scope->filter);
 
-        return $row !== null ? $this->hydrateRow($row, $collection) : false;
+        return $row !== null ? $this->hydrateRow($row, $scope) : false;
     }
 
     /** @return array<int, mixed> */
-    public function fetchAll(Collection $collection, mixed $extra = null): array
+    public function fetchAll(Scope $scope, mixed $extra = null): array
     {
-        $rows = $this->findRows((string) $collection->name, $collection->filter);
+        $rows = $this->findRows((string) $scope->name, $scope->filter);
         $result = [];
 
         foreach ($rows as $row) {
-            $entity = $this->hydrateRow($row, $collection);
+            $entity = $this->hydrateRow($row, $scope);
             if ($entity === false) {
                 continue;
             }
@@ -60,28 +58,28 @@ final class InMemoryMapper extends AbstractMapper
     {
         foreach ($this->pending as $entity) {
             $op = $this->pending[$entity];
-            $collection = $this->tracked[$entity];
-            $tableName = (string) $collection->name;
+            $scope = $this->tracked[$entity];
+            $tableName = (string) $scope->name;
             $id = $this->style->identifier($tableName);
 
             match ($op) {
-                'insert' => $this->insertEntity($entity, $collection, $tableName, $id),
-                'update' => $this->updateEntity($entity, $collection, $tableName, $id),
+                'insert' => $this->insertEntity($entity, $scope, $tableName, $id),
+                'update' => $this->updateEntity($entity, $scope, $tableName, $id),
                 'delete' => $this->deleteEntity($entity, $tableName, $id),
                 default  => null,
             };
 
             if ($op === 'delete') {
-                $this->evictFromIdentityMap($entity, $collection);
+                $this->evictFromIdentityMap($entity, $scope);
             } else {
-                $this->registerInIdentityMap($entity, $collection);
+                $this->registerInIdentityMap($entity, $scope);
             }
         }
 
         $this->reset();
     }
 
-    private function insertEntity(object $entity, Collection $collection, string $tableName, string $id): void
+    private function insertEntity(object $entity, Scope $scope, string $tableName, string $id): void
     {
         $row = $this->entityFactory->extractColumns($entity);
 
@@ -94,7 +92,7 @@ final class InMemoryMapper extends AbstractMapper
         $this->tables[$tableName][] = $row;
     }
 
-    private function updateEntity(object $entity, Collection $collection, string $tableName, string $id): void
+    private function updateEntity(object $entity, Scope $scope, string $tableName, string $id): void
     {
         $idValue = $this->entityFactory->get($entity, $id);
         $row = $this->entityFactory->extractColumns($entity);
@@ -130,11 +128,11 @@ final class InMemoryMapper extends AbstractMapper
     }
 
     /** @param array<string, mixed> $row */
-    private function hydrateRow(array $row, Collection $collection): object|false
+    private function hydrateRow(array $row, Scope $scope): object|false
     {
-        $this->attachRelated($row, $collection);
+        $this->attachRelated($row, $scope);
 
-        $entities = $this->hydrator->hydrateAll($row, $collection);
+        $entities = $this->hydrator->hydrateAll($row, $scope);
         if ($entities === false) {
             return false;
         }
@@ -150,15 +148,15 @@ final class InMemoryMapper extends AbstractMapper
     }
 
     /** @param array<string, mixed> $parentRow */
-    private function attachRelated(array &$parentRow, Collection $collection): void
+    private function attachRelated(array &$parentRow, Scope $scope): void
     {
-        foreach ($collection->with as $child) {
+        foreach ($scope->with as $child) {
             $this->attachChild($parentRow, $child);
         }
     }
 
     /** @param array<string, mixed> $parentRow */
-    private function attachChild(array &$parentRow, Collection $child): void
+    private function attachChild(array &$parentRow, Scope $child): void
     {
         $childName = (string) $child->name;
         $refValue = $parentRow[$this->style->remoteIdentifier($childName)] ?? null;

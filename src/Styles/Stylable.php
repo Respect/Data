@@ -8,8 +8,6 @@ interface Stylable
 {
     public function styledName(string $entityName): string;
 
-    public function realName(string $styledName): string;
-
     public function styledProperty(string $name): string;
 
     public function realProperty(string $name): string;
@@ -18,13 +16,9 @@ interface Stylable
 
     public function remoteIdentifier(string $name): string;
 
-    public function remoteFromIdentifier(string $name): string|null;
-
     public function isRemoteIdentifier(string $name): bool;
 
     public function relationProperty(string $remoteIdentifierField): string|null;
-
-    public function isRelationProperty(string $name): bool;
 
     public function composed(string $left, string $right): string;
 }

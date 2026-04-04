@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Respect\Data\Hydrators;
 
 use DomainException;
-use Respect\Data\CollectionIterator;
-use Respect\Data\Collections\Collection;
+use Respect\Data\Scope;
+use Respect\Data\ScopeIterator;
 use SplObjectStorage;
 
 use function explode;
@@ -21,21 +21,21 @@ use function is_array;
  */
 final class PrestyledAssoc extends Base
 {
-    /** @var array<string, Collection> */
-    private array $collMap = [];
+    /** @var array<string, Scope> */
+    private array $scopeMap = [];
 
-    private Collection|null $cachedCollection = null;
+    private Scope|null $cachedScope = null;
 
-    /** @return SplObjectStorage<object, Collection>|false */
+    /** @return SplObjectStorage<object, Scope>|false */
     public function hydrateAll(
         mixed $raw,
-        Collection $collection,
+        Scope $scope,
     ): SplObjectStorage|false {
         if (!$raw || !is_array($raw)) {
             return false;
         }
 
-        $collMap = $this->buildCollMap($collection);
+        $scopeMap = $this->buildScopeMap($scope);
 
         /** @var array<string, array<string, mixed>> $grouped */
         $grouped = [];
@@ -44,23 +44,23 @@ final class PrestyledAssoc extends Base
             $grouped[$prefix][$prop] = $value;
         }
 
-        /** @var SplObjectStorage<object, Collection> $entities */
+        /** @var SplObjectStorage<object, Scope> $entities */
         $entities = new SplObjectStorage();
         /** @var array<string, object> $instances */
         $instances = [];
 
         foreach ($grouped as $prefix => $props) {
-            if (!isset($collMap[$prefix])) {
+            if (!isset($scopeMap[$prefix])) {
                 throw new DomainException('Unknown column prefix "' . $prefix . '" in hydration row');
             }
 
             $basePrefix = $prefix;
 
             if (!isset($instances[$basePrefix])) {
-                $coll = $collMap[$basePrefix];
-                $class = $this->entityFactory->resolveClass((string) $coll->name);
+                $matched = $scopeMap[$basePrefix];
+                $class = $this->entityFactory->resolveClass((string) $matched->name);
                 $instances[$basePrefix] = $this->entityFactory->create($class);
-                $entities[$instances[$basePrefix]] = $coll;
+                $entities[$instances[$basePrefix]] = $matched;
             }
 
             $entity = $instances[$basePrefix];
@@ -76,20 +76,20 @@ final class PrestyledAssoc extends Base
         return $entities;
     }
 
-    /** @return array<string, Collection> */
-    private function buildCollMap(Collection $collection): array
+    /** @return array<string, Scope> */
+    private function buildScopeMap(Scope $scope): array
     {
-        if ($this->cachedCollection === $collection) {
-            return $this->collMap;
+        if ($this->cachedScope === $scope) {
+            return $this->scopeMap;
         }
 
-        $this->collMap = [];
-        foreach (CollectionIterator::recursive($collection) as $spec => $c) {
-            $this->collMap[$spec] = $c;
+        $this->scopeMap = [];
+        foreach (ScopeIterator::recursive($scope) as $spec => $c) {
+            $this->scopeMap[$spec] = $c;
         }
 
-        $this->cachedCollection = $collection;
+        $this->cachedScope = $scope;
 
-        return $this->collMap;
+        return $this->scopeMap;
     }
 }

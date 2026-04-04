@@ -2,51 +2,48 @@
 
 declare(strict_types=1);
 
-namespace Respect\Data\Collections;
+namespace Respect\Data;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Respect\Data\EntityFactory;
 use Respect\Data\Hydrators\Nested;
-use Respect\Data\InMemoryMapper;
-use Respect\Data\Stubs;
 
 use function count;
 
-#[CoversClass(Collection::class)]
-class CollectionTest extends TestCase
+#[CoversClass(Scope::class)]
+class ScopeTest extends TestCase
 {
     #[Test]
-    public function collectionCanBeCreatedStaticallyWithJustName(): void
+    public function scopeCanBeCreatedStaticallyWithJustName(): void
     {
-        $coll = Collection::fooBarName();
-        $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll);
+        $coll = Scope::fooBarName();
+        $this->assertInstanceOf(Scope::class, $coll);
     }
 
     #[Test]
-    public function collectionCanBeCreatedStaticallyWithChildren(): void
+    public function scopeCanBeCreatedStaticallyWithChildren(): void
     {
-        $children1 = Collection::bar();
-        $children2 = Collection::baz();
-        $coll = Collection::foo([$children1, $children2]);
-        $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll);
+        $children1 = Scope::bar();
+        $children2 = Scope::baz();
+        $coll = Scope::foo([$children1, $children2]);
+        $this->assertInstanceOf(Scope::class, $coll);
         $this->assertTrue($coll->hasChildren);
         $this->assertEquals(2, count($coll->with));
     }
 
     #[Test]
-    public function collectionCanBeCreatedStaticallyWithFilter(): void
+    public function scopeCanBeCreatedStaticallyWithFilter(): void
     {
-        $coll = Collection::fooBar(filter: 42);
-        $this->assertInstanceOf('Respect\Data\Collections\Collection', $coll);
+        $coll = Scope::fooBar(filter: 42);
+        $this->assertInstanceOf(Scope::class, $coll);
         $this->assertEquals(42, $coll->filter);
     }
 
     #[Test]
     public function objectConstructorShouldSetObjectAttributes(): void
     {
-        $coll = new Collection('some_irrelevant_name');
+        $coll = new Scope('some_irrelevant_name');
         $this->assertNull(
             $coll->filter,
             'Default filter should be null',
@@ -57,18 +54,18 @@ class CollectionTest extends TestCase
     #[Test]
     public function objectConstructorWithFilterShouldSetIt(): void
     {
-        $coll = new Collection('some_irrelevant_name', filter: 123);
+        $coll = new Scope('some_irrelevant_name', filter: 123);
         $this->assertEquals(123, $coll->filter);
     }
 
     #[Test]
     public function constructorCompositionShouldSetChildrenAndParent(): void
     {
-        $child = new Collection('bar_child');
-        $coll = new Collection('foo_collection', [$child]);
+        $child = new Scope('bar_child');
+        $coll = new Scope('foo_scope', [$child]);
         $children = $coll->with;
         $this->assertCount(1, $children);
-        $this->assertInstanceOf(Collection::class, $children[0]);
+        $this->assertInstanceOf(Scope::class, $children[0]);
         $this->assertEquals(false, $children[0]->required);
         $this->assertEquals($coll->name, $children[0]->parent?->name);
     }
@@ -76,56 +73,28 @@ class CollectionTest extends TestCase
     #[Test]
     public function childrenShouldMakeHasChildrenTrue(): void
     {
-        $coll = Collection::foo([Collection::thisIsAChildren()]);
+        $coll = Scope::foo([Scope::thisIsAChildren()]);
         $this->assertTrue($coll->hasChildren);
     }
 
     #[Test]
     public function noChildrenShouldMakeHasChildrenFalse(): void
     {
-        $coll = Collection::foo();
+        $coll = Scope::foo();
         $this->assertFalse($coll->hasChildren);
     }
 
     #[Test]
     public function getParentShouldReturnNullWhenNoParent(): void
     {
-        $coll = new Collection('foo');
+        $coll = new Scope('foo');
         $this->assertNull($coll->parent);
-    }
-
-    #[Test]
-    public function deriveCreatesNewCollectionWithMergedWith(): void
-    {
-        $original = Collection::foo([Collection::bar()]);
-        $derived = $original->derive(with: [Collection::baz()]);
-
-        $this->assertNotSame($original, $derived);
-        $this->assertEquals('foo', $derived->name);
-        $this->assertCount(2, $derived->with);
-        $this->assertEquals('bar', $derived->with[0]->name);
-        $this->assertEquals('baz', $derived->with[1]->name);
-        $this->assertCount(1, $original->with, 'Original should be unchanged');
-    }
-
-    #[Test]
-    public function derivePreservesFilterAndOverridesWhenProvided(): void
-    {
-        $original = new Collection('foo', filter: 42, required: true);
-
-        $sameFilter = $original->derive();
-        $this->assertEquals(42, $sameFilter->filter);
-        $this->assertTrue($sameFilter->required);
-
-        $newFilter = $original->derive(filter: 99, required: false);
-        $this->assertEquals(99, $newFilter->filter);
-        $this->assertFalse($newFilter->required);
     }
 
     #[Test]
     public function cloneDeepClonesChildrenAndClearsParent(): void
     {
-        $parent = Collection::foo([Collection::bar([Collection::baz()])]);
+        $parent = Scope::foo([Scope::bar([Scope::baz()])]);
         $clone = clone $parent;
 
         $this->assertNull($clone->parent);
