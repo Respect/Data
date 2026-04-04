@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace Respect\Data;
 
-use Respect\Data\Collections\Collection;
 use SplObjectStorage;
 
-/** Transforms raw backend data into entity instances mapped to their collections */
+/** Transforms raw backend data into entity instances mapped to their scopes */
 interface Hydrator
 {
     public EntityFactory $entityFactory { get; }
@@ -15,12 +14,12 @@ interface Hydrator
     /** Returns just the root entity */
     public function hydrate(
         mixed $raw,
-        Collection $collection,
+        Scope $scope,
     ): object|false;
 
-    /** @return SplObjectStorage<object, Collection>|false */
+    /** @return SplObjectStorage<object, Scope>|false */
     public function hydrateAll(
         mixed $raw,
-        Collection $collection,
+        Scope $scope,
     ): SplObjectStorage|false;
 }

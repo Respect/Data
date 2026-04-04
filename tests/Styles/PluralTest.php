@@ -67,7 +67,6 @@ class PluralTest extends TestCase
     public function testTableAndEntitiesMethods(string $table, string $entity): void
     {
         $this->assertEquals($entity, $this->style->styledName($table));
-        $this->assertEquals($table, $this->style->realName($entity));
         $this->assertEquals('id', $this->style->identifier($table));
     }
 
@@ -77,7 +76,6 @@ class PluralTest extends TestCase
         $this->assertEquals($column, $this->style->styledProperty($column));
         $this->assertEquals($column, $this->style->realProperty($column));
         $this->assertFalse($this->style->isRemoteIdentifier($column));
-        $this->assertNull($this->style->remoteFromIdentifier($column));
     }
 
     #[DataProvider('manyToManyTableProvider')]
@@ -90,7 +88,6 @@ class PluralTest extends TestCase
     public function testForeign(string $table, string $foreign): void
     {
         $this->assertTrue($this->style->isRemoteIdentifier($foreign));
-        $this->assertEquals($table, $this->style->remoteFromIdentifier($foreign));
         $this->assertEquals($foreign, $this->style->remoteIdentifier($table));
     }
 }

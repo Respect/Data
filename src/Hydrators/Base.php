@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Respect\Data\Hydrators;
 
 use DomainException;
-use Respect\Data\Collections\Collection;
 use Respect\Data\EntityFactory;
 use Respect\Data\Hydrator;
+use Respect\Data\Scope;
 use SplObjectStorage;
 
-/** Base hydrator providing collection-tree entity wiring */
+/** Base hydrator providing scope-tree entity wiring */
 abstract class Base implements Hydrator
 {
     public function __construct(
@@ -20,52 +20,52 @@ abstract class Base implements Hydrator
 
     public function hydrate(
         mixed $raw,
-        Collection $collection,
+        Scope $scope,
     ): object|false {
-        $entities = $this->hydrateAll($raw, $collection);
+        $entities = $this->hydrateAll($raw, $scope);
         if ($entities === false) {
             return false;
         }
 
         foreach ($entities as $entity) {
-            if ($entities[$entity] === $collection) {
+            if ($entities[$entity] === $scope) {
                 return $entity;
             }
         }
 
         throw new DomainException(
-            'Hydration produced no entity for collection "' . $collection->name . '"',
+            'Hydration produced no entity for scope "' . $scope->name . '"',
         );
     }
 
-    /** @param SplObjectStorage<object, Collection> $entities */
+    /** @param SplObjectStorage<object, Scope> $entities */
     protected function wireRelationships(SplObjectStorage $entities): void
     {
         $style = $this->entityFactory->style;
         $others = clone $entities;
 
         foreach ($entities as $entity) {
-            $coll = $entities[$entity];
+            $scope = $entities[$entity];
 
             foreach ($others as $other) {
                 if ($other === $entity) {
                     continue;
                 }
 
-                $otherColl = $others[$other];
-                if ($otherColl->parent !== $coll || $otherColl->name === null) {
+                $otherScope = $others[$other];
+                if ($otherScope->parent !== $scope) {
                     continue;
                 }
 
                 $relationName = $style->relationProperty(
-                    $style->remoteIdentifier($otherColl->name),
+                    $style->remoteIdentifier($otherScope->name),
                 );
 
                 if ($relationName === null) {
                     continue;
                 }
 
-                $id = $this->entityFactory->get($other, $style->identifier($otherColl->name));
+                $id = $this->entityFactory->get($other, $style->identifier($otherScope->name));
                 if ($id === null) {
                     continue;
                 }

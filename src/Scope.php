@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Respect\Data\Collections;
+namespace Respect\Data;
 
-class Collection
+class Scope
 {
-    public private(set) Collection|null $parent = null;
+    public private(set) Scope|null $parent = null;
 
-    /** @var list<Collection> */
+    /** @var list<Scope> */
     public private(set) array $with;
 
     public bool $hasChildren { get => !empty($this->with); }
 
     /**
-     * @param list<Collection> $with
+     * @param list<Scope> $with
      * @param array<scalar, mixed>|scalar|null $filter
      */
     public function __construct(
-        public readonly string|null $name = null,
+        public readonly string $name,
         array $with = [],
         public readonly array|int|float|string|bool|null $filter = null,
         public readonly bool $required = false,
@@ -27,26 +27,9 @@ class Collection
     }
 
     /**
-     * @param list<Collection> $with
-     * @param array<scalar, mixed>|scalar|null $filter
-     */
-    public function derive(
-        array $with = [],
-        array|int|float|string|bool|null $filter = null,
-        bool|null $required = null,
-    ): static {
-        return new static(
-            $this->name,
-            with: [...$this->with, ...$with],
-            filter: $filter ?? $this->filter,
-            required: $required ?? $this->required,
-        );
-    }
-
-    /**
-     * @param list<Collection> $children
+     * @param list<Scope> $children
      *
-     * @return list<Collection>
+     * @return list<Scope>
      */
     private function adoptChildren(array $children): array
     {

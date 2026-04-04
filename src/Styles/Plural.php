@@ -9,8 +9,6 @@ use function explode;
 use function implode;
 use function preg_match;
 use function preg_replace;
-use function strtolower;
-use function substr;
 use function ucfirst;
 
 /**
@@ -30,19 +28,6 @@ final class Plural extends Standard
         return $this->pluralToSingular($name) . '_id';
     }
 
-    public function remoteFromIdentifier(string $name): string|null
-    {
-        return $this->isRemoteIdentifier($name) ? $this->singularToPlural(substr($name, 0, -3)) : null;
-    }
-
-    public function realName(string $name): string
-    {
-        return implode('_', array_map(
-            $this->singularToPlural(...),
-            explode('_', strtolower($this->camelCaseToSeparator($name, '_'))),
-        ));
-    }
-
     public function styledName(string $name): string
     {
         $pieces = array_map($this->pluralToSingular(...), explode('_', $name));
@@ -57,28 +42,26 @@ final class Plural extends Standard
 
     private function pluralToSingular(string $name): string
     {
-        $replacements = [
+        return $this->applyFirstMatch($name, [
             '/^(.+)ies$/' => '$1y',
             '/^(.+)s$/' => '$1',
-        ];
-        foreach ($replacements as $key => $value) {
-            if (preg_match($key, $name)) {
-                return (string) preg_replace($key, $value, $name);
-            }
-        }
-
-        return $name;
+        ]);
     }
 
     private function singularToPlural(string $name): string
     {
-        $replacements = [
+        return $this->applyFirstMatch($name, [
             '/^(.+)y$/' => '$1ies',
             '/^(.+)([^s])$/' => '$1$2s',
-        ];
-        foreach ($replacements as $key => $value) {
-            if (preg_match($key, $name)) {
-                return (string) preg_replace($key, $value, $name);
+        ]);
+    }
+
+    /** @param array<string, string> $replacements */
+    private function applyFirstMatch(string $name, array $replacements): string
+    {
+        foreach ($replacements as $pattern => $replacement) {
+            if (preg_match($pattern, $name)) {
+                return (string) preg_replace($pattern, $replacement, $name);
             }
         }
 

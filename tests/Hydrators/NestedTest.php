@@ -7,8 +7,8 @@ namespace Respect\Data\Hydrators;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Respect\Data\Collections\Collection;
 use Respect\Data\EntityFactory;
+use Respect\Data\Scope;
 
 #[CoversClass(Nested::class)]
 #[CoversClass(Base::class)]
@@ -27,20 +27,20 @@ class NestedTest extends TestCase
     #[Test]
     public function hydrateReturnsFalseForNonArray(): void
     {
-        $collection = Collection::author();
+        $scope = Scope::author();
 
-        $this->assertFalse($this->hydrator->hydrateAll(null, $collection));
-        $this->assertFalse($this->hydrator->hydrateAll(false, $collection));
-        $this->assertFalse($this->hydrator->hydrateAll('string', $collection));
+        $this->assertFalse($this->hydrator->hydrateAll(null, $scope));
+        $this->assertFalse($this->hydrator->hydrateAll(false, $scope));
+        $this->assertFalse($this->hydrator->hydrateAll('string', $scope));
     }
 
     #[Test]
     public function hydrateSingleEntity(): void
     {
         $raw = ['id' => 1, 'name' => 'Author Name'];
-        $collection = Collection::author();
+        $scope = Scope::author();
 
-        $result = $this->hydrator->hydrateAll($raw, $collection);
+        $result = $this->hydrator->hydrateAll($raw, $scope);
 
         $this->assertNotFalse($result);
         $this->assertCount(1, $result);
@@ -48,7 +48,7 @@ class NestedTest extends TestCase
         $entity = $result->current();
         $this->assertEquals(1, $this->factory->get($entity, 'id'));
         $this->assertEquals('Author Name', $this->factory->get($entity, 'name'));
-        $this->assertSame($collection, $result[$entity]);
+        $this->assertSame($scope, $result[$entity]);
     }
 
     #[Test]
@@ -59,9 +59,9 @@ class NestedTest extends TestCase
             'title' => 'Post Title',
             'author' => ['id' => 5, 'name' => 'Author'],
         ];
-        $collection = Collection::post([Collection::author()]);
+        $scope = Scope::post([Scope::author()]);
 
-        $result = $this->hydrator->hydrateAll($raw, $collection);
+        $result = $this->hydrator->hydrateAll($raw, $scope);
 
         $this->assertNotFalse($result);
         $this->assertCount(2, $result);
@@ -71,9 +71,9 @@ class NestedTest extends TestCase
     public function hydrateWithMissingNestedKeyReturnsPartial(): void
     {
         $raw = ['id' => 1, 'title' => 'Post Title'];
-        $collection = Collection::post([Collection::author()]);
+        $scope = Scope::post([Scope::author()]);
 
-        $result = $this->hydrator->hydrateAll($raw, $collection);
+        $result = $this->hydrator->hydrateAll($raw, $scope);
 
         $this->assertNotFalse($result);
         $this->assertCount(1, $result);
@@ -91,11 +91,11 @@ class NestedTest extends TestCase
                 'author' => ['id' => 100, 'name' => 'Author'],
             ],
         ];
-        $collection = Collection::comment([
-            Collection::post([Collection::author()]),
+        $scope = Scope::comment([
+            Scope::post([Scope::author()]),
         ]);
 
-        $result = $this->hydrator->hydrateAll($raw, $collection);
+        $result = $this->hydrator->hydrateAll($raw, $scope);
 
         $this->assertNotFalse($result);
         $this->assertCount(3, $result);
@@ -110,36 +110,23 @@ class NestedTest extends TestCase
             'author' => ['id' => 5, 'name' => 'Author'],
             'category' => ['id' => 3, 'label' => 'Tech'],
         ];
-        $authorColl = Collection::author();
-        $categoryColl = Collection::category();
-        $collection = Collection::post([$authorColl, $categoryColl]);
+        $authorColl = Scope::author();
+        $categoryColl = Scope::category();
+        $scope = Scope::post([$authorColl, $categoryColl]);
 
-        $result = $this->hydrator->hydrateAll($raw, $collection);
+        $result = $this->hydrator->hydrateAll($raw, $scope);
 
         $this->assertNotFalse($result);
         $this->assertCount(3, $result);
     }
 
     #[Test]
-    public function hydrateChildWithNullNameIsSkipped(): void
-    {
-        $raw = ['id' => 1];
-        $child = new Collection();
-        $collection = Collection::post([$child]);
-
-        $result = $this->hydrator->hydrateAll($raw, $collection);
-
-        $this->assertNotFalse($result);
-        $this->assertCount(1, $result);
-    }
-
-    #[Test]
     public function hydrateScalarNestedValueIsIgnored(): void
     {
         $raw = ['id' => 1, 'author' => 'not-an-array'];
-        $collection = Collection::post([Collection::author()]);
+        $scope = Scope::post([Scope::author()]);
 
-        $result = $this->hydrator->hydrateAll($raw, $collection);
+        $result = $this->hydrator->hydrateAll($raw, $scope);
 
         $this->assertNotFalse($result);
         $this->assertCount(1, $result);
@@ -148,14 +135,14 @@ class NestedTest extends TestCase
     #[Test]
     public function hydrateReturnsFalseForInvalidInput(): void
     {
-        $this->assertFalse($this->hydrator->hydrate(null, Collection::author()));
+        $this->assertFalse($this->hydrator->hydrate(null, Scope::author()));
     }
 
     #[Test]
     public function hydrateReturnsRootEntity(): void
     {
         $raw = ['id' => 1, 'name' => 'Alice'];
-        $result = $this->hydrator->hydrate($raw, Collection::author());
+        $result = $this->hydrator->hydrate($raw, Scope::author());
 
         $this->assertNotFalse($result);
         $this->assertEquals(1, $this->factory->get($result, 'id'));
@@ -170,9 +157,9 @@ class NestedTest extends TestCase
             'title' => 'Post',
             'author' => ['name' => 'No ID'],
         ];
-        $collection = Collection::post([Collection::author()]);
+        $scope = Scope::post([Scope::author()]);
 
-        $result = $this->hydrator->hydrateAll($raw, $collection);
+        $result = $this->hydrator->hydrateAll($raw, $scope);
 
         $this->assertNotFalse($result);
         $result->rewind();
@@ -189,9 +176,9 @@ class NestedTest extends TestCase
             'title' => 'Post',
             'author' => ['id' => 5, 'name' => 'Author'],
         ];
-        $collection = Collection::post([Collection::author()]);
+        $scope = Scope::post([Scope::author()]);
 
-        $result = $this->hydrator->hydrate($raw, $collection);
+        $result = $this->hydrator->hydrate($raw, $scope);
 
         $this->assertNotFalse($result);
         $this->assertEquals(1, $this->factory->get($result, 'id'));

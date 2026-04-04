@@ -203,17 +203,17 @@ class EntityFactory
     }
 
     /**
-     * Enumerate persistable fields for a collection, mapping DB column names to styled property names.
+     * Enumerate persistable fields for a scope, mapping DB column names to styled property names.
      *
      * @return array<string, string> DB column name → styled property name
      */
-    public function enumerateFields(string $collectionName): array
+    public function enumerateFields(string $scopeName): array
     {
-        if (isset($this->fieldCache[$collectionName])) {
-            return $this->fieldCache[$collectionName];
+        if (isset($this->fieldCache[$scopeName])) {
+            return $this->fieldCache[$scopeName];
         }
 
-        $class = $this->resolveClass($collectionName);
+        $class = $this->resolveClass($scopeName);
         $relations = $this->detectRelationProperties($class);
         $fields = [];
 
@@ -225,7 +225,7 @@ class EntityFactory
             $fields[$this->style->realProperty($name)] = $name;
         }
 
-        return $this->fieldCache[$collectionName] = $fields;
+        return $this->fieldCache[$scopeName] = $fields;
     }
 
     /**

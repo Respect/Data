@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Respect\Data;
 
-use Respect\Data\Collections\Collection;
 use SplObjectStorage;
 
 use function count;
@@ -15,17 +14,14 @@ use function is_string;
 
 abstract class AbstractMapper
 {
-    /** @var SplObjectStorage<object, Collection> Maps entity → source Collection */
+    /** @var SplObjectStorage<object, Scope> Maps entity → source Scope */
     protected SplObjectStorage $tracked;
 
     /** @var SplObjectStorage<object, string> Maps entity → 'insert'|'update'|'delete' */
     protected SplObjectStorage $pending;
 
-    /** @var array<string, array<int|string, object>> Identity-indexed map: [collectionName][idValue] → entity */
+    /** @var array<string, array<int|string, object>> Identity-indexed map: [scopeName][idValue] → entity */
     protected array $identityMap = [];
-
-    /** @var array<string, Collection> */
-    private array $collections = [];
 
     public EntityFactory $entityFactory { get => $this->hydrator->entityFactory; }
 
@@ -40,10 +36,10 @@ abstract class AbstractMapper
 
     abstract public function flush(): void;
 
-    abstract public function fetch(Collection $collection, mixed $extra = null): mixed;
+    abstract public function fetch(Scope $scope, mixed $extra = null): mixed;
 
     /** @return array<int, mixed> */
-    abstract public function fetchAll(Collection $collection, mixed $extra = null): array;
+    abstract public function fetchAll(Scope $scope, mixed $extra = null): array;
 
     public function reset(): void
     {
@@ -53,6 +49,40 @@ abstract class AbstractMapper
     public function clearIdentityMap(): void
     {
         $this->identityMap = [];
+    }
+
+    public function persist(object $object, Scope $onScope): object
+    {
+        if ($this->isTracked($object)) {
+            $currentOp = $this->pending[$object] ?? null;
+            if ($currentOp !== 'insert') {
+                $this->pending[$object] = 'update';
+            }
+
+            return $object;
+        }
+
+        $merged = $this->tryMergeWithIdentityMap($object, $onScope);
+        if ($merged !== null) {
+            return $merged;
+        }
+
+        $this->pending[$object] = 'insert';
+        $this->markTracked($object, $onScope);
+        $this->registerInIdentityMap($object, $onScope);
+
+        return $object;
+    }
+
+    public function remove(object $object, Scope $fromScope): void
+    {
+        $this->pending[$object] = 'delete';
+
+        if ($this->isTracked($object)) {
+            return;
+        }
+
+        $this->markTracked($object, $fromScope);
     }
 
     public function trackedCount(): int
@@ -70,45 +100,9 @@ abstract class AbstractMapper
         return $total;
     }
 
-    public function markTracked(object $entity, Collection $collection): bool
+    public function markTracked(object $entity, Scope $scope): void
     {
-        $this->tracked[$entity] = $collection;
-
-        return true;
-    }
-
-    public function persist(object $object, Collection $onCollection): object
-    {
-        if ($this->isTracked($object)) {
-            $currentOp = $this->pending[$object] ?? null;
-            if ($currentOp !== 'insert') {
-                $this->pending[$object] = 'update';
-            }
-
-            return $object;
-        }
-
-        $merged = $this->tryMergeWithIdentityMap($object, $onCollection);
-        if ($merged !== null) {
-            return $merged;
-        }
-
-        $this->pending[$object] = 'insert';
-        $this->markTracked($object, $onCollection);
-        $this->registerInIdentityMap($object, $onCollection);
-
-        return $object;
-    }
-
-    public function remove(object $object, Collection $fromCollection): bool
-    {
-        $this->pending[$object] = 'delete';
-
-        if (!$this->isTracked($object)) {
-            $this->markTracked($object, $fromCollection);
-        }
-
-        return true;
+        $this->tracked[$entity] = $scope;
     }
 
     public function isTracked(object $entity): bool
@@ -116,17 +110,8 @@ abstract class AbstractMapper
         return $this->tracked->offsetExists($entity);
     }
 
-    public function registerCollection(string $alias, Collection $collection): void
+    protected function registerInIdentityMap(object $entity, Scope $coll): void
     {
-        $this->collections[$alias] = $collection;
-    }
-
-    protected function registerInIdentityMap(object $entity, Collection $coll): void
-    {
-        if ($coll->name === null) {
-            return;
-        }
-
         $idValue = $this->entityIdValue($entity, $coll->name);
         if ($idValue === null) {
             return;
@@ -135,12 +120,8 @@ abstract class AbstractMapper
         $this->identityMap[$coll->name][$idValue] = $entity;
     }
 
-    protected function evictFromIdentityMap(object $entity, Collection $coll): void
+    protected function evictFromIdentityMap(object $entity, Scope $coll): void
     {
-        if ($coll->name === null) {
-            return;
-        }
-
         $idValue = $this->entityIdValue($entity, $coll->name);
         if ($idValue === null) {
             return;
@@ -149,26 +130,22 @@ abstract class AbstractMapper
         unset($this->identityMap[$coll->name][$idValue]);
     }
 
-    protected function findInIdentityMap(Collection $collection): object|null
+    protected function findInIdentityMap(Scope $scope): object|null
     {
-        if ($collection->name === null || !is_scalar($collection->filter) || $collection->hasChildren) {
+        if (!is_scalar($scope->filter) || $scope->hasChildren) {
             return null;
         }
 
-        $condition = $this->normalizeIdValue($collection->filter);
+        $condition = $this->normalizeIdValue($scope->filter);
         if ($condition === null) {
             return null;
         }
 
-        return $this->identityMap[$collection->name][$condition] ?? null;
+        return $this->identityMap[$scope->name][$condition] ?? null;
     }
 
-    private function tryMergeWithIdentityMap(object $entity, Collection $coll): object|null
+    private function tryMergeWithIdentityMap(object $entity, Scope $coll): object|null
     {
-        if ($coll->name === null) {
-            return null;
-        }
-
         $entityId = $this->entityIdValue($entity, $coll->name);
         $idValue = $entityId ?? $this->normalizeIdValue($coll->filter);
 
@@ -237,22 +214,9 @@ abstract class AbstractMapper
         return null;
     }
 
-    public function __isset(string $alias): bool
+    /** @param array<string, mixed> $arguments */
+    public function __call(string $name, array $arguments): Scope
     {
-        return isset($this->collections[$alias]);
-    }
-
-    /** @param list<mixed> $arguments */
-    public function __call(string $name, array $arguments): Collection
-    {
-        if (isset($this->collections[$name])) {
-            if (empty($arguments)) {
-                return clone $this->collections[$name];
-            }
-
-            return $this->collections[$name]->derive(...$arguments); // @phpstan-ignore argument.type
-        }
-
-        return new Collection($name, ...$arguments); // @phpstan-ignore argument.type
+        return new Scope($name, ...$arguments); // @phpstan-ignore argument.type
     }
 }

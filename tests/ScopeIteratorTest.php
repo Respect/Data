@@ -7,34 +7,33 @@ namespace Respect\Data;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Respect\Data\Collections\Collection;
 
 use function iterator_to_array;
 
-#[CoversClass(CollectionIterator::class)]
-class CollectionIteratorTest extends TestCase
+#[CoversClass(ScopeIterator::class)]
+class ScopeIteratorTest extends TestCase
 {
     #[Test]
     public function staticBuilderShouldCreateRecursiveIterator(): void
     {
         $this->assertInstanceOf(
             'RecursiveIteratorIterator',
-            CollectionIterator::recursive(Collection::foo()),
+            ScopeIterator::recursive(Scope::foo()),
         );
     }
 
     #[Test]
-    public function constructingShouldAcceptCollectionsOrArrays(): void
+    public function constructingShouldAcceptScopesOrArrays(): void
     {
-        $iterator = new CollectionIterator(Collection::foo());
-        $iterator2 = new CollectionIterator([Collection::foo()]);
+        $iterator = new ScopeIterator(Scope::foo());
+        $iterator2 = new ScopeIterator([Scope::foo()]);
         $this->assertEquals($iterator, $iterator2);
     }
 
     #[Test]
     public function keyShouldTrackNameCounts(): void
     {
-        $i = new CollectionIterator(Collection::foo());
+        $i = new ScopeIterator(Scope::foo());
         $this->assertEquals('foo', $i->key());
         $this->assertEquals('foo2', $i->key());
         $this->assertEquals('foo3', $i->key());
@@ -43,32 +42,32 @@ class CollectionIteratorTest extends TestCase
     #[Test]
     public function hasChildrenConsiderEmpties(): void
     {
-        $coll = Collection::foo();
-        $iterator = new CollectionIterator($coll);
+        $coll = Scope::foo();
+        $iterator = new ScopeIterator($coll);
         $this->assertFalse($iterator->hasChildren());
     }
 
     #[Test]
-    public function hasChildrenUseCollectionChildren(): void
+    public function hasChildrenUseScopeChildren(): void
     {
-        $coll = Collection::foo([Collection::bar()]);
-        $iterator = new CollectionIterator($coll);
+        $coll = Scope::foo([Scope::bar()]);
+        $iterator = new ScopeIterator($coll);
         $this->assertTrue($iterator->hasChildren());
     }
 
     #[Test]
     public function getChildrenConsiderEmpties(): void
     {
-        $coll = Collection::foo();
-        $iterator = new CollectionIterator($coll);
-        $this->assertEquals(new CollectionIterator(), $iterator->getChildren());
+        $coll = Scope::foo();
+        $iterator = new ScopeIterator($coll);
+        $this->assertEquals(new ScopeIterator(), $iterator->getChildren());
     }
 
     #[Test]
-    public function getChildrenUseCollectionWith(): void
+    public function getChildrenUseScopeWith(): void
     {
-        $coll = Collection::foo([Collection::bar(), Collection::baz()]);
-        $items = iterator_to_array(CollectionIterator::recursive($coll));
+        $coll = Scope::foo([Scope::bar(), Scope::baz()]);
+        $items = iterator_to_array(ScopeIterator::recursive($coll));
         $names = [];
         foreach ($items as $item) {
             $names[] = $item->name;
@@ -81,8 +80,8 @@ class CollectionIteratorTest extends TestCase
     #[Test]
     public function recursiveTraversalShouldVisitNestedChildren(): void
     {
-        $coll = Collection::foo([Collection::bar([Collection::baz()])]);
-        $items = iterator_to_array(CollectionIterator::recursive($coll));
+        $coll = Scope::foo([Scope::bar([Scope::baz()])]);
+        $items = iterator_to_array(ScopeIterator::recursive($coll));
         $this->assertCount(3, $items);
     }
 }

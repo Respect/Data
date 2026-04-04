@@ -22,11 +22,6 @@ class AbstractStyleTest extends TestCase
                 return $name;
             }
 
-            public function realName(string $name): string
-            {
-                return $name;
-            }
-
             public function realProperty(string $name): string
             {
                 return $name;
@@ -57,19 +52,9 @@ class AbstractStyleTest extends TestCase
                 return false;
             }
 
-            public function remoteFromIdentifier(string $name): string|null
-            {
-                return null;
-            }
-
             public function relationProperty(string $field): string|null
             {
                 return null;
-            }
-
-            public function isRelationProperty(string $name): bool
-            {
-                return false;
             }
         };
     }

@@ -8,7 +8,6 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionObject;
-use Respect\Data\Collections\Collection;
 use Respect\Data\Hydrators\Nested;
 use Respect\Data\Styles\Plural;
 use Respect\Data\Styles\Standard;
@@ -27,13 +26,13 @@ class AbstractMapperTest extends TestCase
             {
             }
 
-            public function fetch(Collection $collection, mixed $extra = null): mixed
+            public function fetch(Scope $scope, mixed $extra = null): mixed
             {
                 return false;
             }
 
             /** @return array<int, mixed> */
-            public function fetchAll(Collection $collection, mixed $extra = null): array
+            public function fetchAll(Scope $scope, mixed $extra = null): array
             {
                 return [];
             }
@@ -41,37 +40,14 @@ class AbstractMapperTest extends TestCase
     }
 
     #[Test]
-    public function registerCollectionShouldAddCollectionToPool(): void
+    public function magicCallShouldBypassToScope(): void
     {
-        $coll = Collection::foo();
-        $this->mapper->registerCollection('my_alias', $coll);
-
-        $this->assertTrue(isset($this->mapper->my_alias));
-        $clone = $this->mapper->my_alias();
-        $this->assertEquals($coll->name, $clone->name);
-    }
-
-    #[Test]
-    public function callingRegisteredCollectionWithoutArgsClones(): void
-    {
-        $coll = Collection::post();
-        $this->mapper->registerCollection('post', $coll);
-
-        $clone = $this->mapper->post();
-
-        $this->assertNotSame($coll, $clone);
-        $this->assertEquals('post', $clone->name);
-    }
-
-    #[Test]
-    public function magicCallShouldBypassToCollection(): void
-    {
-        $collection = $this->mapper->author([$this->mapper->post([$this->mapper->comment()])]);
-        $this->assertEquals('author', $collection->name);
-        $this->assertCount(1, $collection->with);
-        $this->assertEquals('post', $collection->with[0]->name);
-        $this->assertCount(1, $collection->with[0]->with);
-        $this->assertEquals('comment', $collection->with[0]->with[0]->name);
+        $scope = $this->mapper->author([$this->mapper->post([$this->mapper->comment()])]);
+        $this->assertEquals('author', $scope->name);
+        $this->assertCount(1, $scope->with);
+        $this->assertEquals('post', $scope->with[0]->name);
+        $this->assertCount(1, $scope->with[0]->with);
+        $this->assertEquals('comment', $scope->with[0]->with[0]->name);
     }
 
     #[Test]
@@ -98,13 +74,13 @@ class AbstractMapperTest extends TestCase
             {
             }
 
-            public function fetch(Collection $collection, mixed $extra = null): mixed
+            public function fetch(Scope $scope, mixed $extra = null): mixed
             {
                 return false;
             }
 
             /** @return array<int, mixed> */
-            public function fetchAll(Collection $collection, mixed $extra = null): array
+            public function fetchAll(Scope $scope, mixed $extra = null): array
             {
                 return [];
             }
@@ -116,8 +92,8 @@ class AbstractMapperTest extends TestCase
     public function persistShouldMarkObjectAsTracked(): void
     {
         $entity = new Stubs\Foo();
-        $collection = Collection::foo();
-        $this->mapper->persist($entity, $collection);
+        $scope = Scope::foo();
+        $this->mapper->persist($entity, $scope);
         $this->assertTrue($this->mapper->isTracked($entity));
     }
 
@@ -125,9 +101,9 @@ class AbstractMapperTest extends TestCase
     public function persistAlreadyTrackedShouldReturnEntity(): void
     {
         $entity = new Stubs\Foo();
-        $collection = Collection::foo();
-        $this->mapper->markTracked($entity, $collection);
-        $result = $this->mapper->persist($entity, $collection);
+        $scope = Scope::foo();
+        $this->mapper->markTracked($entity, $scope);
+        $result = $this->mapper->persist($entity, $scope);
         $this->assertSame($entity, $result);
     }
 
@@ -135,20 +111,19 @@ class AbstractMapperTest extends TestCase
     public function removeShouldMarkObjectAsTracked(): void
     {
         $entity = new Stubs\Foo();
-        $collection = Collection::foo();
-        $result = $this->mapper->remove($entity, $collection);
-        $this->assertTrue($result);
+        $scope = Scope::foo();
+        $this->mapper->remove($entity, $scope);
         $this->assertTrue($this->mapper->isTracked($entity));
     }
 
     #[Test]
-    public function removeAlreadyTrackedShouldReturnTrue(): void
+    public function removeAlreadyTrackedShouldNotThrow(): void
     {
         $entity = new Stubs\Foo();
-        $collection = Collection::foo();
-        $this->mapper->markTracked($entity, $collection);
-        $result = $this->mapper->remove($entity, $collection);
-        $this->assertTrue($result);
+        $scope = Scope::foo();
+        $this->mapper->markTracked($entity, $scope);
+        $this->mapper->remove($entity, $scope);
+        $this->assertTrue($this->mapper->isTracked($entity));
     }
 
     #[Test]
@@ -158,20 +133,12 @@ class AbstractMapperTest extends TestCase
     }
 
     #[Test]
-    public function markTrackedShouldReturnTrue(): void
-    {
-        $entity = new Stubs\Foo();
-        $collection = Collection::foo();
-        $this->assertTrue($this->mapper->markTracked($entity, $collection));
-    }
-
-    #[Test]
     public function resetShouldClearPending(): void
     {
         $entity = new Stubs\Foo();
-        $collection = Collection::foo();
-        $this->mapper->persist($entity, $collection);
-        $this->mapper->remove($entity, $collection);
+        $scope = Scope::foo();
+        $this->mapper->persist($entity, $scope);
+        $this->mapper->remove($entity, $scope);
         $this->mapper->reset();
 
         $ref = new ReflectionObject($this->mapper);
@@ -180,20 +147,6 @@ class AbstractMapperTest extends TestCase
         /** @var SplObjectStorage<object, mixed> $pendingStorage */
         $pendingStorage = $pendingProp->getValue($this->mapper);
         $this->assertCount(0, $pendingStorage);
-    }
-
-    #[Test]
-    public function issetShouldReturnTrueForRegisteredCollection(): void
-    {
-        $coll = Collection::foo();
-        $this->mapper->registerCollection('my_alias', $coll);
-        $this->assertTrue(isset($this->mapper->my_alias));
-    }
-
-    #[Test]
-    public function issetShouldReturnFalseForUnregisteredCollection(): void
-    {
-        $this->assertFalse(isset($this->mapper->nonexistent));
     }
 
     #[Test]
@@ -212,7 +165,7 @@ class AbstractMapperTest extends TestCase
         $comment = $mapper->fetch($mapper->comment([$mapper->post()]));
         $this->assertIsObject($comment);
 
-        // Related entity wired via collection tree
+        // Related entity wired via scope tree
         $post = $mapper->entityFactory->get($comment, 'post');
         $this->assertIsObject($post);
         $this->assertEquals(5, $mapper->entityFactory->get($post, 'id'));
@@ -286,26 +239,7 @@ class AbstractMapperTest extends TestCase
     }
 
     #[Test]
-    public function callingRegisteredCollectionReturnsImmutableClone(): void
-    {
-        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
-            entityNamespace: 'Respect\\Data\\Stubs\\',
-        )));
-        $mapper->seed('post', []);
-        $mapper->seed('comment', []);
-
-        $coll = Collection::posts();
-        $mapper->registerCollection('commentedPosts', $coll->derive(with: [Collection::comment()]));
-
-        $clone = $mapper->commentedPosts();
-
-        // Clone has the child from the registered collection
-        $this->assertCount(1, $clone->with);
-        $this->assertEquals('comment', $clone->with[0]->name);
-    }
-
-    #[Test]
-    public function directPersistWithoutRegisteredCollection(): void
+    public function directPersistWithoutRegisteredScope(): void
     {
         $mapper = new InMemoryMapper(new Nested(new EntityFactory(
             entityNamespace: 'Respect\\Data\\Stubs\\',
@@ -494,23 +428,6 @@ class AbstractMapperTest extends TestCase
     }
 
     #[Test]
-    public function registerSkipsEntityWithNullCollectionName(): void
-    {
-        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
-            entityNamespace: 'Respect\\Data\\Stubs\\',
-        )));
-        $entity = new Stubs\Foo();
-        $entity->id = 1;
-
-        // Collection with null name — register should be a no-op
-        $coll = new Collection();
-        $mapper->persist($entity, $coll);
-        $mapper->flush();
-
-        $this->assertSame(0, $mapper->identityMapCount());
-    }
-
-    #[Test]
     public function registerSkipsEntityWithNoPkValue(): void
     {
         $mapper = new InMemoryMapper(new Nested(new EntityFactory(
@@ -529,7 +446,7 @@ class AbstractMapperTest extends TestCase
     }
 
     #[Test]
-    public function deleteEvictsUsingTrackedCollection(): void
+    public function deleteEvictsUsingTrackedScope(): void
     {
         $mapper = new InMemoryMapper(new Nested(new EntityFactory(
             entityNamespace: 'Respect\\Data\\Stubs\\',
@@ -541,29 +458,10 @@ class AbstractMapperTest extends TestCase
         $entity = $mapper->fetch($mapper->post(filter: 1));
         $this->assertSame(1, $mapper->identityMapCount());
 
-        // Remove via a different collection — flush uses the tracked one (name='post')
+        // Remove via a different scope — flush uses the tracked one (name='post')
         $mapper->remove($entity, $mapper->post());
         $mapper->flush();
 
-        $this->assertSame(0, $mapper->identityMapCount());
-    }
-
-    #[Test]
-    public function evictSkipsNullCollectionName(): void
-    {
-        $mapper = new InMemoryMapper(new Nested(new EntityFactory(
-            entityNamespace: 'Respect\\Data\\Stubs\\',
-        )));
-
-        // Track a new entity directly against a null-name collection
-        $entity = new Stubs\Foo();
-        $entity->id = 1;
-        $nullColl = new Collection();
-        $mapper->markTracked($entity, $nullColl);
-        $mapper->remove($entity, $nullColl);
-        $mapper->flush();
-
-        // Evict should be a no-op (null name), identity map stays empty
         $this->assertSame(0, $mapper->identityMapCount());
     }
 
@@ -609,7 +507,7 @@ class AbstractMapperTest extends TestCase
     }
 
     #[Test]
-    public function findInIdentityMapSkipsCollectionWithChildren(): void
+    public function findInIdentityMapSkipsScopeWithChildren(): void
     {
         $mapper = new InMemoryMapper(new Nested(new EntityFactory(
             entityNamespace: 'Respect\\Data\\Stubs\\',
@@ -675,7 +573,7 @@ class AbstractMapperTest extends TestCase
     }
 
     #[Test]
-    public function persistReadOnlyViaCollectionPkUpdates(): void
+    public function persistReadOnlyViaScopePkUpdates(): void
     {
         $mapper = new InMemoryMapper(new Nested(new EntityFactory(
             entityNamespace: 'Respect\\Data\\Stubs\\',
@@ -688,7 +586,7 @@ class AbstractMapperTest extends TestCase
         $fetched = $mapper->fetch($mapper->read_only_author(filter: 1));
         $this->assertSame('Original', $fetched->name);
 
-        // Create new readonly entity (no PK) and persist via collection[pk]
+        // Create new readonly entity (no PK) and persist via scope[pk]
         $updated = $mapper->entityFactory->create(Stubs\ReadOnlyAuthor::class, name: 'Updated', bio: 'new bio');
         $merged = $mapper->persist($updated, $mapper->read_only_author(filter: 1));
 
@@ -710,7 +608,7 @@ class AbstractMapperTest extends TestCase
     }
 
     #[Test]
-    public function persistReadOnlyViaCollectionPkFlushUpdatesStorage(): void
+    public function persistReadOnlyViaScopePkFlushUpdatesStorage(): void
     {
         $mapper = new InMemoryMapper(new Nested(new EntityFactory(
             entityNamespace: 'Respect\\Data\\Stubs\\',
@@ -912,7 +810,7 @@ class AbstractMapperTest extends TestCase
     }
 
     #[Test]
-    public function readOnlyReplaceViaCollectionPkPreservesRelation(): void
+    public function readOnlyReplaceViaScopePkPreservesRelation(): void
     {
         $mapper = new InMemoryMapper(new Nested(new EntityFactory(
             entityNamespace: 'Respect\\Data\\Stubs\\Immutable\\',
@@ -1058,7 +956,7 @@ class AbstractMapperTest extends TestCase
 
         $updated = new Stubs\Immutable\Author(id: 1, name: 'Bob');
 
-        // persist via collection[1] — PK already set, merge produces new entity
+        // persist via scope[1] — PK already set, merge produces new entity
         $merged = $mapper->persist($updated, $mapper->author(filter: 1));
 
         $this->assertSame(1, $merged->id);
@@ -1289,15 +1187,5 @@ class AbstractMapperTest extends TestCase
         $this->assertSame('Updated', $merged->name);
         $this->assertTrue($mapper->isTracked($merged));
         $this->assertFalse($mapper->isTracked($fetched));
-    }
-
-    #[Test]
-    public function callingRegisteredCollectionWithArgsDerives(): void
-    {
-        $coll = Collection::post();
-        $this->mapper->registerCollection('post', $coll);
-        $derived = $this->mapper->post(filter: 5);
-        $this->assertEquals('post', $derived->name);
-        $this->assertEquals(5, $derived->filter);
     }
 }

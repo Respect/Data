@@ -8,8 +8,8 @@ use DomainException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Respect\Data\Collections\Collection;
 use Respect\Data\EntityFactory;
+use Respect\Data\Scope;
 use Respect\Data\Stubs\Author;
 
 #[CoversClass(PrestyledAssoc::class)]
@@ -27,7 +27,7 @@ class PrestyledAssocTest extends TestCase
     public function hydrateReturnsFalseForEmpty(): void
     {
         $hydrator = new PrestyledAssoc($this->factory);
-        $coll = Collection::author();
+        $coll = Scope::author();
 
         $this->assertFalse($hydrator->hydrateAll(null, $coll));
         $this->assertFalse($hydrator->hydrateAll([], $coll));
@@ -38,11 +38,11 @@ class PrestyledAssocTest extends TestCase
     public function hydrateSingleEntity(): void
     {
         $hydrator = new PrestyledAssoc($this->factory);
-        $collection = Collection::author();
+        $scope = Scope::author();
 
         $result = $hydrator->hydrateAll(
             ['author__id' => 1, 'author__name' => 'Alice'],
-            $collection,
+            $scope,
         );
 
         $this->assertNotFalse($result);
@@ -57,7 +57,7 @@ class PrestyledAssocTest extends TestCase
     public function hydrateMultipleEntitiesFromJoinedRow(): void
     {
         $hydrator = new PrestyledAssoc($this->factory);
-        $collection = Collection::author([Collection::post()]);
+        $scope = Scope::author([Scope::post()]);
 
         $result = $hydrator->hydrateAll(
             [
@@ -67,7 +67,7 @@ class PrestyledAssocTest extends TestCase
                 'post__title' => 'Hello',
                 'post__author' => 1,
             ],
-            $collection,
+            $scope,
         );
 
         $this->assertNotFalse($result);
@@ -88,7 +88,7 @@ class PrestyledAssocTest extends TestCase
     public function hydrateWiresRelationships(): void
     {
         $hydrator = new PrestyledAssoc($this->factory);
-        $collection = Collection::post([Collection::author()]);
+        $scope = Scope::post([Scope::author()]);
 
         $result = $hydrator->hydrateAll(
             [
@@ -98,7 +98,7 @@ class PrestyledAssocTest extends TestCase
                 'author__id' => 1,
                 'author__name' => 'Alice',
             ],
-            $collection,
+            $scope,
         );
 
         $this->assertNotFalse($result);
@@ -113,7 +113,7 @@ class PrestyledAssocTest extends TestCase
     public function hydrateReturnsRootRegardlessOfColumnOrder(): void
     {
         $hydrator = new PrestyledAssoc($this->factory);
-        $collection = Collection::post([Collection::author()]);
+        $scope = Scope::post([Scope::author()]);
 
         // Author columns appear before post columns
         $result = $hydrator->hydrate(
@@ -124,7 +124,7 @@ class PrestyledAssocTest extends TestCase
                 'post__title' => 'Hello',
                 'post__author' => 1,
             ],
-            $collection,
+            $scope,
         );
 
         $this->assertNotFalse($result);
@@ -136,15 +136,15 @@ class PrestyledAssocTest extends TestCase
     public function hydrateCachesCollMapAcrossRows(): void
     {
         $hydrator = new PrestyledAssoc($this->factory);
-        $collection = Collection::author();
+        $scope = Scope::author();
 
         $first = $hydrator->hydrateAll(
             ['author__id' => 1, 'author__name' => 'Alice'],
-            $collection,
+            $scope,
         );
         $second = $hydrator->hydrateAll(
             ['author__id' => 2, 'author__name' => 'Bob'],
-            $collection,
+            $scope,
         );
 
         $this->assertNotFalse($first);
@@ -155,13 +155,13 @@ class PrestyledAssocTest extends TestCase
     public function hydrateThrowsOnUnknownPrefix(): void
     {
         $hydrator = new PrestyledAssoc($this->factory);
-        $collection = Collection::author();
+        $scope = Scope::author();
 
         $this->expectException(DomainException::class);
         $this->expectExceptionMessage('Unknown column prefix');
         $hydrator->hydrateAll(
             ['author__id' => 1, 'unknown__foo' => 'bar'],
-            $collection,
+            $scope,
         );
     }
 }

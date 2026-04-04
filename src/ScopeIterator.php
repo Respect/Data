@@ -6,22 +6,20 @@ namespace Respect\Data;
 
 use RecursiveArrayIterator;
 use RecursiveIteratorIterator;
-use Respect\Data\Collections\Collection;
 
-use function array_filter;
 use function is_array;
 
-/** @extends RecursiveArrayIterator<array-key, Collection> */
-final class CollectionIterator extends RecursiveArrayIterator
+/** @extends RecursiveArrayIterator<array-key, Scope> */
+final class ScopeIterator extends RecursiveArrayIterator
 {
     /** @var array<string, int> */
     protected array $namesCounts = [];
 
     /**
-     * @param Collection|array<Collection> $target
+     * @param Scope|array<Scope> $target
      * @param array<string, int> $namesCounts
      */
-    public function __construct(Collection|array $target = [], array &$namesCounts = [])
+    public function __construct(Scope|array $target = [], array &$namesCounts = [])
     {
         $this->namesCounts = &$namesCounts;
 
@@ -30,15 +28,15 @@ final class CollectionIterator extends RecursiveArrayIterator
         parent::__construct($items);
     }
 
-    /** @return RecursiveIteratorIterator<CollectionIterator>&iterable<string, Collection> */
-    public static function recursive(Collection $target): RecursiveIteratorIterator
+    /** @return RecursiveIteratorIterator<ScopeIterator>&iterable<string, Scope> */
+    public static function recursive(Scope $target): RecursiveIteratorIterator
     {
         return new RecursiveIteratorIterator(new self($target), 1);
     }
 
     public function key(): string
     {
-        $name = $this->current()->name ?? '';
+        $name = $this->current()->name;
 
         if (isset($this->namesCounts[$name])) {
             return $name . ++$this->namesCounts[$name];
@@ -57,7 +55,7 @@ final class CollectionIterator extends RecursiveArrayIterator
     public function getChildren(): RecursiveArrayIterator
     {
         return new static(
-            array_filter($this->current()->with, static fn(Collection $c): bool => $c->name !== null),
+            $this->current()->with,
             $this->namesCounts,
         );
     }
