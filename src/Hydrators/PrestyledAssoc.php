@@ -11,6 +11,7 @@ use SplObjectStorage;
 
 use function explode;
 use function is_array;
+use function strtolower;
 
 /**
  * Hydrates associative rows whose keys are pre-styled as `specifier__styledProp`.
@@ -41,7 +42,7 @@ final class PrestyledAssoc extends Base
         $grouped = [];
         foreach ($raw as $alias => $value) {
             [$prefix, $prop] = explode('__', $alias, 2);
-            $grouped[$prefix][$prop] = $value;
+            $grouped[strtolower($prefix)][$prop] = $value;
         }
 
         /** @var SplObjectStorage<object, Scope> $entities */
@@ -83,9 +84,13 @@ final class PrestyledAssoc extends Base
             return $this->scopeMap;
         }
 
+        // Keys are lowercased: a column specifier survives the round-trip through
+        // the database as the alias case the driver chose (PostgreSQL folds
+        // unquoted identifiers to lower case, others preserve them), so the
+        // prefix is matched case-insensitively.
         $this->scopeMap = [];
         foreach (ScopeIterator::recursive($scope) as $spec => $c) {
-            $this->scopeMap[$spec] = $c;
+            $this->scopeMap[strtolower($spec)] = $c;
         }
 
         $this->cachedScope = $scope;

@@ -54,6 +54,26 @@ class PrestyledAssocTest extends TestCase
     }
 
     #[Test]
+    public function hydrateMatchesSpecifierPrefixCaseInsensitively(): void
+    {
+        // A camelCase scope name (`edgeCaseEntity`) becomes the column specifier;
+        // PostgreSQL folds the unquoted alias to lower case, so the row comes back
+        // prefixed `edgecaseentity__`. The prefix must still resolve to its scope.
+        $hydrator = new PrestyledAssoc($this->factory);
+        $scope = new Scope('edgeCaseEntity');
+
+        $result = $hydrator->hydrateAll(
+            ['edgecaseentity__initialized' => 'folded'],
+            $scope,
+        );
+
+        $this->assertNotFalse($result);
+        $this->assertCount(1, $result);
+        $result->rewind();
+        $this->assertEquals('folded', $this->factory->get($result->current(), 'initialized'));
+    }
+
+    #[Test]
     public function hydrateMultipleEntitiesFromJoinedRow(): void
     {
         $hydrator = new PrestyledAssoc($this->factory);
