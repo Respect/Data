@@ -32,6 +32,11 @@ class AbstractStyleTest extends TestCase
                 return $name;
             }
 
+            public function realName(string $name): string
+            {
+                return $name;
+            }
+
             public function identifier(string $name): string
             {
                 return 'id';

@@ -18,15 +18,19 @@ class PluralTest extends TestCase
         $this->style = new Plural();
     }
 
-    /** @return array<int, array<int, string>> */
-    public static function tableEntityProvider(): array
+    /**
+     * Scope name (PHP, singular camelCase) → entity class + DB table.
+     *
+     * @return array<int, array<int, string>>
+     */
+    public static function scopeEntityTableProvider(): array
     {
         return [
-            ['posts',              'Post'],
-            ['comments',           'Comment'],
-            ['categories',         'Category'],
-            ['posts_categories',   'PostCategory'],
-            ['posts_tags',         'PostTag'],
+            ['post',          'Post',         'posts'],
+            ['comment',       'Comment',      'comments'],
+            ['category',      'Category',     'categories'],
+            ['postCategory',  'PostCategory', 'posts_categories'],
+            ['postTag',       'PostTag',      'posts_tags'],
         ];
     }
 
@@ -52,22 +56,27 @@ class PluralTest extends TestCase
         ];
     }
 
-    /** @return array<int, array<int, string>> */
+    /**
+     * Scope name (PHP, singular camelCase) → foreign key column.
+     *
+     * @return array<int, array<int, string>>
+     */
     public static function foreignProvider(): array
     {
         return [
-            ['posts',      'post_id'],
-            ['authors',    'author_id'],
-            ['tags',       'tag_id'],
-            ['users',      'user_id'],
+            ['post',      'post_id'],
+            ['author',    'author_id'],
+            ['tag',       'tag_id'],
+            ['user',      'user_id'],
         ];
     }
 
-    #[DataProvider('tableEntityProvider')]
-    public function testTableAndEntitiesMethods(string $table, string $entity): void
+    #[DataProvider('scopeEntityTableProvider')]
+    public function testScopeResolvesToEntityClassAndTable(string $scope, string $entity, string $table): void
     {
-        $this->assertEquals($entity, $this->style->styledName($table));
-        $this->assertEquals('id', $this->style->identifier($table));
+        $this->assertEquals($entity, $this->style->styledName($scope));
+        $this->assertEquals($table, $this->style->realName($scope));
+        $this->assertEquals('id', $this->style->identifier($scope));
     }
 
     #[DataProvider('columnsPropertyProvider')]
@@ -85,9 +94,9 @@ class PluralTest extends TestCase
     }
 
     #[DataProvider('foreignProvider')]
-    public function testForeign(string $table, string $foreign): void
+    public function testForeign(string $scope, string $foreign): void
     {
         $this->assertTrue($this->style->isRemoteIdentifier($foreign));
-        $this->assertEquals($foreign, $this->style->remoteIdentifier($table));
+        $this->assertEquals($foreign, $this->style->remoteIdentifier($scope));
     }
 }

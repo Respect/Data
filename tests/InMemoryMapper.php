@@ -31,7 +31,7 @@ final class InMemoryMapper extends AbstractMapper
             }
         }
 
-        $row = $this->findRow((string) $scope->name, $scope->filter);
+        $row = $this->findRow($this->style->realName((string) $scope->name), $scope->filter);
 
         return $row !== null ? $this->hydrateRow($row, $scope) : false;
     }
@@ -39,7 +39,7 @@ final class InMemoryMapper extends AbstractMapper
     /** @return array<int, mixed> */
     public function fetchAll(Scope $scope, mixed $extra = null): array
     {
-        $rows = $this->findRows((string) $scope->name, $scope->filter);
+        $rows = $this->findRows($this->style->realName((string) $scope->name), $scope->filter);
         $result = [];
 
         foreach ($rows as $row) {
@@ -59,7 +59,7 @@ final class InMemoryMapper extends AbstractMapper
         foreach ($this->pending as $entity) {
             $op = $this->pending[$entity];
             $scope = $this->tracked[$entity];
-            $tableName = (string) $scope->name;
+            $tableName = $this->style->realName((string) $scope->name);
             $id = $this->style->identifier($tableName);
 
             match ($op) {
@@ -166,7 +166,7 @@ final class InMemoryMapper extends AbstractMapper
         }
 
         $id = $this->style->identifier($childName);
-        $childRow = $this->findRowById($childName, $id, $refValue);
+        $childRow = $this->findRowById($this->style->realName($childName), $id, $refValue);
 
         if ($childRow === null) {
             return;

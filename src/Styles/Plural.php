@@ -9,7 +9,6 @@ use function explode;
 use function implode;
 use function preg_match;
 use function preg_replace;
-use function ucfirst;
 
 /**
  * Default plural table style familiar from frameworks such as Rails, Kohana,
@@ -20,32 +19,20 @@ use function ucfirst;
  * id         id           id           id
  * name       author_id    name         post_id
  *            title                     category_id
+ *
+ * Scope/method names stay PHP-conventional singular camelCase (`post`,
+ * `postCategory`); only the *table* name pluralizes. That makes `realName` the
+ * single point of difference from {@see Standard} — class resolution, foreign
+ * keys, and junction names are all singular/snake and inherited unchanged
+ * (`composed` is itself expressed through `realName`).
  */
 final class Plural extends Standard
 {
-    public function remoteIdentifier(string $name): string
+    public function realName(string $name): string
     {
-        return $this->pluralToSingular($name) . '_id';
-    }
+        $pieces = array_map($this->singularToPlural(...), explode('_', $this->realProperty($name)));
 
-    public function styledName(string $name): string
-    {
-        $pieces = array_map($this->pluralToSingular(...), explode('_', $name));
-
-        return ucfirst($this->separatorToCamelCase(implode('_', $pieces), '_'));
-    }
-
-    public function composed(string $left, string $right): string
-    {
-        return $this->singularToPlural($left) . '_' . $this->singularToPlural($right);
-    }
-
-    private function pluralToSingular(string $name): string
-    {
-        return $this->applyFirstMatch($name, [
-            '/^(.+)ies$/' => '$1y',
-            '/^(.+)s$/' => '$1',
-        ]);
+        return implode('_', $pieces);
     }
 
     private function singularToPlural(string $name): string

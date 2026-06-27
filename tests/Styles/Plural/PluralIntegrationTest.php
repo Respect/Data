@@ -12,6 +12,8 @@ use Respect\Data\Hydrators\Nested;
 use Respect\Data\InMemoryMapper;
 use Respect\Data\Styles\Plural;
 
+use function is_object;
+
 #[CoversClass(Plural::class)]
 class PluralIntegrationTest extends TestCase
 {
@@ -47,10 +49,25 @@ class PluralIntegrationTest extends TestCase
     }
 
     #[Test]
-    public function fetchAndPersistRoundTrip(): void
+    public function fetchSingularScopeResolvesToPluralTable(): void
     {
-        $entity = $this->mapper->fetch($this->mapper->posts());
+        // Scope name is PHP-conventional singular `post`; the Plural style
+        // resolves it to the `posts` seed table via realName().
+        $entity = $this->mapper->fetch($this->mapper->post());
         $this->assertIsObject($entity);
         $this->assertEquals('Post Title', $this->mapper->entityFactory->get($entity, 'title'));
+    }
+
+    #[Test]
+    public function fetchNestedRelationResolvesEachTable(): void
+    {
+        // post (→ posts) nesting author (→ authors): realName() drives both
+        // table lookups while the scope names stay singular.
+        $post = $this->mapper->fetch($this->mapper->post([$this->mapper->author()]));
+        $this->assertIsObject($post);
+
+        $author = $this->mapper->entityFactory->get($post, 'author');
+        $this->assertTrue(is_object($author));
+        $this->assertEquals('Author 1', $this->mapper->entityFactory->get($author, 'name'));
     }
 }

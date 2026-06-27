@@ -27,6 +27,11 @@ class Standard extends AbstractStyle
         return ucfirst($this->separatorToCamelCase($name, '_'));
     }
 
+    public function realName(string $name): string
+    {
+        return $this->realProperty($name);
+    }
+
     public function identifier(string $name): string
     {
         return 'id';
@@ -34,12 +39,12 @@ class Standard extends AbstractStyle
 
     public function remoteIdentifier(string $name): string
     {
-        return $name . '_id';
+        return $this->realProperty($name) . '_id';
     }
 
     public function composed(string $left, string $right): string
     {
-        return $left . '_' . $right;
+        return $this->realName($left) . '_' . $this->realName($right);
     }
 
     public function isRemoteIdentifier(string $name): bool
